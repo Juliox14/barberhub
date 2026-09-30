@@ -29,7 +29,30 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route(RoleDashboard::routeNameFor($request->user()), absolute: false));
+        $dashboardRoute = RoleDashboard::routeNameFor($request->user());
+
+        abort_if($dashboardRoute === null, 403);
+
+        $intendedUrl = $request->session()->pull('url.intended');
+
+        if ($intendedUrl !== null && ! $this->isOtherRoleDashboardUrl($intendedUrl, $dashboardRoute)) {
+            return redirect()->to($intendedUrl);
+        }
+
+        return redirect()->route($dashboardRoute);
+    }
+
+    private function isOtherRoleDashboardUrl(string $intendedUrl, string $dashboardRoute): bool
+    {
+        $intendedPath = parse_url($intendedUrl, PHP_URL_PATH) ?: '/';
+
+        foreach (RoleDashboard::routeNamesByRole() as $routeName) {
+            if ($intendedPath === route($routeName, absolute: false)) {
+                return $routeName !== $dashboardRoute;
+            }
+        }
+
+        return false;
     }
 
     /**

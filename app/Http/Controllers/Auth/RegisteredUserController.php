@@ -48,6 +48,10 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route(RoleDashboard::routeNameFor($user));
+        $dashboardRoute = RoleDashboard::routeNameFor($user);
+
+        abort_if($dashboardRoute === null, 403);
+
+        return redirect()->route($dashboardRoute);
     }
 }
