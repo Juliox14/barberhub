@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barberhub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: barberhub
+      POSTGRES_USER: barberhub
+      POSTGRES_PASSWORD: barberhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - barberhub-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barberhub -d barberhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  barberhub-postgres-data:
