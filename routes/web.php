@@ -10,7 +10,11 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function (): RedirectResponse {
-    return redirect()->route(RoleDashboard::routeNameFor(request()->user()));
+    $dashboardRoute = RoleDashboard::routeNameFor(request()->user());
+
+    abort_if($dashboardRoute === null, 403);
+
+    return redirect()->route($dashboardRoute);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

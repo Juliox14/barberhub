@@ -71,6 +71,15 @@ class RoleDashboardTest extends TestCase
             ->assertRedirect(route('client.dashboard', absolute: false));
     }
 
+    public function test_dashboard_for_invalid_role_user_is_forbidden(): void
+    {
+        $user = User::factory()->create(['role' => 'manager']);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertForbidden();
+    }
+
     public function test_login_redirects_to_intended_role_dashboard_when_present(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -82,6 +91,42 @@ class RoleDashboardTest extends TestCase
             'email' => $admin->email,
             'password' => 'password',
         ])->assertRedirect(route('admin.dashboard', absolute: false));
+    }
+
+    public function test_login_ignores_cross_role_intended_dashboard(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+
+        $this->get('/admin/dashboard')
+            ->assertRedirect(route('login', absolute: false));
+
+        $this->post('/login', [
+            'email' => $client->email,
+            'password' => 'password',
+        ])->assertRedirect(route('client.dashboard', absolute: false));
+    }
+
+    public function test_login_for_invalid_role_user_is_forbidden(): void
+    {
+        $user = User::factory()->create(['role' => 'manager']);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertForbidden();
+    }
+
+    public function test_login_preserves_same_role_intended_dashboard(): void
+    {
+        $barber = User::factory()->create(['role' => 'barber']);
+
+        $this->get('/barber/dashboard')
+            ->assertRedirect(route('login', absolute: false));
+
+        $this->post('/login', [
+            'email' => $barber->email,
+            'password' => 'password',
+        ])->assertRedirect(route('barber.dashboard', absolute: false));
     }
 
     public function test_login_redirects_users_to_their_role_dashboard(): void
@@ -121,5 +166,24 @@ class RoleDashboardTest extends TestCase
 
         $this->assertAuthenticated();
         $this->assertSame('client', auth()->user()->role);
+    }
+
+    public function test_navigation_shows_only_the_authenticated_users_dashboard_links(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->get('/admin/dashboard');
+
+        $response->assertOk()
+            ->assertSee('Panel de administración')
+            ->assertSee(route('admin.dashboard'), false)
+            ->assertDontSee(route('barber.dashboard'), false)
+            ->assertDontSee(route('client.dashboard'), false);
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            substr_count($response->getContent(), route('admin.dashboard')),
+            'The user dashboard link should be visible in desktop and responsive navigation.'
+        );
     }
 }

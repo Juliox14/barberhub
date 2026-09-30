@@ -7,12 +7,30 @@ use Illuminate\Contracts\Auth\Authenticatable;
 
 final class RoleDashboard
 {
-    public static function routeNameFor(?Authenticatable $user): string
+    /**
+     * @return array<string, string>
+     */
+    public static function routeNamesByRole(): array
     {
-        return match ($user instanceof User ? $user->role : null) {
+        return [
             'admin' => 'admin.dashboard',
             'barber' => 'barber.dashboard',
-            default => 'client.dashboard',
+            'client' => 'client.dashboard',
+        ];
+    }
+
+    public static function routeNameFor(?Authenticatable $user): ?string
+    {
+        return self::routeNamesByRole()[$user instanceof User ? $user->role : null] ?? null;
+    }
+
+    public static function labelFor(?Authenticatable $user): ?string
+    {
+        return match ($user instanceof User ? $user->role : null) {
+            'admin' => 'Panel de administración',
+            'barber' => 'Panel de barbero',
+            'client' => 'Panel de cliente',
+            default => null,
         };
     }
 }
