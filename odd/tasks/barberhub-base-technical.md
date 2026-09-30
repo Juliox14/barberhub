@@ -21,7 +21,7 @@ Prepare the technical foundation for BarberHub before implementing business modu
 - Do not implement all modules at once.
 - Do not introduce abstractions without a concrete need.
 - Use `BARBERHUB_CONTEXT.md` as the project source of truth.
-- Do not commit unless the user explicitly authorizes commits.
+- Do not push unless the user explicitly authorizes publishing.
 
 ## Tasks
 
@@ -46,15 +46,14 @@ Status: done
 Outcome:
 - Created the local Git repository metadata.
 - Renamed the initial branch to `main`.
-- Did not commit because commits require explicit user authorization.
+- Did not commit until the user explicitly authorized commits.
 
 Validation:
-- `git status --short --branch` works and reports `## No commits yet on main`.
+- `git status --short --branch` works.
 
 Evidence:
 - `git init`
 - `git branch -m main`
-- `git status --short --branch`
 
 ### 3. Add PostgreSQL Docker Compose configuration
 
@@ -68,12 +67,12 @@ Outcome:
 Validation:
 - Initially blocked because Docker was unavailable.
 - After environment setup, `docker compose config --quiet` passed.
-- Container startup remains blocked by Docker socket permissions.
+- After Docker socket permissions were fixed, PostgreSQL started successfully.
 
 Evidence:
 - Created `docker-compose.yml`.
 - `docker compose config: ok`.
-- `docker ps` fails with Docker socket permission denied.
+- `docker compose up -d postgres` started `barberhub-postgres`.
 
 ### 4. Prepare PHP/Composer next step
 
@@ -219,3 +218,20 @@ Evidence:
 - Created `lang/es.json`.
 - Updated `resources/views/welcome.blade.php`.
 - Updated layout title fallbacks in `resources/views/layouts/app.blade.php` and `resources/views/layouts/guest.blade.php`.
+
+### 11. Create structured commits
+
+Status: done
+
+Outcome:
+- Created structured local commits after the user configured Git identity.
+- Did not push to the remote because publishing remains a separate user decision.
+
+Validation:
+- `php artisan test` passed before the implementation commit: 27 tests, 27 passed, 63 assertions.
+- `npm run build` completed before the implementation commit.
+- `git status --short --branch` reported a clean working tree after commits.
+
+Evidence:
+- `6841e0e docs: add BarberHub project context and agent skills`
+- `e0e1ac3 feat: scaffold Laravel base with auth roles and Spanish UI`
