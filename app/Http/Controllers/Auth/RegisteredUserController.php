@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Support\RoleDashboard;
+use App\Support\TenantDashboard;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,10 +48,10 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        $dashboardRoute = RoleDashboard::routeNameFor($user);
+        $destination = TenantDashboard::destinationFor($user);
 
-        abort_if($dashboardRoute === null, 403);
+        abort_if($destination === null, 403, 'Todavía no tienes una barbería activa asignada.');
 
-        return redirect()->route($dashboardRoute);
+        return redirect()->route($destination['route'], $destination['parameters']);
     }
 }

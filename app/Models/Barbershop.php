@@ -18,6 +18,11 @@ class Barbershop extends Model
 
     public const STATUS_INACTIVE = 'inactive';
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);

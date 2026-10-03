@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Barbershop;
+use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -10,180 +12,24 @@ class RoleDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_access_admin_dashboard(): void
+    public function test_legacy_role_dashboards_are_no_longer_the_authenticated_landing_flow(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $barbershop = Barbershop::factory()->create();
+
+        Membership::factory()->for($user)->for($barbershop)->create();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('tenant.dashboard', $barbershop, false));
+    }
+
+    public function test_legacy_role_only_user_without_membership_is_forbidden_from_dashboard(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($user)
-            ->get('/admin/dashboard')
-            ->assertOk()
-            ->assertSee('Panel de administración')
-            ->assertSee('Rol: Administrador');
-    }
-
-    public function test_barber_can_access_barber_dashboard(): void
-    {
-        $user = User::factory()->create(['role' => 'barber']);
-
-        $this->actingAs($user)
-            ->get('/barber/dashboard')
-            ->assertOk()
-            ->assertSee('Panel de barbero')
-            ->assertSee('Rol: Barbero');
-    }
-
-    public function test_client_can_access_client_dashboard(): void
-    {
-        $user = User::factory()->create(['role' => 'client']);
-
-        $this->actingAs($user)
-            ->get('/client/dashboard')
-            ->assertOk()
-            ->assertSee('Panel de cliente')
-            ->assertSee('Rol: Cliente');
-    }
-
-    public function test_user_cannot_access_dashboard_for_another_role(): void
-    {
-        $user = User::factory()->create(['role' => 'client']);
-
-        $this->actingAs($user)
-            ->get('/admin/dashboard')
-            ->assertForbidden();
-    }
-
-    public function test_dashboard_redirects_authenticated_users_to_their_role_dashboard(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $barber = User::factory()->create(['role' => 'barber']);
-        $client = User::factory()->create(['role' => 'client']);
-
-        $this->actingAs($admin)
-            ->get('/dashboard')
-            ->assertRedirect(route('admin.dashboard', absolute: false));
-
-        $this->actingAs($barber)
-            ->get('/dashboard')
-            ->assertRedirect(route('barber.dashboard', absolute: false));
-
-        $this->actingAs($client)
-            ->get('/dashboard')
-            ->assertRedirect(route('client.dashboard', absolute: false));
-    }
-
-    public function test_dashboard_for_invalid_role_user_is_forbidden(): void
-    {
-        $user = User::factory()->create(['role' => 'manager']);
-
-        $this->actingAs($user)
             ->get('/dashboard')
             ->assertForbidden();
-    }
-
-    public function test_login_redirects_to_intended_role_dashboard_when_present(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-
-        $this->get('/admin/dashboard')
-            ->assertRedirect(route('login', absolute: false));
-
-        $this->post('/login', [
-            'email' => $admin->email,
-            'password' => 'password',
-        ])->assertRedirect(route('admin.dashboard', absolute: false));
-    }
-
-    public function test_login_ignores_cross_role_intended_dashboard(): void
-    {
-        $client = User::factory()->create(['role' => 'client']);
-
-        $this->get('/admin/dashboard')
-            ->assertRedirect(route('login', absolute: false));
-
-        $this->post('/login', [
-            'email' => $client->email,
-            'password' => 'password',
-        ])->assertRedirect(route('client.dashboard', absolute: false));
-    }
-
-    public function test_login_for_invalid_role_user_is_forbidden(): void
-    {
-        $user = User::factory()->create(['role' => 'manager']);
-
-        $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'password',
-        ])->assertForbidden();
-    }
-
-    public function test_login_preserves_same_role_intended_dashboard(): void
-    {
-        $barber = User::factory()->create(['role' => 'barber']);
-
-        $this->get('/barber/dashboard')
-            ->assertRedirect(route('login', absolute: false));
-
-        $this->post('/login', [
-            'email' => $barber->email,
-            'password' => 'password',
-        ])->assertRedirect(route('barber.dashboard', absolute: false));
-    }
-
-    public function test_login_redirects_users_to_their_role_dashboard(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $barber = User::factory()->create(['role' => 'barber']);
-        $client = User::factory()->create(['role' => 'client']);
-
-        $this->post('/login', [
-            'email' => $admin->email,
-            'password' => 'password',
-        ])->assertRedirect(route('admin.dashboard', absolute: false));
-
-        $this->post('/logout');
-
-        $this->post('/login', [
-            'email' => $barber->email,
-            'password' => 'password',
-        ])->assertRedirect(route('barber.dashboard', absolute: false));
-
-        $this->post('/logout');
-
-        $this->post('/login', [
-            'email' => $client->email,
-            'password' => 'password',
-        ])->assertRedirect(route('client.dashboard', absolute: false));
-    }
-
-    public function test_registration_redirects_new_clients_to_the_client_dashboard(): void
-    {
-        $this->post('/register', [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ])->assertRedirect(route('client.dashboard', absolute: false));
-
-        $this->assertAuthenticated();
-        $this->assertSame('client', auth()->user()->role);
-    }
-
-    public function test_navigation_shows_only_the_authenticated_users_dashboard_links(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-
-        $response = $this->actingAs($admin)->get('/admin/dashboard');
-
-        $response->assertOk()
-            ->assertSee('Panel de administración')
-            ->assertSee(route('admin.dashboard'), false)
-            ->assertDontSee(route('barber.dashboard'), false)
-            ->assertDontSee(route('client.dashboard'), false);
-
-        $this->assertGreaterThanOrEqual(
-            2,
-            substr_count($response->getContent(), route('admin.dashboard')),
-            'The user dashboard link should be visible in desktop and responsive navigation.'
-        );
     }
 }

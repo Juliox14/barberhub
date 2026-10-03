@@ -1,7 +1,9 @@
 @php
-    $dashboardRoute = \App\Support\RoleDashboard::routeNameFor(Auth::user());
-    $dashboardLabel = \App\Support\RoleDashboard::labelFor(Auth::user());
-    $dashboardHref = $dashboardRoute !== null ? route($dashboardRoute) : url('/');
+    $dashboardDestination = \App\Support\TenantDashboard::destinationFor(Auth::user());
+    $dashboardRoute = $dashboardDestination['route'] ?? null;
+    $dashboardParameters = $dashboardDestination['parameters'] ?? [];
+    $dashboardLabel = \App\Support\TenantDashboard::labelFor(Auth::user());
+    $dashboardHref = $dashboardRoute !== null ? route($dashboardRoute, $dashboardParameters) : url('/dashboard');
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
@@ -19,7 +21,7 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @if ($dashboardRoute !== null && $dashboardLabel !== null)
-                        <x-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute)">
+                        <x-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute) || request()->routeIs('dashboard')">
                             {{ $dashboardLabel }}
                         </x-nav-link>
                     @endif
@@ -76,7 +78,7 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             @if ($dashboardRoute !== null && $dashboardLabel !== null)
-                <x-responsive-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute)">
+                <x-responsive-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute) || request()->routeIs('dashboard')">
                     {{ $dashboardLabel }}
                 </x-responsive-nav-link>
             @endif

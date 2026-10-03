@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Barbershop;
+use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,6 +22,8 @@ class AuthenticationTest extends TestCase
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create();
+        $barbershop = Barbershop::factory()->create();
+        Membership::factory()->for($user)->for($barbershop)->create();
 
         $response = $this->post('/login', [
             'email' => $user->email,
@@ -27,7 +31,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('client.dashboard', absolute: false));
+        $response->assertRedirect(route('tenant.dashboard', $barbershop, false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void

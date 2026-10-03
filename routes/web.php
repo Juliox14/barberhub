@@ -1,34 +1,23 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
-use App\Support\RoleDashboard;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\TenantSelectorController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function (): RedirectResponse {
-    $dashboardRoute = RoleDashboard::routeNameFor(request()->user());
-
-    abort_if($dashboardRoute === null, 403);
-
-    return redirect()->route($dashboardRoute);
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::view('/admin/dashboard', 'dashboards.admin')
-        ->middleware('role:admin')
-        ->name('admin.dashboard');
-
-    Route::view('/barber/dashboard', 'dashboards.barber')
-        ->middleware('role:barber')
-        ->name('barber.dashboard');
-
-    Route::view('/client/dashboard', 'dashboards.client')
-        ->middleware('role:client')
-        ->name('client.dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/platform/dashboard', PlatformDashboardController::class)->name('platform.dashboard');
+    Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
+    Route::get('/barbershops/{barbershop:slug}/dashboard', TenantDashboardController::class)
+        ->middleware('tenant.member')
+        ->name('tenant.dashboard');
 });
 
 Route::middleware('auth')->group(function () {
