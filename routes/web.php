@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantDashboardController;
@@ -13,7 +14,14 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/platform/dashboard', PlatformDashboardController::class)->name('platform.dashboard');
+
+    Route::middleware('platform.admin')->prefix('platform')->name('platform.')->group(function (): void {
+        Route::get('/dashboard', PlatformDashboardController::class)->name('dashboard');
+        Route::get('/barbershops', [PlatformBarbershopController::class, 'index'])->name('barbershops.index');
+        Route::get('/barbershops/create', [PlatformBarbershopController::class, 'create'])->name('barbershops.create');
+        Route::post('/barbershops', [PlatformBarbershopController::class, 'store'])->name('barbershops.store');
+    });
+
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
     Route::get('/barbershops/{barbershop:slug}/dashboard', TenantDashboardController::class)
         ->middleware('tenant.member')
