@@ -1,65 +1,27 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between gap-4">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Crear barbería</h2>
-            <a href="{{ route('platform.barbershops.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900">
-                Volver a barberías
-            </a>
-        </div>
-    </x-slot>
+<x-platform-layout title="Nueva barbería · BarberHub" active-page="barbershops">
+    <div class="mx-auto max-w-6xl space-y-6">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><h1 class="text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">Nueva barbería</h1><p class="mt-2 text-sm leading-6 text-slate-400">Registra una barbería y asigna a la persona propietaria de su membresía inicial.</p></div>
+            <a href="{{ route('platform.barbershops.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"><svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="m11 5-5 5 5 5m-5-5h9"/></svg>Volver a barberías</a>
+        </header>
 
-    <main class="py-12">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <form method="POST" action="{{ route('platform.barbershops.store') }}" class="p-6 space-y-6">
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section class="rounded-xl border border-slate-800 bg-[#11171d]">
+                <form method="POST" action="{{ route('platform.barbershops.store') }}" class="space-y-6 p-5 sm:p-7">
                     @csrf
-
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Alta manual</p>
-                        <h3 class="text-2xl font-semibold text-gray-900">Nueva barbería</h3>
-                        <p class="mt-1 text-sm text-gray-600">El correo propietario debe pertenecer a una persona usuaria existente.</p>
+                    <div><h2 class="text-lg font-bold text-white">Información de la barbería</h2><p class="mt-1 text-sm text-slate-400">Los campos marcados son necesarios para crear el registro.</p></div>
+                    <div class="grid gap-5 sm:grid-cols-2">
+                        <div class="sm:col-span-2"><label for="name" class="block text-sm font-semibold text-slate-100">Nombre</label><input id="name" name="name" type="text" value="{{ old('name') }}" required autofocus autocomplete="organization" class="mt-2 block w-full rounded-lg border border-slate-700 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/20" placeholder="Barbería Central" /><x-input-error class="mt-2 text-amber-200" :messages="$errors->get('name')" /></div>
+                        <div><label for="slug" class="block text-sm font-semibold text-slate-100">Slug</label><input id="slug" name="slug" type="text" value="{{ old('slug') }}" required class="mt-2 block w-full rounded-lg border border-slate-700 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/20" placeholder="barberia-central" /><p class="mt-2 text-xs leading-5 text-slate-500">Minúsculas, números y guiones; debe ser único.</p><x-input-error class="mt-2 text-amber-200" :messages="$errors->get('slug')" /></div>
+                        <div><label for="timezone" class="block text-sm font-semibold text-slate-100">Zona horaria</label><input id="timezone" name="timezone" type="text" value="{{ old('timezone', 'America/Bogota') }}" required class="mt-2 block w-full rounded-lg border border-slate-700 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/20" placeholder="America/Bogota" /><x-input-error class="mt-2 text-amber-200" :messages="$errors->get('timezone')" /></div>
+                        <div><label for="status" class="block text-sm font-semibold text-slate-100">Estado inicial</label><select id="status" name="status" class="mt-2 block w-full rounded-lg border border-slate-700 bg-[#0b1015] px-4 py-3 text-sm text-white outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/20"><option value="active" @selected(old('status', 'active') === 'active')>Activa</option><option value="inactive" @selected(old('status') === 'inactive')>Inactiva</option></select><x-input-error class="mt-2 text-amber-200" :messages="$errors->get('status')" /></div>
+                        <div><label for="owner_email" class="block text-sm font-semibold text-slate-100">Correo de la persona propietaria</label><input id="owner_email" name="owner_email" type="email" value="{{ old('owner_email') }}" required autocomplete="email" class="mt-2 block w-full rounded-lg border border-slate-700 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/20" placeholder="propietario@correo.com" /><p class="mt-2 text-xs leading-5 text-slate-500">Debe pertenecer a una cuenta ya existente.</p><x-input-error class="mt-2 text-amber-200" :messages="$errors->get('owner_email')" /></div>
                     </div>
-
-                    <div>
-                        <x-input-label for="name" value="Nombre" />
-                        <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" required autofocus />
-                        <x-input-error class="mt-2" :messages="$errors->get('name')" />
-                    </div>
-
-                    <div>
-                        <x-input-label for="slug" value="Slug" />
-                        <x-text-input id="slug" name="slug" type="text" class="mt-1 block w-full" :value="old('slug')" required placeholder="barberia-central" />
-                        <p class="mt-1 text-xs text-gray-500">Usa minúsculas, números y guiones. Debe ser único.</p>
-                        <x-input-error class="mt-2" :messages="$errors->get('slug')" />
-                    </div>
-
-                    <div>
-                        <x-input-label for="timezone" value="Zona horaria" />
-                        <x-text-input id="timezone" name="timezone" type="text" class="mt-1 block w-full" :value="old('timezone', 'America/Bogota')" required />
-                        <x-input-error class="mt-2" :messages="$errors->get('timezone')" />
-                    </div>
-
-                    <div>
-                        <x-input-label for="status" value="Estado" />
-                        <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="active" @selected(old('status', 'active') === 'active')>Activa</option>
-                            <option value="inactive" @selected(old('status') === 'inactive')>Inactiva</option>
-                        </select>
-                        <x-input-error class="mt-2" :messages="$errors->get('status')" />
-                    </div>
-
-                    <div>
-                        <x-input-label for="owner_email" value="Correo de la persona propietaria" />
-                        <x-text-input id="owner_email" name="owner_email" type="email" class="mt-1 block w-full" :value="old('owner_email')" required />
-                        <x-input-error class="mt-2" :messages="$errors->get('owner_email')" />
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3">
-                        <a href="{{ route('platform.barbershops.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900">Cancelar</a>
-                        <x-primary-button>Crear barbería</x-primary-button>
-                    </div>
+                    <div class="flex flex-col-reverse gap-3 border-t border-slate-800 pt-6 sm:flex-row sm:items-center sm:justify-end"><a href="{{ route('platform.barbershops.index') }}" class="rounded-lg px-4 py-3 text-center text-sm font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Cancelar</a><button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-5 py-3 text-sm font-bold text-[#1a1409] shadow-[0_10px_24px_rgba(251,191,36,0.13)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#11171d]"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>Crear barbería</button></div>
                 </form>
             </section>
+
+            <aside class="h-fit rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6"><svg class="h-7 w-7 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5"/></svg><h2 class="mt-4 text-lg font-bold text-white">Alta manual</h2><p class="mt-2 text-sm leading-6 text-slate-400">Al crear el registro, se asignará la membresía propietaria inicial a la cuenta indicada.</p><div class="mt-6 rounded-lg bg-[#0c1116] p-4"><p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Datos requeridos</p><ul class="mt-3 space-y-3 text-sm text-slate-300"><li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"></span>Nombre y slug únicos</li><li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"></span>Zona horaria y estado</li><li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"></span>Cuenta propietaria existente</li></ul></div></aside>
         </div>
-    </main>
-</x-app-layout>
+    </div>
+</x-platform-layout>

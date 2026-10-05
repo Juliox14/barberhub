@@ -24,10 +24,11 @@ class PlatformBarbershopManagementTest extends TestCase
             ->assertSee($barbershop->name);
     }
 
-    public function test_non_platform_admin_cannot_view_or_create_platform_barbershops(): void
+    public function test_non_platform_admin_cannot_manage_platform_barbershops(): void
     {
         $user = User::factory()->create(['is_platform_admin' => false]);
         $owner = User::factory()->create(['email' => 'owner@example.com']);
+        $barbershop = Barbershop::factory()->create(['slug' => 'barberia-restringida']);
 
         $this->actingAs($user)
             ->get(route('platform.barbershops.index', absolute: false))
@@ -44,6 +45,22 @@ class PlatformBarbershopManagementTest extends TestCase
                 'timezone' => 'America/Bogota',
                 'owner_email' => $owner->email,
             ])->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('platform.barbershops.edit', $barbershop, false))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->put(route('platform.barbershops.update', $barbershop, false), [
+                'name' => 'Barbería Restringida',
+                'slug' => 'barberia-restringida',
+                'timezone' => 'America/Bogota',
+                'status' => Barbershop::STATUS_ACTIVE,
+            ])->assertForbidden();
+
+        $this->actingAs($user)
+            ->delete(route('platform.barbershops.destroy', $barbershop, false))
+            ->assertForbidden();
     }
 
     public function test_platform_admin_can_create_barbershop_with_existing_owner_email(): void
@@ -95,6 +112,95 @@ class PlatformBarbershopManagementTest extends TestCase
             ])
             ->assertRedirect(route('platform.barbershops.create', absolute: false))
             ->assertSessionHasErrors('slug');
+    }
+
+    public function test_platform_admin_can_view_edit_form(): void
+    {
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $barbershop = Barbershop::factory()->create([
+            'name' => 'Barbería Central',
+            'slug' => 'barberia-central',
+        ]);
+
+        $this->actingAs($platformAdmin)
+            ->get(route('platform.barbershops.edit', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Editar barbería')
+            ->assertSee('Barbería Central')
+            ->assertSee('barberia-central');
+    }
+
+    public function test_platform_admin_can_update_barbershop(): void
+    {
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $barbershop = Barbershop::factory()->create([
+            'name' => 'Barbería Central',
+            'slug' => 'barberia-central',
+            'timezone' => 'America/Bogota',
+            'status' => Barbershop::STATUS_ACTIVE,
+        ]);
+
+        $response = $this->actingAs($platformAdmin)
+            ->put(route('platform.barbershops.update', $barbershop, false), [
+                'name' => 'Barbería Central Renovada',
+                'slug' => 'barberia-central',
+                'timezone' => 'America/Mexico_City',
+                'status' => Barbershop::STATUS_INACTIVE,
+            ]);
+
+        $response->assertRedirect(route('platform.barbershops.index', absolute: false));
+
+        $this->assertDatabaseHas('barbershops', [
+            'id' => $barbershop->id,
+            'name' => 'Barbería Central Renovada',
+            'slug' => 'barberia-central',
+            'timezone' => 'America/Mexico_City',
+            'status' => Barbershop::STATUS_INACTIVE,
+        ]);
+    }
+
+    public function test_update_validates_unique_slug_except_current_barbershop(): void
+    {
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $barbershop = Barbershop::factory()->create(['slug' => 'barberia-central']);
+        Barbershop::factory()->create(['slug' => 'otra-barberia']);
+
+        $this->actingAs($platformAdmin)
+            ->from(route('platform.barbershops.edit', $barbershop, false))
+            ->put(route('platform.barbershops.update', $barbershop, false), [
+                'name' => 'Barbería Central',
+                'slug' => 'otra-barberia',
+                'timezone' => 'America/Bogota',
+                'status' => Barbershop::STATUS_ACTIVE,
+            ])
+            ->assertRedirect(route('platform.barbershops.edit', $barbershop, false))
+            ->assertSessionHasErrors('slug');
+    }
+
+    public function test_platform_admin_can_delete_barbershop(): void
+    {
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+        $owner = User::factory()->create();
+        $barbershop = Barbershop::factory()->create(['name' => 'Barbería Central']);
+        Membership::query()->create([
+            'user_id' => $owner->id,
+            'barbershop_id' => $barbershop->id,
+            'role' => Membership::ROLE_OWNER,
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+
+        $response = $this->actingAs($platformAdmin)
+            ->delete(route('platform.barbershops.destroy', $barbershop, false));
+
+        $response->assertRedirect(route('platform.barbershops.index', absolute: false))
+            ->assertSessionHas('status', 'Barbería eliminada correctamente.');
+
+        $this->assertDatabaseMissing('barbershops', [
+            'id' => $barbershop->id,
+        ]);
+        $this->assertDatabaseMissing('memberships', [
+            'barbershop_id' => $barbershop->id,
+        ]);
     }
 
     public function test_creation_validates_owner_email_must_exist(): void

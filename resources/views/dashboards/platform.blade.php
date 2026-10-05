@@ -1,23 +1,49 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Panel de plataforma</h2>
-    </x-slot>
+<x-platform-layout title="Dashboard global · BarberHub">
+    <div class="mx-auto max-w-[1440px] space-y-6">
+        <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
+            <div>
+                <h1 class="text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">Dashboard global</h1>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Vista real de la plataforma BarberHub: barberías, cuentas y membresías registradas.</p>
+            </div>
+            <a href="{{ route('platform.barbershops.create') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-4 py-3 text-sm font-bold text-[#1a1409] shadow-[0_10px_24px_rgba(251,191,36,0.13)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e12]">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                Agregar barbería
+            </a>
+        </header>
 
-    <main class="py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 space-y-4">
-                    <div class="space-y-2">
-                        <p class="text-sm font-medium text-gray-500">Administrador de plataforma</p>
-                        <h3 class="text-2xl font-semibold">Vista general de BarberHub</h3>
-                        <p>Desde aquí puedes supervisar barberías, miembros y operaciones globales de la plataforma.</p>
-                    </div>
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores de plataforma">
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.16)]">
+                <div class="flex items-start justify-between gap-4"><div><p class="text-sm font-medium text-slate-300">Barberías activas</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeBarbershops }}</p></div><span class="rounded-lg bg-amber-300/10 p-2.5 text-amber-300"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5"/></svg></span></div>
+                <p class="mt-4 text-xs text-slate-500">Estado activo registrado.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.16)]">
+                <div class="flex items-start justify-between gap-4"><div><p class="text-sm font-medium text-slate-300">Usuarios registrados</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $registeredUsers }}</p></div><span class="rounded-lg bg-sky-400/10 p-2.5 text-sky-300"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></div>
+                <p class="mt-4 text-xs text-slate-500">Todas las cuentas de la plataforma.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.16)]">
+                <div class="flex items-start justify-between gap-4"><div><p class="text-sm font-medium text-slate-300">Membresías activas</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeMemberships }}</p></div><span class="rounded-lg bg-emerald-400/10 p-2.5 text-emerald-300"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg></span></div>
+                <p class="mt-4 text-xs text-slate-500">Relaciones activas con barberías.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.16)]">
+                <div class="flex items-start justify-between gap-4"><div><p class="text-sm font-medium text-slate-300">Barberías inactivas</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $inactiveBarbershops }}</p></div><span class="rounded-lg bg-rose-400/10 p-2.5 text-rose-300"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.6L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span></div>
+                <p class="mt-4 text-xs text-slate-500">Estado inactivo registrado.</p>
+            </article>
+        </section>
 
-                    <a href="{{ route('platform.barbershops.index') }}" class="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2">
-                        Gestionar barberías
-                    </a>
+        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.55fr)]">
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
+                <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><h2 class="text-lg font-bold text-white">Distribución de la plataforma</h2><p class="mt-1 text-sm text-slate-400">Estados reales de las barberías registradas.</p></div><a href="{{ route('platform.barbershops.index') }}" class="text-sm font-semibold text-amber-200 underline decoration-amber-200/40 underline-offset-4 hover:text-amber-100">Ver barberías</a></div>
+                <div class="mt-8 grid gap-6 sm:grid-cols-2">
+                    <div class="rounded-lg bg-[#0c1116] p-5"><div class="flex items-center justify-between gap-4"><span class="flex items-center gap-2 text-sm font-medium text-slate-200"><span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>Activas</span><span class="text-2xl font-bold text-white">{{ $activeBarbershops }}</span></div><div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800"><div class="h-full rounded-full bg-emerald-400" style="width: {{ $activeBarbershops + $inactiveBarbershops > 0 ? round(($activeBarbershops / ($activeBarbershops + $inactiveBarbershops)) * 100) : 0 }}%"></div></div></div>
+                    <div class="rounded-lg bg-[#0c1116] p-5"><div class="flex items-center justify-between gap-4"><span class="flex items-center gap-2 text-sm font-medium text-slate-200"><span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span>Inactivas</span><span class="text-2xl font-bold text-white">{{ $inactiveBarbershops }}</span></div><div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800"><div class="h-full rounded-full bg-rose-400" style="width: {{ $activeBarbershops + $inactiveBarbershops > 0 ? round(($inactiveBarbershops / ($activeBarbershops + $inactiveBarbershops)) * 100) : 0 }}%"></div></div></div>
                 </div>
-            </section>
-        </div>
-    </main>
-</x-app-layout>
+            </article>
+            <aside class="rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6"><h2 class="text-lg font-bold text-white">Acciones disponibles</h2><p class="mt-1 text-sm leading-6 text-slate-400">Las funciones habilitadas actualmente para el ámbito de plataforma.</p><div class="mt-6 space-y-3"><a href="{{ route('platform.barbershops.index') }}" class="flex items-center justify-between rounded-lg border border-slate-700 bg-[#0c1116] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-300/40 hover:text-amber-100">Gestionar barberías <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M4 10h12m-5-5 5 5-5 5"/></svg></a><a href="{{ route('platform.barbershops.create') }}" class="flex items-center justify-between rounded-lg border border-slate-700 bg-[#0c1116] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-300/40 hover:text-amber-100">Registrar barbería <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M4 10h12m-5-5 5 5-5 5"/></svg></a></div></aside>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#11171d]">
+            <div class="flex flex-col justify-between gap-4 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-center sm:px-6"><div><h2 class="text-lg font-bold text-white">Barberías recientes</h2><p class="mt-1 text-sm text-slate-400">Últimas barberías registradas en la plataforma.</p></div><a href="{{ route('platform.barbershops.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-200 hover:text-amber-100">Ver listado completo <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M4 10h12m-5-5 5 5-5 5"/></svg></a></div>
+            <div class="overflow-x-auto"><table class="min-w-full divide-y divide-slate-800 text-left text-sm"><thead class="bg-[#0c1116] text-xs uppercase tracking-[0.08em] text-slate-500"><tr><th class="px-5 py-4 font-semibold sm:px-6">Barbería</th><th class="px-5 py-4 font-semibold">Estado</th><th class="px-5 py-4 font-semibold">Zona horaria</th><th class="px-5 py-4 text-right font-semibold">Miembros</th><th class="px-5 py-4 font-semibold sm:px-6">Registro</th></tr></thead><tbody class="divide-y divide-slate-800"><tr class="hidden"></tr>@forelse ($barbershops as $barbershop)<tr class="transition hover:bg-slate-800/40"><td class="px-5 py-4 sm:px-6"><p class="font-semibold text-slate-100">{{ $barbershop->name }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $barbershop->slug }}</p></td><td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300' }}"><span class="h-1.5 w-1.5 rounded-full {{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'bg-emerald-400' : 'bg-rose-400' }}"></span>{{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'Activa' : 'Inactiva' }}</span></td><td class="px-5 py-4 text-slate-300">{{ $barbershop->timezone }}</td><td class="px-5 py-4 text-right font-medium text-slate-200">{{ $barbershop->memberships_count }}</td><td class="px-5 py-4 text-slate-400 sm:px-6">{{ $barbershop->created_at->format('d/m/Y') }}</td></tr>@empty<tr><td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400 sm:px-6">Todavía no hay barberías registradas.</td></tr>@endforelse</tbody></table></div>
+        </section>
+    </div>
+</x-platform-layout>

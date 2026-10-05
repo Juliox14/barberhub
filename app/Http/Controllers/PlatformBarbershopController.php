@@ -77,4 +77,44 @@ final class PlatformBarbershopController extends Controller
             ->route('platform.barbershops.index')
             ->with('status', 'Barbería creada con su membresía propietaria inicial.');
     }
+
+    public function edit(Barbershop $barbershop): View
+    {
+        return view('platform.barbershops-edit', [
+            'barbershop' => $barbershop,
+        ]);
+    }
+
+    public function update(Request $request, Barbershop $barbershop): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique(Barbershop::class, 'slug')->ignore($barbershop),
+            ],
+            'timezone' => ['required', 'string', 'max:64'],
+            'status' => ['required', Rule::in([Barbershop::STATUS_ACTIVE, Barbershop::STATUS_INACTIVE])],
+        ], [
+            'slug.regex' => 'El slug solo puede usar minúsculas, números y guiones entre palabras.',
+        ]);
+
+        $barbershop->update($validated);
+
+        return redirect()
+            ->route('platform.barbershops.index')
+            ->with('status', 'Barbería actualizada correctamente.');
+    }
+
+    public function destroy(Barbershop $barbershop): RedirectResponse
+    {
+        $barbershop->delete();
+
+        return redirect()
+            ->route('platform.barbershops.index')
+            ->with('status', 'Barbería eliminada correctamente.');
+    }
 }

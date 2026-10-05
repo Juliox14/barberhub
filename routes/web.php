@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/barbershops', [PlatformBarbershopController::class, 'index'])->name('barbershops.index');
         Route::get('/barbershops/create', [PlatformBarbershopController::class, 'create'])->name('barbershops.create');
         Route::post('/barbershops', [PlatformBarbershopController::class, 'store'])->name('barbershops.store');
+        Route::get('/barbershops/{barbershop}/edit', [PlatformBarbershopController::class, 'edit'])->name('barbershops.edit');
+        Route::put('/barbershops/{barbershop}', [PlatformBarbershopController::class, 'update'])->name('barbershops.update');
+        Route::delete('/barbershops/{barbershop}', [PlatformBarbershopController::class, 'destroy'])->name('barbershops.destroy');
     });
 
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
