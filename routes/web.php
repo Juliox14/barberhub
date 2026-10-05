@@ -5,6 +5,7 @@ use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantSelectorController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,9 +27,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     });
 
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
-    Route::get('/barbershops/{barbershop:slug}/dashboard', TenantDashboardController::class)
-        ->middleware('tenant.member')
-        ->name('tenant.dashboard');
+    Route::middleware('tenant.member')->prefix('/barbershops/{barbershop:slug}')->group(function (): void {
+        Route::get('/dashboard', TenantDashboardController::class)->name('tenant.dashboard');
+        Route::get('/members', [TenantMembershipController::class, 'index'])->name('tenant.members.index');
+        Route::post('/members', [TenantMembershipController::class, 'store'])->name('tenant.members.store');
+        Route::put('/members/{membership}', [TenantMembershipController::class, 'update'])->name('tenant.members.update');
+        Route::delete('/members/{membership}', [TenantMembershipController::class, 'destroy'])->name('tenant.members.destroy');
+    });
 });
 
 Route::middleware('auth')->group(function () {

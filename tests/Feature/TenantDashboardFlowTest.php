@@ -167,6 +167,6 @@ class TenantDashboardFlowTest extends TestCase
 
         $platformResponse->assertOk()
             ->assertSee(route('platform.dashboard'), false)
-            ->assertSee('Panel de plataforma');
+            ->assertSee('Dashboard global');
     }
 }

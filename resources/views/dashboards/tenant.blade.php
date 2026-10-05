@@ -10,6 +10,7 @@
                     <p class="text-sm font-medium text-gray-500">Rol: {{ $roleLabel }}</p>
                     <h3 class="text-2xl font-semibold">Bienvenido al panel de la barbería</h3>
                     <p>{{ $roleCopy }}</p>
+                    <a href="{{ route('tenant.members.index', $barbershop) }}" class="inline-flex w-fit rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700">Gestionar miembros</a>
                 </div>
             </section>
         </div>
