@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +15,12 @@ use Illuminate\View\View;
 
 final class TenantMembershipController extends Controller
 {
-    public function index(Barbershop $barbershop): View
+    public function index(Request $request, Barbershop $barbershop): View
     {
         $this->authorizeManagement($barbershop);
+
+        /** @var User $user */
+        $user = $request->user();
 
         $memberships = $barbershop->memberships()
             ->with('user')
@@ -30,6 +34,8 @@ final class TenantMembershipController extends Controller
             'memberships' => $memberships,
             'roleLabels' => $this->roleLabels(),
             'statusLabels' => $this->statusLabels(),
+            'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),
+            'canManageMembers' => true,
         ]);
     }
 

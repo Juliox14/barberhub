@@ -159,7 +159,7 @@ class TenantDashboardFlowTest extends TestCase
 
         $tenantResponse->assertOk()
             ->assertSee(route('tenant.dashboard', $barbershop), false)
-            ->assertSee('Panel de barbería');
+            ->assertSee('Resumen del negocio');
 
         $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
 
