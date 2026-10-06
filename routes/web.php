@@ -8,6 +8,7 @@ use App\Http\Controllers\TenantBarberController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantSelectorController;
+use App\Http\Controllers\TenantServiceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -37,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/barbers', [TenantBarberController::class, 'index'])->name('tenant.barbers.index');
         Route::post('/barbers', [TenantBarberController::class, 'store'])->name('tenant.barbers.store');
         Route::put('/barbers/{barber}', [TenantBarberController::class, 'update'])->name('tenant.barbers.update');
+        Route::get('/services', [TenantServiceController::class, 'index'])->name('tenant.services.index');
+        Route::post('/services', [TenantServiceController::class, 'store'])->name('tenant.services.store');
+        Route::put('/services/{service}', [TenantServiceController::class, 'update'])->name('tenant.services.update');
     });
 });
 
