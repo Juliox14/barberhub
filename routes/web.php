@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TenantBarberController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantSelectorController;
@@ -33,6 +34,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('/members', [TenantMembershipController::class, 'store'])->name('tenant.members.store');
         Route::put('/members/{membership}', [TenantMembershipController::class, 'update'])->name('tenant.members.update');
         Route::delete('/members/{membership}', [TenantMembershipController::class, 'destroy'])->name('tenant.members.destroy');
+        Route::get('/barbers', [TenantBarberController::class, 'index'])->name('tenant.barbers.index');
+        Route::post('/barbers', [TenantBarberController::class, 'store'])->name('tenant.barbers.store');
+        Route::put('/barbers/{barber}', [TenantBarberController::class, 'update'])->name('tenant.barbers.update');
     });
 });
 
