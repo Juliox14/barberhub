@@ -28,6 +28,11 @@ class Barbershop extends Model
         return $this->hasMany(Membership::class);
     }
 
+    public function barbers(): HasMany
+    {
+        return $this->hasMany(Barber::class);
+    }
+
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class);
