@@ -17,7 +17,7 @@ Create tenant-scoped service catalog management so each barbershop can define se
 - [x] Run formatting and verification.
   - Evidence: `php artisan test --compact tests/Feature/TenantServiceManagementTest.php` passed with 9 tests / 37 assertions; `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php tests/Feature/TenantMembershipManagementTest.php tests/Feature/TenantDashboardFlowTest.php` passed with 29 tests / 110 assertions; `vendor/bin/pint --dirty --format agent` passed; reran focused test after Pint and it passed with 9 tests / 37 assertions; independent verifier reran focused/related tests and `git diff --check` successfully.
 - [x] Close the work unit according to repository policy.
-  - Evidence: implementation complete without committing; `package-lock.json` and `docs/next-session-handoff.md` remain local/uncommitted.
+  - Evidence: committed as `4ef0bb8 2026-10-06 ADD tenant service foundation` and `dd60cc6 2026-10-06 ADD tenant service management`; `package-lock.json` and `docs/next-session-handoff.md` remain local/uncommitted.
 
 ## Scope decisions
 - Services belong to exactly one barbershop.
@@ -31,7 +31,7 @@ Create tenant-scoped service catalog management so each barbershop can define se
 - `docs/next-session-handoff.md` remains local and must not be committed.
 
 ## Evidence
-- Commits: pending.
+- Commits: `4ef0bb8 2026-10-06 ADD tenant service foundation`; `dd60cc6 2026-10-06 ADD tenant service management`.
 - RED: `php artisan test --compact tests/Feature/TenantServiceManagementTest.php` failed before implementation with missing `App\\Models\\Service` and undefined `tenant.services.*` routes.
 - GREEN: `php artisan test --compact tests/Feature/TenantServiceManagementTest.php` passed after implementation: 9 tests, 37 assertions.
 - Related: `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php tests/Feature/TenantMembershipManagementTest.php tests/Feature/TenantDashboardFlowTest.php` passed: 29 tests, 110 assertions.
