@@ -17,7 +17,7 @@ Create tenant-scoped barber profiles that identify which active barbershop membe
 - [x] Run formatting and verification.
   - Evidence: `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php` passed (9 tests, 38 assertions); `php artisan test --compact tests/Feature/TenantMembershipManagementTest.php tests/Feature/TenantDashboardFlowTest.php tests/Feature/RoleDashboardTest.php` passed (22 tests, 75 assertions); `vendor/bin/pint --dirty --format agent` passed; independent verifier reran focused/related tests and `git diff --check` successfully.
 - [x] Close the work unit according to repository policy.
-  - Evidence: committed as `f29159c 2026-10-06 ADD barber profile foundation` and `19c3429 2026-10-06 ADD tenant barber profile management`; `docs/next-session-handoff.md` and `package-lock.json` remain local/uncommitted.
+  - Evidence: committed as `f29159c 2026-10-06 ADD barber profile foundation` and `8c14f1e 2026-10-06 ADD tenant barber profile management`; `docs/next-session-handoff.md` and `package-lock.json` remain local/uncommitted.
 
 ## Scope decisions
 - Barber profiles are operational/schedulable records, not membership authorization records.
@@ -29,7 +29,7 @@ Create tenant-scoped barber profiles that identify which active barbershop membe
 - `docs/next-session-handoff.md` remains local and must not be committed.
 
 ## Evidence
-- Commits: `f29159c 2026-10-06 ADD barber profile foundation`; `19c3429 2026-10-06 ADD tenant barber profile management`.
+- Commits: `f29159c 2026-10-06 ADD barber profile foundation`; `8c14f1e 2026-10-06 ADD tenant barber profile management`.
 - RED: `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php` failed before implementation: 9 errors, including missing `App\Models\Barber` and undefined `tenant.barbers.*` routes.
 - GREEN: `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php` passed after implementation: 9 tests, 38 assertions.
 - Related: `php artisan test --compact tests/Feature/TenantMembershipManagementTest.php tests/Feature/TenantDashboardFlowTest.php tests/Feature/RoleDashboardTest.php` passed: 22 tests, 75 assertions.
