@@ -5,6 +5,7 @@ use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantBarberController;
+use App\Http\Controllers\TenantBusinessHourController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantSelectorController;
@@ -41,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/services', [TenantServiceController::class, 'index'])->name('tenant.services.index');
         Route::post('/services', [TenantServiceController::class, 'store'])->name('tenant.services.store');
         Route::put('/services/{service}', [TenantServiceController::class, 'update'])->name('tenant.services.update');
+        Route::get('/business-hours', [TenantBusinessHourController::class, 'index'])->name('tenant.business-hours.index');
+        Route::post('/business-hours', [TenantBusinessHourController::class, 'store'])->name('tenant.business-hours.store');
+        Route::put('/business-hours/{businessHour}', [TenantBusinessHourController::class, 'update'])->name('tenant.business-hours.update');
     });
 });
 
