@@ -15,9 +15,9 @@ Create tenant-scoped weekly business hours so each barbershop can define when th
 - [x] Add focused feature coverage for authorization, tenant isolation, duplicate weekdays, and time validation.
   - Evidence: `php artisan test --compact tests/Feature/TenantBusinessHourManagementTest.php` first failed RED with missing `App\\Models\\BusinessHour` and route definitions, then passed after implementation: 10 tests, 44 assertions.
 - [x] Run formatting and verification.
-  - Evidence: `vendor/bin/pint --dirty --format agent` passed; focused and related feature tests passed.
+  - Evidence: `vendor/bin/pint --dirty --format agent` passed; focused and related feature tests passed; independent verifier reran focused/related tests and `git diff --check` successfully.
 - [x] Close the work unit according to repository policy.
-  - Evidence: no commit created; final handoff prepared for parent review.
+  - Evidence: committed as `5400291 2026-10-06 ADD tenant business hour foundation` and `20402c8 2026-10-06 ADD tenant business hour management`; `package-lock.json` and `docs/next-session-handoff.md` remain local/uncommitted.
 
 ## Scope decisions
 - Business hours belong to exactly one barbershop.
@@ -37,4 +37,6 @@ Create tenant-scoped weekly business hours so each barbershop can define when th
 - GREEN: `php artisan test --compact tests/Feature/TenantBusinessHourManagementTest.php` passed after implementation: 10 tests, 44 assertions.
 - Formatting: `vendor/bin/pint --dirty --format agent` passed.
 - Related tests: `php artisan test --compact tests/Feature/TenantServiceManagementTest.php` passed: 9 tests, 37 assertions; `php artisan test --compact tests/Feature/TenantBarberProfileManagementTest.php` passed: 9 tests, 38 assertions; `php artisan test --compact tests/Feature/TenantMembershipManagementTest.php` passed: 9 tests, 41 assertions; `php artisan test --compact tests/Feature/TenantDashboardFlowTest.php` passed: 11 tests, 31 assertions.
-- Commits: none; parent/user requested no commit.
+- Commits: `5400291 2026-10-06 ADD tenant business hour foundation`; `20402c8 2026-10-06 ADD tenant business hour management`.
+- Independent verification: focused business-hours tests passed (10 tests, 44 assertions); related tenant/service/barber/member/dashboard tests passed (38 tests, 147 assertions); `git diff --check` passed.
+- Native review assessment: unavailable/unassessable because the package-local Gentle AI binary is missing (`package-local-binary-missing`); no lineage was created, and separate verifier was run.
