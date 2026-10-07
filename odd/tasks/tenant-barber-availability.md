@@ -25,7 +25,7 @@ Create tenant-scoped weekly availability for barber profiles so appointments can
     - `vendor/bin/pint --dirty --format agent`: passed.
     - Independent verifier reran focused availability tests (12 tests / 57 assertions), related tenant/business-hours/barber/service/member/dashboard tests (48 tests / 191 assertions), and `git diff --check` successfully.
 - [x] Close the work unit according to repository policy.
-  - Evidence: pending commit creation; package lock and next-session handoff preserved as local changes.
+  - Evidence: committed as `d5228fa 2026-10-06 ADD barber availability foundation` and `320ffa3 2026-10-06 ADD tenant barber availability`; package lock and next-session handoff remain local/uncommitted.
 
 ## Scope decisions
 - Availability belongs to a `Barber` profile, and the barber profile belongs to exactly one barbershop.
@@ -42,7 +42,7 @@ Create tenant-scoped weekly availability for barber profiles so appointments can
 - `docs/next-session-handoff.md` remains local and must not be committed.
 
 ## Evidence
-- Commits: pending.
+- Commits: `d5228fa 2026-10-06 ADD barber availability foundation`; `320ffa3 2026-10-06 ADD tenant barber availability`.
 - RED: `php artisan test --compact tests/Feature/TenantBarberAvailabilityManagementTest.php` failed before implementation with missing `App\\Models\\BarberAvailability` and missing `tenant.barber-availability.*` route names.
 - GREEN: `php artisan test --compact tests/Feature/TenantBarberAvailabilityManagementTest.php` passed after implementation: 12 tests, 57 assertions.
 - Related tests: `TenantBusinessHourManagementTest` passed 10 tests / 44 assertions; `TenantBarberProfileManagementTest` passed 9 tests / 38 assertions; `TenantServiceManagementTest` passed 9 tests / 37 assertions; `TenantMembershipManagementTest` passed 9 tests / 41 assertions; `TenantDashboardFlowTest` passed 11 tests / 31 assertions.
