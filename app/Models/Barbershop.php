@@ -43,6 +43,11 @@ class Barbershop extends Model
         return $this->hasMany(BusinessHour::class);
     }
 
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class);
