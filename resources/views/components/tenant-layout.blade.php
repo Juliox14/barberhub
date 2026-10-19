@@ -66,10 +66,14 @@
                         <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Disponibilidad</span>
                     @endif
 
+                    <x-ui.nav-link :href="route('tenant.appointments.index', $barbershop)" :active="$activePage === 'appointments'">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M16 3v4M8 3v4M3 10h18"/><path stroke-linecap="round" stroke-linejoin="round" d="m8 15 2 2 5-5"/></svg>
+                        Agenda
+                    </x-ui.nav-link>
+
                     <div class="mt-6 border-t border-slate-800 pt-5">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
                         <div class="mt-2 space-y-1 text-sm text-slate-500">
-                            <span class="flex gap-3 px-3 py-2.5">Agenda</span>
                             <span class="flex gap-3 px-3 py-2.5">Clientes</span>
                             <span class="flex gap-3 px-3 py-2.5">Inventario</span>
                             <span class="flex gap-3 px-3 py-2.5">Reportes</span>
