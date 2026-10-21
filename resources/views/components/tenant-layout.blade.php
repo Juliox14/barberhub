@@ -6,10 +6,13 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="theme-color" content="#111820">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="apple-touch-icon" href="/icons/barberhub-180.png">
         <title>{{ $barbershop->name }} · BarberHub</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/pwa.js'])
     </head>
     <body class="bh-app font-sans antialiased">
         <div x-data="{ menuOpen: false, sidebarCollapsed: localStorage.getItem('bh-sidebar-collapsed') === 'true' }" :class="sidebarCollapsed ? 'lg:grid-cols-[5.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[250px_minmax(0,1fr)]'" class="min-h-screen lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-[cubic-bezier(0.16,1,0.3,1)]">
@@ -117,6 +120,7 @@
                     </div>
                 </header>
                 <main class="p-4 sm:p-6 lg:p-8">
+                    <x-pwa-controls />
                     {{ $slot }}
                 </main>
             </div>
