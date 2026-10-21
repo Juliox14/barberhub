@@ -11,13 +11,6 @@
             </a>
         </header>
 
-        @if (session('status'))
-            <div class="flex items-start gap-3 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100" role="status">
-                <svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16 9"/></svg>
-                {{ session('status') }}
-            </div>
-        @endif
-
         <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#11171d]">
             <div class="flex flex-col justify-between gap-3 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
                 <div>

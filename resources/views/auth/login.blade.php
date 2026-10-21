@@ -13,7 +13,6 @@
         <p class="mt-2 text-sm leading-6 text-slate-300">Ingresa a tu cuenta para continuar administrando tu barbería.</p>
     </header>
 
-    <x-auth-session-status class="mb-6 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf

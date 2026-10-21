@@ -116,8 +116,11 @@
                         </form>
                     </div>
                 </header>
-                <main class="p-4 sm:p-6 lg:p-8">{{ $slot }}</main>
+                <main class="p-4 sm:p-6 lg:p-8">
+                    {{ $slot }}
+                </main>
             </div>
         </div>
+        <x-form-feedback />
     </body>
 </html>

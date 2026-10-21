@@ -16,24 +16,6 @@
             </button>
         </div>
 
-        @if (session('status'))
-            <div class="flex items-start gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100" role="status">
-                <svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6"/></svg>
-                <p>{{ session('status') }}</p>
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="rounded-xl border border-rose-400/35 bg-rose-400/10 px-4 py-4 text-sm text-rose-100" role="alert">
-                <div class="flex items-center gap-2 font-semibold"><svg class="h-5 w-5 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>Revisa la información enviada.</div>
-                <ul class="mt-2 list-disc space-y-1 pl-5 text-rose-100/85">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]" aria-labelledby="team-members-heading">
             <header class="flex flex-col gap-2 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>

@@ -34,6 +34,28 @@
 }
 
 @layer components {
+    .bh-notifications {
+        position: fixed;
+        z-index: 9999;
+        top: max(1rem, env(safe-area-inset-top));
+        inset-inline: 0;
+        display: grid;
+        gap: 0.75rem;
+        width: min(36rem, calc(100% - 2rem));
+        max-height: calc(100dvh - 2rem);
+        margin-inline: auto;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        pointer-events: none;
+        color-scheme: dark;
+    }
+
+    .bh-alert {
+        pointer-events: auto;
+        box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+        animation: bh-alert-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
     .bh-sidebar {
         min-width: 0;
         overflow-x: hidden;
@@ -188,6 +210,18 @@
         color: var(--bh-gold-soft);
         font-size: 0.875rem;
         font-weight: 700;
+    }
+}
+
+@keyframes bh-alert-enter {
+    from {
+        opacity: 0;
+        transform: translateY(calc(-100% - 2rem));
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
