@@ -35,3 +35,49 @@ self.addEventListener('fetch', (event) => {
         });
     }));
 });
+
+self.addEventListener('push', (event) => {
+    if (!event.data) {
+        return;
+    }
+
+    let payload;
+    try {
+        payload = event.data.json();
+    } catch {
+        return;
+    }
+
+    const url = typeof payload.url === 'string' ? payload.url : '/';
+    const title = typeof payload.title === 'string' ? payload.title : 'Aviso de agenda';
+    const body = typeof payload.body === 'string' ? payload.body : 'Tienes una actualización en tu agenda.';
+
+    event.waitUntil(self.registration.showNotification(title, {
+        body,
+        icon: '/icons/barberhub-192.png',
+        badge: '/icons/barberhub-192.png',
+        data: { url },
+    }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const destination = event.notification.data?.url;
+    if (typeof destination !== 'string' || !destination.startsWith('/') || destination.startsWith('//')) {
+        return;
+    }
+
+    let target;
+    try {
+        target = new URL(destination, self.location.origin);
+    } catch {
+        return;
+    }
+
+    if (target.origin !== self.location.origin || !/^\/barbershops\/[^/]+\/appointments$/.test(target.pathname)) {
+        return;
+    }
+
+    event.waitUntil(self.clients.openWindow(target.href));
+});

@@ -57,4 +57,22 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 # barberhub
-# barberhub
+
+## Barber PWA notifications
+
+Push notifications are sent to the assigned barber for appointments created by someone else, reschedules and cancellations. They use generic copy and link to the tenant agenda; appointment and customer details are not included in the notification.
+
+Configure these values in the deployment secret store (or local environment, never in source control):
+
+```text
+WEBPUSH_PUBLIC_KEY=<base64url VAPID public key>
+WEBPUSH_PRIVATE_KEY=<base64url VAPID private key; keep secret>
+WEBPUSH_SUBJECT=mailto:admin@example.com
+QUEUE_CONNECTION=database
+```
+
+Generate a VAPID pair once with `Minishlink\WebPush\VAPID::createVapidKeys()` in a trusted setup environment, then keep the private key in a secret store. Do not regenerate keys on application startup or expose the private key in client code. The public key is used by the browser to subscribe; `WEBPUSH_SUBJECT` must be a `mailto:` address or an HTTPS URL.
+
+Serve the application over HTTPS; service workers and browser push require a secure context (localhost is suitable for local development). On iPhone and iPad, install BarberHub from Safari using **Add to Home Screen** before enabling push.
+
+Apply the pending database migrations with `php artisan migrate --force` (including the push-subscription and database-queue tables), then keep a queue worker running, for example `php artisan queue:work --tries=3`. A synchronous queue connection will not provide background delivery. Rebuild frontend assets with `npm run build` when deploying a release.

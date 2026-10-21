@@ -2,12 +2,25 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendAppointmentPush;
+use App\Models\Appointment;
 use App\Models\Barber;
+use App\Models\BarberAvailability;
 use App\Models\Barbershop;
+use App\Models\BusinessHour;
 use App\Models\Membership;
 use App\Models\PushSubscription;
+use App\Models\Service;
 use App\Models\User;
+use App\Support\WebPushSender;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use Minishlink\WebPush\VAPID;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -169,6 +182,190 @@ class BarberPushNotificationTest extends TestCase
 
         $this->assertDatabaseCount('push_subscriptions', 1);
         $this->assertDatabaseHas('push_subscriptions', ['user_id' => $user->id, 'session_hash' => hash('sha256', 'another-device')]);
+    }
+
+    public function test_owner_scheduling_for_another_barber_queues_assigned_event_after_success(): void
+    {
+        [$barbershop, $owner, $barber, $service] = $this->appointmentContext();
+        Queue::fake();
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+
+        $this->actingAs($owner)
+            ->post(route('tenant.appointments.store', $barbershop, false), [
+                'barber_id' => $barber->id,
+                'service_id' => $service->id,
+                'customer_id' => '',
+                'starts_at' => '2026-10-05T11:00',
+            ])
+            ->assertRedirect();
+
+        Queue::assertPushed(SendAppointmentPush::class, fn (SendAppointmentPush $job): bool => $job->event === 'assigned' && $job->actorUserId === $owner->id
+        );
+    }
+
+    public function test_owner_rescheduling_and_cancellation_queue_only_their_matching_events(): void
+    {
+        [$barbershop, $owner, , , $appointment] = $this->appointmentContext();
+        Queue::fake();
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+
+        $this->actingAs($owner)
+            ->put(route('tenant.appointments.reschedule', [$barbershop, $appointment], false), ['starts_at' => '2026-10-05T11:00'])
+            ->assertRedirect();
+
+        Queue::assertPushed(SendAppointmentPush::class, fn (SendAppointmentPush $job): bool => $job->event === 'rescheduled');
+
+        Queue::fake();
+        $this->post(route('tenant.appointments.cancel', [$barbershop, $appointment], false))->assertRedirect();
+
+        Queue::assertPushed(SendAppointmentPush::class, fn (SendAppointmentPush $job): bool => $job->event === 'cancelled');
+    }
+
+    public function test_own_actions_and_completed_or_no_show_transitions_do_not_queue_push(): void
+    {
+        [$barbershop, , $barber, $service, $appointment] = $this->appointmentContext();
+        $barberUser = $barber->user;
+        Queue::fake();
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+
+        $this->actingAs($barberUser)
+            ->put(route('tenant.appointments.reschedule', [$barbershop, $appointment], false), ['starts_at' => '2026-10-05T11:00'])
+            ->assertRedirect();
+
+        $this->post(route('tenant.appointments.complete', [$barbershop, $appointment], false))->assertRedirect();
+        Queue::assertNothingPushed();
+
+        $cancelledAppointment = Appointment::factory()->for($barbershop)->for($appointment->barber)->for($service)->create([
+            'starts_at' => '2026-10-05 12:00:00', 'ends_at' => '2026-10-05 12:30:00',
+        ]);
+        $this->post(route('tenant.appointments.cancel', [$barbershop, $cancelledAppointment], false))->assertRedirect();
+        Queue::assertNothingPushed();
+
+        $noShowAppointment = Appointment::factory()->for($barbershop)->for($appointment->barber)->for($service)->create([
+            'starts_at' => '2026-10-05 13:00:00', 'ends_at' => '2026-10-05 13:30:00',
+        ]);
+        $this->post(route('tenant.appointments.no-show', [$barbershop, $noShowAppointment], false))->assertRedirect();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_rejected_schedule_does_not_queue_assigned_event(): void
+    {
+        [$barbershop, $owner, $barber, $service, $appointment] = $this->appointmentContext();
+        Queue::fake();
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+
+        $this->actingAs($owner)
+            ->from(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+            ->post(route('tenant.appointments.store', $barbershop, false), [
+                'barber_id' => $barber->id,
+                'service_id' => $service->id,
+                'customer_id' => '',
+                'starts_at' => $appointment->starts_at->format('Y-m-d\\TH:i'),
+            ])
+            ->assertSessionHasErrors('starts_at');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_job_rechecks_active_barber_membership_before_using_sender(): void
+    {
+        [$barbershop, $barberUser, $barber, $service, $appointment] = $this->appointmentContext();
+        $sender = $this->mock(WebPushSender::class);
+        $sender->shouldNotReceive('send');
+        Membership::query()->where('user_id', $barberUser->id)->update(['status' => Membership::STATUS_INACTIVE]);
+
+        (new SendAppointmentPush($appointment->id, $barberUser->id, 999999, 'assigned'))->handle($sender);
+
+        Membership::query()->where('user_id', $barberUser->id)->update(['status' => Membership::STATUS_ACTIVE]);
+        $barber->update(['active' => false]);
+        (new SendAppointmentPush($appointment->id, $barberUser->id, 999999, 'assigned'))->handle($sender);
+
+        $this->assertSame($barbershop->id, $appointment->barbershop_id);
+        $this->assertSame($barber->id, $appointment->barber_id);
+        $this->assertSame($service->id, $appointment->service_id);
+    }
+
+    public function test_job_sends_generic_payload_to_the_assigned_barbers_subscriptions(): void
+    {
+        [$barbershop, $owner, $barber, , $appointment] = $this->appointmentContext();
+        $subscription = PushSubscription::factory()->for($barber->user)->create();
+        $sender = $this->mock(WebPushSender::class);
+        $sender->shouldReceive('send')
+            ->once()
+            ->withArgs(function (PushSubscription $sentSubscription, array $payload) use ($subscription, $barbershop): bool {
+                $this->assertSame($subscription->id, $sentSubscription->id);
+                $this->assertSame('Nueva cita asignada', $payload['title']);
+                $this->assertSame('Tienes una cita nueva en tu agenda.', $payload['body']);
+                $this->assertSame(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false), $payload['url']);
+                $this->assertArrayNotHasKey('customer', $payload);
+
+                return true;
+            });
+
+        (new SendAppointmentPush($appointment->id, $barber->user_id, $owner->id, 'assigned'))->handle($sender);
+    }
+
+    #[DataProvider('expiredPushStatuses')]
+    public function test_sender_removes_expired_subscription_without_live_http(int $statusCode): void
+    {
+        $subscription = PushSubscription::factory()->create(['p256dh' => self::validPublicKey()]);
+        $keys = VAPID::createVapidKeys();
+        config(['webpush.public_key' => $keys['publicKey'], 'webpush.private_key' => $keys['privateKey'], 'webpush.subject' => 'mailto:test@example.test']);
+        $client = new Client(['handler' => HandlerStack::create(new MockHandler([new Response($statusCode)]))]);
+
+        (new WebPushSender($client))->send($subscription, [
+            'title' => 'Cita cancelada',
+            'body' => 'Una cita de tu agenda fue cancelada.',
+            'url' => '/barbershops/centro/appointments?date=2026-10-05',
+        ]);
+
+        $this->assertModelMissing($subscription);
+    }
+
+    public static function expiredPushStatuses(): array
+    {
+        return ['not found' => [404], 'gone' => [410]];
+    }
+
+    public function test_sender_does_not_follow_push_service_redirects(): void
+    {
+        $subscription = PushSubscription::factory()->create(['p256dh' => self::validPublicKey()]);
+        $keys = VAPID::createVapidKeys();
+        config(['webpush.public_key' => $keys['publicKey'], 'webpush.private_key' => $keys['privateKey'], 'webpush.subject' => 'mailto:test@example.test']);
+        $history = [];
+        $stack = HandlerStack::create(new MockHandler([
+            new Response(307, ['Location' => 'https://attacker.example/collect']),
+            new Response(201),
+        ]));
+        $stack->push(Middleware::history($history));
+
+        (new WebPushSender(new Client(['handler' => $stack])))->send($subscription, [
+            'title' => 'Cita cancelada',
+            'body' => 'Una cita de tu agenda fue cancelada.',
+            'url' => '/barbershops/centro/appointments?date=2026-10-05',
+        ]);
+
+        $this->assertCount(1, $history);
+        $this->assertSame('fcm.googleapis.com', $history[0]['request']->getUri()->getHost());
+        $this->assertModelExists($subscription);
+    }
+
+    /** @return array{0: Barbershop, 1: User, 2: Barber, 3: Service, 4: Appointment} */
+    private function appointmentContext(): array
+    {
+        $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        [$barbershop, $barberUser] = $this->barberContext($barbershop);
+        $barber = Barber::query()->where('user_id', $barberUser->id)->firstOrFail();
+        $service = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 30]);
+        BusinessHour::factory()->for($barbershop)->create(['weekday' => 1, 'opens_at' => '09:00', 'closes_at' => '18:00', 'closed' => false]);
+        BarberAvailability::factory()->for($barber)->create(['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '18:00', 'active' => true]);
+        $appointment = Appointment::factory()->for($barbershop)->for($barber)->for($service)->create([
+            'starts_at' => '2026-10-05 10:00:00', 'ends_at' => '2026-10-05 10:30:00',
+        ]);
+
+        return [$barbershop, $owner, $barber, $service, $appointment];
     }
 
     private function barberContext(?Barbershop $barbershop = null, bool $active = true): array
