@@ -15,7 +15,7 @@
                     </div>
                     <button type="submit" class="min-h-11 rounded-lg border border-slate-600 px-3.5 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Ver día</button>
                 </form>
-                @if ($canManageAppointments)
+                @if ($canCreateAppointments)
                     <button
                         type="button"
                         class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
@@ -67,7 +67,7 @@
             @endif
         </section>
 
-        @if ($canManageAppointments)
+        @if ($canCreateAppointments)
             <x-form-slide-over
                 id="create-appointment"
                 title="Crear cita"
@@ -77,15 +77,17 @@
                 <form id="appointment-create" method="POST" action="{{ route('tenant.appointments.store', $barbershop) }}" class="space-y-5">
                     @csrf
                     <input type="hidden" name="form_context" value="create-appointment">
-                    <div>
-                        <label for="barber_id" class="mb-2 block text-sm font-semibold text-slate-200">Barbero</label>
-                        <select id="barber_id" name="barber_id" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                            <option value="">Seleccionar barbero</option>
-                            @foreach ($barbers as $barber)
-                                <option value="{{ $barber->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('barber_id') === (string) $barber->id)>{{ $barber->display_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if ($canManageAppointments)
+                        <div>
+                            <label for="barber_id" class="mb-2 block text-sm font-semibold text-slate-200">Barbero</label>
+                            <select id="barber_id" name="barber_id" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                                <option value="">Seleccionar barbero</option>
+                                @foreach ($barbers as $barberOption)
+                                    <option value="{{ $barberOption->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('barber_id') === (string) $barberOption->id)>{{ $barberOption->display_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div>
                         <label for="service_id" class="mb-2 block text-sm font-semibold text-slate-200">Servicio</label>
                         <select id="service_id" name="service_id" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
@@ -96,14 +98,21 @@
                         </select>
                     </div>
                     <div>
-                        <label for="customer_id" class="mb-2 block text-sm font-semibold text-slate-200">Cliente <span class="font-normal text-slate-400">(opcional)</span></label>
+                        <label for="customer_id" class="mb-2 block text-sm font-semibold text-slate-200">Cliente @unless ($canManageAppointments)<span class="font-normal text-slate-400">(elige uno)</span>@else<span class="font-normal text-slate-400">(opcional)</span>@endunless</label>
                         <select id="customer_id" name="customer_id" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                            <option value="">Sin cliente</option>
+                            <option value="">{{ $canManageAppointments ? 'Sin cliente' : 'Seleccionar cliente existente' }}</option>
                             @foreach ($customers as $customer)
                                 <option value="{{ $customer->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('customer_id') === (string) $customer->id)>{{ $customer->name }}</option>
                             @endforeach
                         </select>
                     </div>
+                    @unless ($canManageAppointments)
+                        <div>
+                            <label for="new_customer_name" class="mb-2 block text-sm font-semibold text-slate-200">O nombre de cliente nuevo</label>
+                            <input id="new_customer_name" name="new_customer_name" type="text" maxlength="255" value="{{ old('form_context') === 'create-appointment' ? old('new_customer_name') : '' }}" autocomplete="off" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                            <p class="mt-1 text-xs text-slate-400">Se guardará como cliente de la barbería, sin crear una cuenta.</p>
+                        </div>
+                    @endunless
                     <div>
                         <label for="starts_at" class="mb-2 block text-sm font-semibold text-slate-200">Inicio</label>
                         <input id="starts_at" name="starts_at" type="datetime-local" value="{{ old('form_context') === 'create-appointment' ? old('starts_at', $date.'T09:00') : $date.'T09:00' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">

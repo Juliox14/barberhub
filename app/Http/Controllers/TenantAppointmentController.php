@@ -14,6 +14,7 @@ use App\Support\TenantDashboard;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -30,10 +31,14 @@ final class TenantAppointmentController extends Controller
 
         $barber = null;
         $canManageAppointments = $isPlatformAdmin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true);
+        $canCreateAppointments = $canManageAppointments || $membership?->role === Membership::ROLE_BARBER;
 
         if (! $canManageAppointments) {
             abort_unless($membership?->role === Membership::ROLE_BARBER, 403);
-            $barber = $barbershop->barbers()->where('user_id', $user->id)->firstOrFail();
+            $barber = $barbershop->barbers()
+                ->where('user_id', $user->id)
+                ->where('active', true)
+                ->firstOrFail();
         }
 
         $validated = $request->validate([
@@ -54,11 +59,13 @@ final class TenantAppointmentController extends Controller
             'appointments' => $appointments,
             'date' => $date,
             'barbers' => $canManageAppointments ? $barbershop->barbers()->where('active', true)->orderBy('display_name')->get() : collect(),
-            'services' => $canManageAppointments ? $barbershop->services()->where('active', true)->orderBy('name')->get() : collect(),
-            'customers' => $canManageAppointments ? $barbershop->customers()->orderBy('name')->get() : collect(),
+            'services' => $canCreateAppointments ? $barbershop->services()->where('active', true)->orderBy('name')->get() : collect(),
+            'customers' => $canCreateAppointments ? $barbershop->customers()->orderBy('name')->get() : collect(),
             'roleLabel' => TenantDashboard::roleLabel($membership),
             'canManageMembers' => $canManageAppointments,
             'canManageAppointments' => $canManageAppointments,
+            'canCreateAppointments' => $canCreateAppointments,
+            'barber' => $barber,
         ]);
     }
 
@@ -68,19 +75,23 @@ final class TenantAppointmentController extends Controller
         abort_unless($user instanceof User, 403);
 
         $membership = TenantDashboard::membershipFor($user, $barbershop);
-        abort_unless(
-            $user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true),
-            403,
-        );
+        $canManageAppointments = $user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true);
+        $isBarber = $membership?->role === Membership::ROLE_BARBER;
+        abort_unless($canManageAppointments || $isBarber, 403);
+
+        $barber = $isBarber && ! $canManageAppointments
+            ? $barbershop->barbers()->where('user_id', $user->id)->where('active', true)->firstOrFail()
+            : null;
 
         $validated = $request->validate([
-            'barber_id' => [
+            'barber_id' => $canManageAppointments ? [
                 'required',
                 'integer',
                 Rule::exists(Barber::class, 'id')->where(fn ($query) => $query
                     ->where('barbershop_id', $barbershop->id)
                     ->where('active', true)),
-            ],
+            ] : ['prohibited'],
+
             'service_id' => [
                 'required',
                 'integer',
@@ -89,27 +100,47 @@ final class TenantAppointmentController extends Controller
                     ->where('active', true)),
             ],
             'customer_id' => [
+                ...($isBarber ? ['required_without:new_customer_name'] : []),
                 'nullable',
+                'prohibits:new_customer_name',
                 'integer',
                 Rule::exists(Customer::class, 'id')->where(fn ($query) => $query
                     ->where('barbershop_id', $barbershop->id)),
             ],
+            'new_customer_name' => [
+                ...($isBarber ? ['required_without:customer_id'] : []),
+                'nullable',
+                'prohibits:customer_id',
+                'string',
+                'max:255',
+                'not_regex:/^\\s*$/u',
+            ],
             'starts_at' => ['required', 'date_format:Y-m-d\TH:i'],
         ]);
 
-        $barber = $barbershop->barbers()->whereKey($validated['barber_id'])->firstOrFail();
+        $barber ??= $barbershop->barbers()->whereKey($validated['barber_id'])->firstOrFail();
         $service = $barbershop->services()->whereKey($validated['service_id'])->firstOrFail();
         $customer = isset($validated['customer_id'])
             ? $barbershop->customers()->whereKey($validated['customer_id'])->firstOrFail()
             : null;
+        $startsAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['starts_at'], $barbershop->timezone);
 
-        $scheduler->schedule(
-            barbershop: $barbershop,
-            barber: $barber,
-            service: $service,
-            customer: $customer,
-            startsAt: Carbon::createFromFormat('Y-m-d\TH:i', $validated['starts_at'], $barbershop->timezone),
-        );
+        DB::transaction(function () use ($barbershop, $barber, $service, $customer, $validated, $startsAt, $scheduler): void {
+            if (isset($validated['new_customer_name'])) {
+                $customer = $barbershop->customers()->create([
+                    'name' => trim($validated['new_customer_name']),
+                    'user_id' => null,
+                ]);
+            }
+
+            $scheduler->schedule(
+                barbershop: $barbershop,
+                barber: $barber,
+                service: $service,
+                customer: $customer,
+                startsAt: $startsAt,
+            );
+        });
 
         return redirect()
             ->route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => substr($validated['starts_at'], 0, 10)])

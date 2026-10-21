@@ -93,7 +93,8 @@ class TenantAppointmentManagementTest extends TestCase
             ->assertOk()
             ->assertSee($barber->display_name)
             ->assertDontSee($otherBarber->display_name)
-            ->assertDontSee('Crear cita');
+            ->assertSee('Crear cita')
+            ->assertDontSee('name="barber_id"', false);
     }
 
     public function test_admin_can_create_an_appointment(): void
@@ -107,6 +108,7 @@ class TenantAppointmentManagementTest extends TestCase
             ->post(route('tenant.appointments.store', $barbershop, false), [
                 'barber_id' => $barber->id,
                 'service_id' => $service->id,
+                'customer_id' => '',
                 'starts_at' => '2026-10-05T11:00',
             ])
             ->assertRedirect(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false));
@@ -119,22 +121,26 @@ class TenantAppointmentManagementTest extends TestCase
         ]);
     }
 
-    public function test_barber_cannot_create_an_appointment(): void
+    public function test_barber_can_create_an_appointment_for_an_existing_customer(): void
     {
         $barbershop = Barbershop::factory()->create();
         $barberUser = User::factory()->create();
         Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
-        [$barber, $service] = $this->scheduleableRecords($barbershop, $barberUser);
+        [$barber, $service, $customer] = $this->scheduleableRecords($barbershop, $barberUser);
 
         $this->actingAs($barberUser)
             ->post(route('tenant.appointments.store', $barbershop, false), [
-                'barber_id' => $barber->id,
                 'service_id' => $service->id,
+                'customer_id' => $customer->id,
                 'starts_at' => '2026-10-05T11:00',
             ])
-            ->assertForbidden();
+            ->assertRedirect(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false));
 
-        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseHas('appointments', [
+            'barber_id' => $barber->id,
+            'service_id' => $service->id,
+            'customer_id' => $customer->id,
+        ]);
     }
 
     public function test_owner_cannot_schedule_using_records_from_another_tenant(): void

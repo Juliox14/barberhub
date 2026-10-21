@@ -66,7 +66,7 @@ class TenantDashboardPresentationTest extends TestCase
         $this->assertStringContainsString('id="name" name="name" type="text" value=""', $createForm);
     }
 
-    public function test_owner_dashboard_pages_render_their_creation_panels_and_keep_agenda_read_only_for_barbers(): void
+    public function test_owner_dashboard_pages_render_creation_panels_and_barbers_only_create_for_themselves(): void
     {
         $barbershop = Barbershop::factory()->create();
         $owner = User::factory()->create();
@@ -147,8 +147,10 @@ class TenantDashboardPresentationTest extends TestCase
         $this->actingAs($barberUser)
             ->get(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
             ->assertOk()
-            ->assertDontSee('id="create-appointment-title"', false)
-            ->assertDontSee('Crear cita');
+            ->assertSee('id="create-appointment-title"', false)
+            ->assertSee('Crear cita')
+            ->assertDontSee('name="barber_id"', false)
+            ->assertViewHas('canManageMembers', false);
     }
 
     public function test_invalid_business_hour_create_and_update_reopen_only_the_matching_panel(): void
