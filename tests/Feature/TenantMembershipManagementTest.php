@@ -25,14 +25,108 @@ class TenantMembershipManagementTest extends TestCase
         $this->actingAs($owner)
             ->get(route('tenant.members.index', $barbershop, false))
             ->assertOk()
-            ->assertSee('Miembros de Barbería Centro')
-            ->assertSee('Carlos Barbero');
+            ->assertSee('Equipo y accesos')
+            ->assertSee('Carlos Barbero')
+            ->assertSee('Invitar miembro')
+            ->assertSee('action="'.route('tenant.barbers.invitations.store', $barbershop).'"', false)
+            ->assertDontSee('Guardar miembro')
+            ->assertDontSee('action="'.route('tenant.members.store', $barbershop).'"', false);
 
         $this->actingAs($admin)
             ->get(route('tenant.members.index', $barbershop, false))
             ->assertOk()
-            ->assertSee('Miembros de Barbería Centro')
+            ->assertSee('Equipo y accesos')
             ->assertSee('Carlos Barbero');
+    }
+
+    public function test_member_page_uses_slide_over_for_invitations_and_membership_edits(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        $member = User::factory()->create(['name' => 'Carlos López', 'email' => 'carlos@example.com']);
+        $membership = Membership::factory()->for($member)->for($barbershop)->create([
+            'role' => Membership::ROLE_BARBER,
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+
+        $this->actingAs($owner)
+            ->get(route('tenant.members.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Invitar miembro')
+            ->assertSee('Miembros del equipo')
+            ->assertSee('Carlos López')
+            ->assertSee('role="dialog"', false)
+            ->assertSee('aria-modal="true"', false)
+            ->assertSee('showPanel($event)', false)
+            ->assertSee('hidePanel()', false)
+            ->assertDontSee('[tabindex="-1"]', false)
+            ->assertSee('action="'.route('tenant.barbers.invitations.store', $barbershop).'"', false)
+            ->assertSee('action="'.route('tenant.members.update', [$barbershop, $membership]).'"', false)
+            ->assertSee('action="'.route('tenant.members.destroy', [$barbershop, $membership]).'"', false)
+            ->assertSee('name="account_name"', false)
+            ->assertSee('name="account_email"', false)
+            ->assertSee('name="agenda_name"', false)
+            ->assertSee('name="role"', false)
+            ->assertSee('name="status"', false)
+            ->assertSee('name="_method" value="PUT"', false)
+            ->assertSee('name="form_context" value="member-'.$membership->id.'"', false);
+    }
+
+    public function test_invitation_slide_over_reopens_with_values_after_validation_errors(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create(['email' => 'owner@example.com']);
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        $payload = [
+            'form_context' => 'invite-member',
+            'account_name' => 'Otra persona',
+            'account_email' => $owner->email,
+            'agenda_name' => 'Otra persona',
+        ];
+
+        $this->followingRedirects()
+            ->actingAs($owner)
+            ->from(route('tenant.members.index', $barbershop, false))
+            ->post(route('tenant.barbers.invitations.store', $barbershop, false), $payload)
+            ->assertOk()
+            ->assertSee('isOpen: true', false)
+            ->assertSee('name="form_context" value="invite-member"', false)
+            ->assertSee('value="owner@example.com"', false)
+            ->assertSee('Este correo ya tiene una cuenta y no se puede invitar como una cuenta nueva.')
+            ->assertSee('aria-invalid="true"', false);
+
+        $this->assertDatabaseMissing('users', ['name' => 'Otra persona']);
+    }
+
+    public function test_edit_slide_over_reopens_when_last_active_owner_cannot_be_changed(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        $membership = Membership::factory()->for($owner)->for($barbershop)->create([
+            'role' => Membership::ROLE_OWNER,
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+        $payload = [
+            'form_context' => 'member-'.$membership->id,
+            'role' => Membership::ROLE_ADMIN,
+            'status' => Membership::STATUS_ACTIVE,
+        ];
+
+        $this->followingRedirects()
+            ->actingAs($owner)
+            ->from(route('tenant.members.index', $barbershop, false))
+            ->put(route('tenant.members.update', [$barbershop, $membership], false), $payload)
+            ->assertOk()
+            ->assertSee('isOpen: true', false)
+            ->assertSee('name="form_context" value="member-'.$membership->id.'"', false)
+            ->assertSee('Debe existir al menos un propietario activo en la barbería.');
+
+        $this->assertDatabaseHas('memberships', [
+            'id' => $membership->id,
+            'role' => Membership::ROLE_OWNER,
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
     }
 
     public function test_barber_cannot_manage_members(): void
@@ -228,7 +322,7 @@ class TenantMembershipManagementTest extends TestCase
         $this->actingAs($platformAdmin)
             ->get(route('tenant.members.index', $barbershop, false))
             ->assertOk()
-            ->assertSee('Miembros de Barbería Soporte');
+            ->assertSee('Equipo y accesos');
 
         $this->actingAs($platformAdmin)
             ->post(route('tenant.members.store', $barbershop, false), [

@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\CompleteBarberInvitationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -30,6 +31,12 @@ Route::middleware('guest')->group(function () {
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
+
+    Route::get('barber-invitations/{token}', [CompleteBarberInvitationController::class, 'create'])
+        ->name('barber-invitations.accept');
+
+    Route::post('barber-invitations', [CompleteBarberInvitationController::class, 'store'])
+        ->name('barber-invitations.complete');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
