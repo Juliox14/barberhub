@@ -53,8 +53,42 @@
                                 <p class="mt-1 text-sm text-slate-400">{{ $appointment->service->name }}</p>
                             </div>
                             <p class="text-sm text-slate-300">{{ $appointment->barber->display_name }}</p>
-                            <p class="text-sm text-slate-400">Hasta {{ $appointment->ends_at->format('H:i') }}</p>
+                            <div class="flex flex-wrap gap-2 lg:justify-end">
+                                <button type="button" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" data-slide-over-trigger x-on:click="$dispatch('form-slide-over-open', { id: 'reschedule-appointment-{{ $appointment->id }}' })">Reprogramar</button>
+                                <form method="POST" action="{{ route('tenant.appointments.cancel', [$barbershop, $appointment]) }}" onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.')">
+                                    @csrf
+                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-rose-700 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Cancelar cita</button>
+                                </form>
+                                <form method="POST" action="{{ route('tenant.appointments.complete', [$barbershop, $appointment]) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Completar</button>
+                                </form>
+                                <form method="POST" action="{{ route('tenant.appointments.no-show', [$barbershop, $appointment]) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">No asistió</button>
+                                </form>
+                            </div>
                         </article>
+                        <x-form-slide-over
+                            id="reschedule-appointment-{{ $appointment->id }}"
+                            title="Reprogramar cita"
+                            description="El horario se valida con la duración del servicio y la disponibilidad del barbero."
+                            :open="old('form_context') === 'reschedule-appointment-'.$appointment->id"
+                        >
+                            <form id="appointment-reschedule-{{ $appointment->id }}" method="POST" action="{{ route('tenant.appointments.reschedule', [$barbershop, $appointment]) }}" class="space-y-5">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="form_context" value="reschedule-appointment-{{ $appointment->id }}">
+                                <div>
+                                    <label for="starts_at_{{ $appointment->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Nuevo inicio</label>
+                                    <input id="starts_at_{{ $appointment->id }}" name="starts_at" type="datetime-local" value="{{ old('form_context') === 'reschedule-appointment-'.$appointment->id ? old('starts_at') : $appointment->starts_at->format('Y-m-d\\TH:i') }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                                </div>
+                            </form>
+                            <x-slot:footer>
+                                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" x-on:click="hidePanel()">Volver</button>
+                                <button type="submit" form="appointment-reschedule-{{ $appointment->id }}" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-5 py-2.5 text-sm font-semibold text-[#17130b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Guardar horario</button>
+                            </x-slot:footer>
+                        </x-form-slide-over>
                     @endforeach
                 </div>
             @else

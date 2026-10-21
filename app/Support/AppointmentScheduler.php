@@ -23,6 +23,7 @@ class AppointmentScheduler
         $endsAt = $startsAt->copy()->addMinutes((int) $service->duration_minutes);
 
         return DB::transaction(function () use ($barbershop, $barber, $service, $customer, $startsAt, $endsAt): Appointment {
+            $barber = Barber::query()->whereKey($barber->id)->lockForUpdate()->firstOrFail();
             $this->validate($barbershop, $barber, $service, $customer, $startsAt, $endsAt);
 
             return Appointment::create([
@@ -37,6 +38,35 @@ class AppointmentScheduler
         });
     }
 
+    public function reschedule(Appointment $appointment, CarbonInterface $startsAt): Appointment
+    {
+        return DB::transaction(function () use ($appointment, $startsAt): Appointment {
+            $barber = Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
+            $appointment = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
+
+            if ($appointment->status !== Appointment::STATUS_SCHEDULED) {
+                abort(404);
+            }
+
+            $service = Service::query()->findOrFail($appointment->service_id);
+            $endsAt = $startsAt->copy()->addMinutes((int) $service->duration_minutes);
+
+            $this->validate(
+                $appointment->barbershop,
+                $barber,
+                $service,
+                $appointment->customer,
+                $startsAt,
+                $endsAt,
+                $appointment->id,
+            );
+
+            $appointment->update(['starts_at' => $startsAt, 'ends_at' => $endsAt]);
+
+            return $appointment;
+        });
+    }
+
     private function validate(
         Barbershop $barbershop,
         Barber $barber,
@@ -44,6 +74,7 @@ class AppointmentScheduler
         ?Customer $customer,
         CarbonInterface $startsAt,
         CarbonInterface $endsAt,
+        ?int $ignoreAppointmentId = null,
     ): void {
         $errors = [];
 
@@ -69,7 +100,7 @@ class AppointmentScheduler
 
         $this->validateBusinessHourBounds($barbershop, $startsAt, $endsAt);
         $this->validateBarberAvailabilityBounds($barber, $startsAt, $endsAt);
-        $this->validateNoActiveOverlap($barber, $startsAt, $endsAt);
+        $this->validateNoActiveOverlap($barber, $startsAt, $endsAt, $ignoreAppointmentId);
     }
 
     private function validateBusinessHourBounds(Barbershop $barbershop, CarbonInterface $startsAt, CarbonInterface $endsAt): void
@@ -106,12 +137,13 @@ class AppointmentScheduler
         }
     }
 
-    private function validateNoActiveOverlap(Barber $barber, CarbonInterface $startsAt, CarbonInterface $endsAt): void
+    private function validateNoActiveOverlap(Barber $barber, CarbonInterface $startsAt, CarbonInterface $endsAt, ?int $ignoreAppointmentId = null): void
     {
         $overlaps = $barber->appointments()
             ->where('status', Appointment::STATUS_SCHEDULED)
             ->where('starts_at', '<', $endsAt)
             ->where('ends_at', '>', $startsAt)
+            ->when($ignoreAppointmentId !== null, fn ($query) => $query->where('id', '!=', $ignoreAppointmentId))
             ->lockForUpdate()
             ->exists();
 

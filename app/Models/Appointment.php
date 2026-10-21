@@ -20,6 +20,8 @@ class Appointment extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const STATUS_NO_SHOW = 'no_show';
+
     /**
      * @return array<string, string>
      */

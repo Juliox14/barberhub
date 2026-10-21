@@ -47,6 +47,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('/services/{service}', [TenantServiceController::class, 'update'])->name('tenant.services.update');
         Route::get('/appointments', [TenantAppointmentController::class, 'index'])->name('tenant.appointments.index');
         Route::post('/appointments', [TenantAppointmentController::class, 'store'])->name('tenant.appointments.store');
+        Route::put('/appointments/{appointment}/reschedule', [TenantAppointmentController::class, 'reschedule'])->name('tenant.appointments.reschedule');
+        Route::post('/appointments/{appointment}/cancel', [TenantAppointmentController::class, 'cancel'])->name('tenant.appointments.cancel');
+        Route::post('/appointments/{appointment}/complete', [TenantAppointmentController::class, 'complete'])->name('tenant.appointments.complete');
+        Route::post('/appointments/{appointment}/no-show', [TenantAppointmentController::class, 'noShow'])->name('tenant.appointments.no-show');
         Route::get('/business-hours', [TenantBusinessHourController::class, 'index'])->name('tenant.business-hours.index');
         Route::post('/business-hours', [TenantBusinessHourController::class, 'store'])->name('tenant.business-hours.store');
         Route::put('/business-hours/{businessHour}', [TenantBusinessHourController::class, 'update'])->name('tenant.business-hours.update');

@@ -146,4 +146,70 @@ final class TenantAppointmentController extends Controller
             ->route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => substr($validated['starts_at'], 0, 10)])
             ->with('status', 'Cita creada correctamente.');
     }
+
+    public function reschedule(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentScheduler $scheduler): RedirectResponse
+    {
+        $appointment = $this->authorizeAppointmentAction($request, $barbershop, $appointment);
+        $validated = $request->validate([
+            'starts_at' => ['required', 'date_format:Y-m-d\\TH:i'],
+        ]);
+        $startsAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['starts_at'], $barbershop->timezone);
+        $scheduler->reschedule($appointment, $startsAt);
+
+        return redirect()
+            ->route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => substr($validated['starts_at'], 0, 10)])
+            ->with('status', 'Cita reprogramada correctamente.');
+    }
+
+    public function cancel(Request $request, Barbershop $barbershop, Appointment $appointment): RedirectResponse
+    {
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_CANCELLED, 'Cita cancelada.');
+    }
+
+    public function complete(Request $request, Barbershop $barbershop, Appointment $appointment): RedirectResponse
+    {
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_COMPLETED, 'Cita marcada como completada.');
+    }
+
+    public function noShow(Request $request, Barbershop $barbershop, Appointment $appointment): RedirectResponse
+    {
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_NO_SHOW, 'Cita marcada como no asistió.');
+    }
+
+    private function transition(Request $request, Barbershop $barbershop, Appointment $appointment, string $status, string $message): RedirectResponse
+    {
+        $appointment = $this->authorizeAppointmentAction($request, $barbershop, $appointment);
+
+        DB::transaction(function () use ($appointment, $status): void {
+            Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
+            $lockedAppointment = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
+
+            abort_unless($lockedAppointment->status === Appointment::STATUS_SCHEDULED, 404);
+            $lockedAppointment->update(['status' => $status]);
+        });
+
+        return redirect()
+            ->route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => $appointment->starts_at->toDateString()])
+            ->with('status', $message);
+    }
+
+    private function authorizeAppointmentAction(Request $request, Barbershop $barbershop, Appointment $appointment): Appointment
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $appointment = $barbershop->appointments()->whereKey($appointment->id)->firstOrFail();
+        $membership = TenantDashboard::membershipFor($user, $barbershop);
+        $canManageAppointments = $user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true);
+
+        if (! $canManageAppointments) {
+            abort_unless($membership?->role === Membership::ROLE_BARBER, 403);
+            $barber = $barbershop->barbers()->where('user_id', $user->id)->where('active', true)->firstOrFail();
+            abort_unless($appointment->barber_id === $barber->id, 403);
+        }
+
+        abort_unless($appointment->status === Appointment::STATUS_SCHEDULED, 404);
+
+        return $appointment;
+    }
 }
