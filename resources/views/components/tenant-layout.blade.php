@@ -12,13 +12,16 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="bh-app font-sans antialiased">
-        <div x-data="{ menuOpen: false }" class="min-h-screen lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
+        <div x-data="{ menuOpen: false, sidebarCollapsed: localStorage.getItem('bh-sidebar-collapsed') === 'true' }" :class="sidebarCollapsed ? 'lg:grid-cols-[5.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[250px_minmax(0,1fr)]'" class="min-h-screen lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-[cubic-bezier(0.16,1,0.3,1)]">
             <aside
-                class="bh-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r px-4 py-6 transition lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0"
-                :class="{ 'translate-x-0': menuOpen }"
+                class="bh-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r px-4 py-6 transition-[transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0"
+                :class="{ 'translate-x-0': menuOpen, 'bh-sidebar--collapsed': sidebarCollapsed }"
             >
-                <div class="flex items-center justify-between gap-4 px-3">
+                <div class="bh-sidebar__header flex items-center justify-between gap-4 px-3">
                     <x-ui.brand :href="route('tenant.dashboard', $barbershop)" />
+                    <button type="button" class="bh-sidebar__collapse-button hidden rounded-md p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:inline-flex" x-on:click="sidebarCollapsed = ! sidebarCollapsed; localStorage.setItem('bh-sidebar-collapsed', sidebarCollapsed)" :aria-label="sidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'" :title="sidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'">
+                        <svg class="h-4 w-4 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m12 4-6 6 6 6"/></svg>
+                    </button>
                     <button type="button" class="rounded-md p-2 text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:hidden" x-on:click="menuOpen = false" aria-label="Cerrar menú">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" d="m6 6 12 12M18 6 6 18"/></svg>
                     </button>
@@ -71,7 +74,7 @@
                         Agenda
                     </x-ui.nav-link>
 
-                    <div class="mt-6 border-t border-slate-800 pt-5">
+                    <div class="bh-sidebar__upcoming mt-6 border-t border-slate-800 pt-5">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
                         <div class="mt-2 space-y-1 text-sm text-slate-500">
                             <span class="flex gap-3 px-3 py-2.5">Clientes</span>

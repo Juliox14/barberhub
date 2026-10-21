@@ -35,8 +35,70 @@
 
 @layer components {
     .bh-sidebar {
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
         border-color: var(--bh-border);
         background-color: var(--bh-sidebar);
+    }
+
+    .bh-sidebar svg {
+        flex: none;
+    }
+
+    @media (min-width: 1024px) {
+        .bh-sidebar--collapsed .bh-brand span,
+        .bh-sidebar--collapsed nav > div,
+        .bh-sidebar--collapsed nav > span,
+        .bh-sidebar--collapsed .bh-sidebar__upcoming,
+        .bh-sidebar--collapsed > .bh-surface p {
+            display: none;
+        }
+
+        .bh-sidebar--collapsed {
+            padding-inline: 0.25rem;
+        }
+
+        .bh-sidebar--collapsed > .bh-surface {
+            display: none;
+        }
+
+        .bh-sidebar--collapsed .bh-sidebar__header {
+            flex: none;
+            gap: 0;
+            justify-content: center;
+            padding-inline: 0;
+            white-space: nowrap;
+        }
+
+        .bh-sidebar--collapsed .bh-brand {
+            flex: none;
+            margin-inline: auto;
+            gap: 0;
+        }
+
+        .bh-sidebar--collapsed .bh-sidebar__collapse-button {
+            flex: none;
+            padding: 0.5rem;
+        }
+
+        .bh-sidebar--collapsed nav {
+            margin-top: 2rem;
+        }
+
+        .bh-sidebar--collapsed nav a,
+        .bh-sidebar--collapsed nav > a {
+            white-space: nowrap;
+            justify-content: center;
+            gap: 0;
+            overflow: hidden;
+            padding-inline: 0.75rem;
+            font-size: 0;
+        }
+
+        .bh-sidebar--collapsed nav {
+            flex: none;
+        }
     }
 
     .bh-topbar {
