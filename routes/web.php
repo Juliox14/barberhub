@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('/members/{membership}', [TenantMembershipController::class, 'destroy'])->name('tenant.members.destroy');
         Route::get('/barbers', [TenantBarberController::class, 'index'])->name('tenant.barbers.index');
         Route::post('/barbers', [TenantBarberController::class, 'store'])->name('tenant.barbers.store');
+        Route::post('/barbers/invitations', [TenantBarberController::class, 'invite'])->name('tenant.barbers.invitations.store');
         Route::put('/barbers/{barber}', [TenantBarberController::class, 'update'])->name('tenant.barbers.update');
         Route::get('/services', [TenantServiceController::class, 'index'])->name('tenant.services.index');
         Route::post('/services', [TenantServiceController::class, 'store'])->name('tenant.services.store');

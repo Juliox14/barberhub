@@ -27,7 +27,30 @@
 
         <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
             <div class="border-b border-slate-800 px-5 py-5 sm:px-6">
-                <h2 class="font-semibold text-white">Crear perfil de barbero</h2>
+                <h2 class="font-semibold text-white">Invitar y crear cuenta nueva</h2>
+                <p class="mt-1 text-sm text-slate-400">La persona recibirá un enlace para configurar su contraseña y verificar su correo. Se crearán su membresía y perfil activo en esta barbería.</p>
+            </div>
+            <form method="POST" action="{{ route('tenant.barbers.invitations.store', $barbershop) }}" class="grid gap-4 px-5 py-5 sm:px-6 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                @csrf
+                <div>
+                    <label for="account_name" class="mb-2 block text-sm font-medium text-slate-200">Nombre completo</label>
+                    <input id="account_name" name="account_name" type="text" value="{{ old('account_name') }}" required autocomplete="name" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                </div>
+                <div>
+                    <label for="account_email" class="mb-2 block text-sm font-medium text-slate-200">Correo electrónico</label>
+                    <input id="account_email" name="account_email" type="email" value="{{ old('account_email') }}" required autocomplete="email" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                </div>
+                <div>
+                    <label for="agenda_name" class="mb-2 block text-sm font-medium text-slate-200">Nombre para agenda</label>
+                    <input id="agenda_name" name="agenda_name" type="text" value="{{ old('agenda_name') }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" placeholder="Ej. Ana Cortes">
+                </div>
+                <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-[#17130b] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]">Crear cuenta e invitar</button>
+            </form>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
+            <div class="border-b border-slate-800 px-5 py-5 sm:px-6">
+                <h2 class="font-semibold text-white">Crear perfil para miembro existente</h2>
                 <p class="mt-1 text-sm text-slate-400">Selecciona un miembro activo de esta barbería. No se aceptan personas externas ni membresías inactivas.</p>
             </div>
             <form method="POST" action="{{ route('tenant.barbers.store', $barbershop) }}" class="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end">

@@ -6,11 +6,14 @@ use App\Models\Barber;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Notifications\BarberAccountInvitation;
 use App\Support\TenantDashboard;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -83,6 +86,49 @@ final class TenantBarberController extends Controller
         return redirect()
             ->route('tenant.barbers.index', $barbershop)
             ->with('status', 'Perfil de barbero creado correctamente.');
+    }
+
+    public function invite(Request $request, Barbershop $barbershop): RedirectResponse
+    {
+        $this->authorizeManagement($barbershop);
+
+        $validated = $request->validate([
+            'account_name' => ['required', 'string', 'max:255'],
+            'account_email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')],
+            'agenda_name' => ['required', 'string', 'max:255'],
+        ], [
+            'account_email.unique' => 'Este correo ya tiene una cuenta y no se puede invitar como una cuenta nueva.',
+        ]);
+
+        $barberUser = DB::transaction(function () use ($barbershop, $validated): User {
+            $user = User::query()->create([
+                'name' => $validated['account_name'],
+                'email' => $validated['account_email'],
+                'password' => Str::random(64),
+                'role' => 'client',
+            ]);
+
+            $barbershop->memberships()->create([
+                'user_id' => $user->id,
+                'role' => Membership::ROLE_BARBER,
+                'status' => Membership::STATUS_ACTIVE,
+            ]);
+
+            $barbershop->barbers()->create([
+                'user_id' => $user->id,
+                'display_name' => $validated['agenda_name'],
+                'active' => true,
+            ]);
+
+            return $user;
+        });
+
+        $token = Password::broker()->createToken($barberUser);
+        $barberUser->notify(new BarberAccountInvitation($token, $barbershop->name));
+
+        return redirect()
+            ->route('tenant.barbers.index', $barbershop)
+            ->with('status', 'Cuenta y perfil creados. Se generó una invitación para '.$barberUser->email.'.');
     }
 
     public function update(Request $request, Barbershop $barbershop, Barber $barber): RedirectResponse
