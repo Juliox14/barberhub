@@ -1,12 +1,74 @@
 <x-tenant-layout :barbershop="$barbershop" :role-label="$roleLabel" :can-manage-members="$canManageMembers">
     <div class="mx-auto max-w-[1440px] space-y-6">
-        <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end"><div><h1 class="text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">Resumen del negocio</h1><p class="mt-2 text-sm leading-6 text-slate-400">{{ $barbershop->name }} · {{ $roleCopy }}</p></div><button type="button" disabled class="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-500" title="Disponible cuando se implemente agenda"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>Nueva cita · Próximamente</button></header>
+        <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
+            <div>
+                <h1 class="text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">Resumen del negocio</h1>
+                <p class="mt-2 text-sm leading-6 text-slate-400">{{ $barbershop->name }} · {{ $roleCopy }}</p>
+            </div><button type="button" disabled class="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-500" title="Disponible cuando se implemente agenda"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>Nueva cita · Próximamente</button>
+        </header>
 
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><article class="rounded-xl border border-slate-800 bg-[#11171d] p-5"><p class="text-sm font-medium text-slate-300">Miembros activos</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeMembers->count() }}</p><p class="mt-4 text-xs text-slate-500">Datos reales del equipo.</p></article><article class="rounded-xl border border-slate-800 bg-[#11171d] p-5"><p class="text-sm font-medium text-slate-300">Barberos activos</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeBarberCount }}</p><p class="mt-4 text-xs text-slate-500">Membresías con rol barbero.</p></article><article class="rounded-xl border border-slate-800 bg-[#11171d] p-5"><p class="text-sm font-medium text-slate-300">Miembros inactivos</p><p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $inactiveMemberCount }}</p><p class="mt-4 text-xs text-slate-500">Estado registrado en la barbería.</p></article><article class="rounded-xl border border-slate-800 bg-[#11171d] p-5"><p class="text-sm font-medium text-slate-300">Estado de la barbería</p><p class="mt-3 text-2xl font-bold text-white">{{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'Activa' : 'Inactiva' }}</p><p class="mt-5 text-xs text-slate-500">{{ $barbershop->timezone }}</p></article></section>
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5">
+                <p class="text-sm font-medium text-slate-300">Miembros activos</p>
+                <p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeMembers->count() }}</p>
+                <p class="mt-4 text-xs text-slate-500">Datos reales del equipo.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5">
+                <p class="text-sm font-medium text-slate-300">Barberos activos</p>
+                <p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $activeBarberCount }}</p>
+                <p class="mt-4 text-xs text-slate-500">Membresías con rol barbero.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5">
+                <p class="text-sm font-medium text-slate-300">Miembros inactivos</p>
+                <p class="mt-3 text-4xl font-bold tracking-[-0.04em] text-white">{{ $inactiveMemberCount }}</p>
+                <p class="mt-4 text-xs text-slate-500">Estado registrado en la barbería.</p>
+            </article>
+            <article class="rounded-xl border border-slate-800 bg-[#11171d] p-5">
+                <p class="text-sm font-medium text-slate-300">Estado de la barbería</p>
+                <p class="mt-3 text-2xl font-bold text-white">{{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'Activa' : 'Inactiva' }}</p>
+                <p class="mt-5 text-xs text-slate-500">{{ $barbershop->timezone }}</p>
+            </article>
+        </section>
 
-        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]"><article class="rounded-xl border border-slate-800 bg-[#11171d]"><div class="flex items-center justify-between gap-4 border-b border-slate-800 p-5 sm:p-6"><div><h2 class="text-lg font-bold text-white">Equipo de barbería</h2><p class="mt-1 text-sm text-slate-400">Barberos activos registrados actualmente.</p></div>@if ($canManageMembers)<div class="flex flex-wrap justify-end gap-3"><a href="{{ route('tenant.barbers.index', $barbershop) }}" class="text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar barberos</a><a href="{{ route('tenant.members.index', $barbershop) }}" class="text-sm font-semibold text-slate-300 hover:text-white">Gestionar miembros</a></div>@endif</div><div class="divide-y divide-slate-800">@forelse ($activeBarbers as $barber)<div class="flex items-center justify-between gap-4 p-5 sm:px-6"><div class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 font-bold text-amber-200">{{ str($barber->user->name)->substr(0, 1)->upper() }}</span><div class="min-w-0"><p class="truncate font-semibold text-slate-100">{{ $barber->user->name }}</p><p class="truncate text-sm text-slate-400">{{ $barber->user->email }}</p></div></div><span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300"><span class="h-2 w-2 rounded-full bg-emerald-400"></span>Activo</span></div>@empty<div class="p-8 text-center text-sm text-slate-400">No hay barberos activos registrados todavía.</div>@endforelse</div></article>
-            <aside class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><div class="flex items-center justify-between gap-3"><h2 class="text-lg font-bold text-white">Agenda de hoy</h2><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Ejemplo visual</span></div><p class="mt-1 text-sm leading-6 text-slate-400">La agenda se conectará cuando existan citas y disponibilidad.</p><div class="mt-5 space-y-3">@foreach ([['09:00','Primer servicio'],['10:30','Corte de cabello'],['12:00','Servicio programado']] as [$time, $service])<div class="flex gap-3 rounded-lg bg-[#0c1116] p-3"><span class="font-semibold text-amber-200">{{ $time }}</span><span class="text-sm text-slate-300">{{ $service }}</span></div>@endforeach</div></aside></section>
+        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+            <article class="rounded-xl border border-slate-800 bg-[#11171d]">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-800 p-5 sm:p-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Equipo de barbería</h2>
+                        <p class="mt-1 text-sm text-slate-400">Barberos activos registrados actualmente.</p>
+                    </div>@if ($canManageMembers)<div class="flex flex-wrap justify-end gap-3"><a href="{{ route('tenant.barbers.index', $barbershop) }}" class="text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar barberos</a><a href="{{ route('tenant.members.index', $barbershop) }}" class="text-sm font-semibold text-slate-300 hover:text-white">Gestionar miembros</a></div>@endif
+                </div>
+                <div class="divide-y divide-slate-800">@forelse ($activeBarbers as $barber)<div class="flex items-center justify-between gap-4 p-5 sm:px-6">
+                        <div class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 font-bold text-amber-200">{{ str($barber->user->name)->substr(0, 1)->upper() }}</span>
+                            <div class="min-w-0">
+                                <p class="truncate font-semibold text-slate-100">{{ $barber->user->name }}</p>
+                                <p class="truncate text-sm text-slate-400">{{ $barber->user->email }}</p>
+                            </div>
+                        </div><span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300"><span class="h-2 w-2 rounded-full bg-emerald-400"></span>Activo</span>
+                    </div>@empty<div class="p-8 text-center text-sm text-slate-400">No hay barberos activos registrados todavía.</div>@endforelse</div>
+            </article>
+            <aside class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-bold text-white">Agenda de hoy</h2><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Ejemplo visual</span>
+                </div>
+                <p class="mt-1 text-sm leading-6 text-slate-400">La agenda se conectará cuando existan citas y disponibilidad.</p>
+                <div class="mt-5 space-y-3">@foreach ([['09:00','Primer servicio'],['10:30','Corte de cabello'],['12:00','Servicio programado']] as [$time, $service])<div class="flex gap-3 rounded-lg bg-[#0c1116] p-3"><span class="font-semibold text-amber-200">{{ $time }}</span><span class="text-sm text-slate-300">{{ $service }}</span></div>@endforeach</div>
+            </aside>
+        </section>
 
-        <section class="grid gap-6 lg:grid-cols-3"><article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Catálogo</span><h2 class="mt-4 text-lg font-bold text-white">Servicios</h2><p class="mt-2 text-sm leading-6 text-slate-400">Define precios, duración y estado antes de conectar agenda y disponibilidad.</p>@if ($canManageMembers)<a href="{{ route('tenant.services.index', $barbershop) }}" class="mt-4 inline-flex text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar servicios</a>@endif</article><article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Disponibilidad</span><h2 class="mt-4 text-lg font-bold text-white">Horarios y barberos</h2><p class="mt-2 text-sm leading-6 text-slate-400">Configura la semana operativa base y la disponibilidad recurrente de cada barbero.</p>@if ($canManageMembers)<div class="mt-4 flex flex-wrap gap-3"><a href="{{ route('tenant.business-hours.index', $barbershop) }}" class="inline-flex text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar horarios</a><a href="{{ route('tenant.barber-availability.index', $barbershop) }}" class="inline-flex text-sm font-semibold text-slate-300 hover:text-white">Gestionar disponibilidad</a></div>@endif</article><article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Ejemplo visual</span><h2 class="mt-4 text-lg font-bold text-white">Operación diaria</h2><p class="mt-2 text-sm leading-6 text-slate-400">Inventario, reportes y configuración se conectarán a medida que se implementen.</p></article></section>
+        <section class="grid gap-6 lg:grid-cols-3">
+            <article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Catálogo</span>
+                <h2 class="mt-4 text-lg font-bold text-white">Servicios</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Define precios, duración y estado antes de conectar agenda y disponibilidad.</p>@if ($canManageMembers)<a href="{{ route('tenant.services.index', $barbershop) }}" class="mt-4 inline-flex text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar servicios</a>@endif
+            </article>
+            <article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Disponibilidad</span>
+                <h2 class="mt-4 text-lg font-bold text-white">Horarios y barberos</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Configura la semana operativa base y la disponibilidad recurrente de cada barbero.</p>@if ($canManageMembers)<div class="mt-4 flex flex-wrap gap-3"><a href="{{ route('tenant.business-hours.index', $barbershop) }}" class="inline-flex text-sm font-semibold text-amber-200 hover:text-amber-100">Gestionar horarios</a><a href="{{ route('tenant.barber-availability.index', $barbershop) }}" class="inline-flex text-sm font-semibold text-slate-300 hover:text-white">Gestionar disponibilidad</a></div>@endif
+            </article>
+            <article class="rounded-xl border border-amber-300/20 bg-[#11171d] p-5 sm:p-6"><span class="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">Ejemplo visual</span>
+                <h2 class="mt-4 text-lg font-bold text-white">Operación diaria</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Inventario, reportes y configuración se conectarán a medida que se implementen.</p>
+            </article>
+        </section>
     </div>
 </x-tenant-layout>
