@@ -17,16 +17,13 @@
         <div>
             <x-input-label for="password" value="Nueva contraseña" />
             <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required autofocus autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <div>
             <x-input-label for="password_confirmation" value="Confirma la contraseña" />
             <x-text-input id="password_confirmation" class="mt-1 block w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <x-input-error :messages="$errors->get('email')" class="mt-2" />
 
         <div class="flex items-center justify-end">
             <x-primary-button>Configurar contraseña</x-primary-button>

@@ -111,9 +111,6 @@
                                             <option value="{{ $role }}" @selected(old('role', $membership->role) === $role)>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('role')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
 
                                 <div>
@@ -123,12 +120,6 @@
                                             <option value="{{ $status }}" @selected(old('status', $membership->status) === $status)>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('status')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
-                                    @error('owner')
-                                        <p class="mt-2 text-sm text-rose-300" role="alert">{{ $message }}</p>
-                                    @enderror
                                 </div>
                             </form>
 
@@ -174,25 +165,16 @@
                 <div>
                     <label for="account_name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre completo</label>
                     <input id="account_name" name="account_name" type="text" value="{{ old('account_name') }}" required autocomplete="name" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" @if ($errors->has('account_name')) aria-invalid="true" @endif>
-                    @error('account_name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
 
                 <div>
                     <label for="account_email" class="mb-2 block text-sm font-semibold text-slate-200">Correo electrónico</label>
                     <input id="account_email" name="account_email" type="email" value="{{ old('account_email') }}" required autocomplete="email" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" @if ($errors->has('account_email')) aria-invalid="true" @endif>
-                    @error('account_email')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
 
                 <div>
                     <label for="agenda_name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre para la agenda</label>
                     <input id="agenda_name" name="agenda_name" type="text" value="{{ old('agenda_name') }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" @if ($errors->has('agenda_name')) aria-invalid="true" @endif placeholder="Ej. Ana Cortes">
-                    @error('agenda_name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
             </form>
 

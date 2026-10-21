@@ -69,23 +69,14 @@
                                             <option value="{{ $weekday }}" @selected((int) (old('form_context') === 'business-hour-'.$businessHour->id ? old('weekday', $businessHour->weekday) : $businessHour->weekday) === (int) $weekday)>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('weekday')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="opens_at-{{ $businessHour->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Abre</label>
                                     <input id="opens_at-{{ $businessHour->id }}" name="opens_at" type="time" value="{{ old('form_context') === 'business-hour-'.$businessHour->id ? old('opens_at', $businessHour->opens_at) : $businessHour->opens_at }}" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                    @error('opens_at')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="closes_at-{{ $businessHour->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Cierra</label>
                                     <input id="closes_at-{{ $businessHour->id }}" name="closes_at" type="time" value="{{ old('form_context') === 'business-hour-'.$businessHour->id ? old('closes_at', $businessHour->closes_at) : $businessHour->closes_at }}" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                    @error('closes_at')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="closed-{{ $businessHour->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Estado</label>
@@ -128,23 +119,14 @@
                             <option value="{{ $weekday }}" @selected((string) (old('form_context') === 'create-business-hour' ? old('weekday') : '') === (string) $weekday)>{{ $label }}</option>
                         @endforeach
                     </select>
-                    @error('weekday')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="opens_at" class="mb-2 block text-sm font-semibold text-slate-200">Abre</label>
                     <input id="opens_at" name="opens_at" type="time" value="{{ old('form_context') === 'create-business-hour' ? old('opens_at') : '' }}" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('opens_at')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="closes_at" class="mb-2 block text-sm font-semibold text-slate-200">Cierra</label>
                     <input id="closes_at" name="closes_at" type="time" value="{{ old('form_context') === 'create-business-hour' ? old('closes_at') : '' }}" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('closes_at')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="closed" class="mb-2 block text-sm font-semibold text-slate-200">Estado</label>

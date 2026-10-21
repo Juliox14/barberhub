@@ -85,9 +85,6 @@
                                 <option value="{{ $barber->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('barber_id') === (string) $barber->id)>{{ $barber->display_name }}</option>
                             @endforeach
                         </select>
-                        @error('barber_id')
-                            <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                        @enderror
                     </div>
                     <div>
                         <label for="service_id" class="mb-2 block text-sm font-semibold text-slate-200">Servicio</label>
@@ -97,9 +94,6 @@
                                 <option value="{{ $service->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('service_id') === (string) $service->id)>{{ $service->name }} · {{ $service->duration_minutes }} min</option>
                             @endforeach
                         </select>
-                        @error('service_id')
-                            <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                        @enderror
                     </div>
                     <div>
                         <label for="customer_id" class="mb-2 block text-sm font-semibold text-slate-200">Cliente <span class="font-normal text-slate-400">(opcional)</span></label>
@@ -113,9 +107,6 @@
                     <div>
                         <label for="starts_at" class="mb-2 block text-sm font-semibold text-slate-200">Inicio</label>
                         <input id="starts_at" name="starts_at" type="datetime-local" value="{{ old('form_context') === 'create-appointment' ? old('starts_at', $date.'T09:00') : $date.'T09:00' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                        @error('starts_at')
-                            <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                        @enderror
                     </div>
                 </form>
                 <x-slot:footer>

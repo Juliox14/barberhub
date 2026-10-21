@@ -23,7 +23,6 @@
                 <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="m3 7 9 6 9-6"/></svg>
                 <input id="email" class="block w-full rounded-xl border border-slate-600 bg-[#0b1015] py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="tu@correo.com" />
             </div>
-            <x-input-error :messages="$errors->get('email')" class="mt-2 text-amber-200" />
         </div>
 
         <div x-data="{ visible: false }">
@@ -43,7 +42,6 @@
                     <svg x-cloak x-show="visible" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18M10.58 10.58A2 2 0 0 0 13.4 13.4M9.88 5.36A10.7 10.7 0 0 1 12 5.25c6.375 0 9.75 6.75 9.75 6.75a18.6 18.6 0 0 1-3.03 3.74M6.23 6.23A18.75 18.75 0 0 0 2.25 12s3.375 6.75 9.75 6.75a10.8 10.8 0 0 0 3.43-.56"/></svg>
                 </button>
             </div>
-            <x-input-error :messages="$errors->get('password')" class="mt-2 text-amber-200" />
         </div>
 
         <label for="remember" class="flex w-fit cursor-pointer items-center gap-3 text-sm text-slate-300">

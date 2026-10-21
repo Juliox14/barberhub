@@ -67,9 +67,6 @@
                                 <div>
                                     <label for="display_name-{{ $barber->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Nombre para agenda</label>
                                     <input id="display_name-{{ $barber->id }}" name="display_name" type="text" value="{{ old('form_context') === 'barber-'.$barber->id ? old('display_name', $barber->display_name) : $barber->display_name }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                    @error('display_name')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="active-{{ $barber->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Estado</label>
@@ -111,23 +108,14 @@
                 <div>
                     <label for="account_name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre completo</label>
                     <input id="account_name" name="account_name" type="text" value="{{ old('form_context') === 'create-barber-invitation' ? old('account_name') : '' }}" required autocomplete="name" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('account_name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="account_email" class="mb-2 block text-sm font-semibold text-slate-200">Correo electrónico</label>
                     <input id="account_email" name="account_email" type="email" value="{{ old('form_context') === 'create-barber-invitation' ? old('account_email') : '' }}" required autocomplete="email" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('account_email')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="agenda_name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre para agenda</label>
                     <input id="agenda_name" name="agenda_name" type="text" value="{{ old('form_context') === 'create-barber-invitation' ? old('agenda_name') : '' }}" required placeholder="Ej. Ana Cortes" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('agenda_name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
             </form>
             <x-slot:footer>
@@ -153,16 +141,10 @@
                             <option value="{{ $membership->user_id }}" @selected(old('form_context') === 'create-barber-profile' && (string) old('user_id') === (string) $membership->user_id)>{{ $membership->user->name }} · {{ $membership->user->email }}</option>
                         @endforeach
                     </select>
-                    @error('user_id')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="display_name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre para agenda</label>
                     <input id="display_name" name="display_name" type="text" value="{{ old('form_context') === 'create-barber-profile' ? old('display_name') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" placeholder="Ej. Ana Cortes">
-                    @error('display_name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
             </form>
             <x-slot:footer>

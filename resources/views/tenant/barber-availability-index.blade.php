@@ -78,23 +78,14 @@
                                                             <option value="{{ $weekday }}" @selected((int) (old('form_context') === 'availability-'.$availability->id ? old('weekday', $availability->weekday) : $availability->weekday) === (int) $weekday)>{{ $label }}</option>
                                                         @endforeach
                                                     </select>
-                                                    @error('weekday')
-                                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                                    @enderror
                                                 </div>
                                                 <div>
                                                     <label for="starts-at-{{ $availability->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Inicia</label>
                                                     <input id="starts-at-{{ $availability->id }}" name="starts_at" type="time" value="{{ old('form_context') === 'availability-'.$availability->id ? old('starts_at', $availability->starts_at) : $availability->starts_at }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                                    @error('starts_at')
-                                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                                    @enderror
                                                 </div>
                                                 <div>
                                                     <label for="ends-at-{{ $availability->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Termina</label>
                                                     <input id="ends-at-{{ $availability->id }}" name="ends_at" type="time" value="{{ old('form_context') === 'availability-'.$availability->id ? old('ends_at', $availability->ends_at) : $availability->ends_at }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                                    @error('ends_at')
-                                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                                    @enderror
                                                 </div>
                                                 <div>
                                                     <label for="active-{{ $availability->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Estado</label>
@@ -142,9 +133,6 @@
                             <option value="{{ $barber->id }}" @selected(old('form_context') === 'create-availability' && (string) old('barber_id') === (string) $barber->id)>{{ $barber->display_name }} · {{ $barber->user->name }}</option>
                         @endforeach
                     </select>
-                    @error('barber_id')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="weekday" class="mb-2 block text-sm font-semibold text-slate-200">Día</label>
@@ -154,23 +142,14 @@
                             <option value="{{ $businessHour->weekday }}" @selected(old('form_context') === 'create-availability' && (string) old('weekday') === (string) $businessHour->weekday)>{{ $weekdayLabels[$businessHour->weekday] }} · {{ $businessHour->opens_at }}-{{ $businessHour->closes_at }}</option>
                         @endforeach
                     </select>
-                    @error('weekday')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="starts_at" class="mb-2 block text-sm font-semibold text-slate-200">Inicia</label>
                     <input id="starts_at" name="starts_at" type="time" value="{{ old('form_context') === 'create-availability' ? old('starts_at') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('starts_at')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="ends_at" class="mb-2 block text-sm font-semibold text-slate-200">Termina</label>
                     <input id="ends_at" name="ends_at" type="time" value="{{ old('form_context') === 'create-availability' ? old('ends_at') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('ends_at')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
             </form>
             <x-slot:footer>

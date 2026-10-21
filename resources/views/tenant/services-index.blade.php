@@ -70,9 +70,6 @@
                                 <div>
                                     <label for="name-{{ $service->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Nombre</label>
                                     <input id="name-{{ $service->id }}" name="name" type="text" value="{{ old('form_context') === 'service-'.$service->id ? old('name', $service->name) : $service->name }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                    @error('name')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="description-{{ $service->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Descripción</label>
@@ -81,16 +78,10 @@
                                 <div>
                                     <label for="price-{{ $service->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Precio</label>
                                     <input id="price-{{ $service->id }}" name="price" type="number" min="0" step="0.01" value="{{ old('form_context') === 'service-'.$service->id ? old('price', $service->price) : $service->price }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" @if ($errors->has('price')) aria-invalid="true" @endif>
-                                    @error('price')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="duration-{{ $service->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Duración (minutos)</label>
                                     <input id="duration-{{ $service->id }}" name="duration_minutes" type="number" min="1" max="1440" step="1" value="{{ old('form_context') === 'service-'.$service->id ? old('duration_minutes', $service->duration_minutes) : $service->duration_minutes }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                    @error('duration_minutes')
-                                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                                    @enderror
                                 </div>
                                 <div>
                                     <label for="active-{{ $service->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Estado</label>
@@ -124,9 +115,6 @@
                 <div>
                     <label for="name" class="mb-2 block text-sm font-semibold text-slate-200">Nombre</label>
                     <input id="name" name="name" type="text" value="{{ old('form_context') === 'create-service' ? old('name') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" placeholder="Ej. Corte clásico">
-                    @error('name')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="description" class="mb-2 block text-sm font-semibold text-slate-200">Descripción</label>
@@ -135,16 +123,10 @@
                 <div>
                     <label for="price" class="mb-2 block text-sm font-semibold text-slate-200">Precio</label>
                     <input id="price" name="price" type="number" min="0" step="0.01" value="{{ old('form_context') === 'create-service' ? old('price') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('price')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
                 <div>
                     <label for="duration_minutes" class="mb-2 block text-sm font-semibold text-slate-200">Duración (minutos)</label>
                     <input id="duration_minutes" name="duration_minutes" type="number" min="1" max="1440" step="1" value="{{ old('form_context') === 'create-service' ? old('duration_minutes') : '' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                    @error('duration_minutes')
-                        <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
-                    @enderror
                 </div>
             </form>
             <x-slot:footer>

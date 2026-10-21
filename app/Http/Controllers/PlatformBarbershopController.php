@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\LatinAmericanTimezones;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,9 @@ final class PlatformBarbershopController extends Controller
 
     public function create(): View
     {
-        return view('platform.barbershops-create');
+        return view('platform.barbershops-create', [
+            'timezones' => LatinAmericanTimezones::groupedOptions(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,12 +44,13 @@ final class PlatformBarbershopController extends Controller
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 Rule::unique(Barbershop::class, 'slug'),
             ],
-            'timezone' => ['required', 'string', 'max:64'],
+            'timezone' => ['required', 'string', Rule::in(LatinAmericanTimezones::identifiers())],
             'status' => ['nullable', Rule::in([Barbershop::STATUS_ACTIVE, Barbershop::STATUS_INACTIVE])],
             'owner_email' => ['required', 'email', Rule::exists(User::class, 'email')],
         ], [
             'slug.regex' => 'El slug solo puede usar minúsculas, números y guiones entre palabras.',
             'owner_email.exists' => 'El correo de la persona propietaria debe pertenecer a una cuenta existente.',
+            'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
 
         DB::transaction(function () use ($validated): void {
@@ -82,6 +86,7 @@ final class PlatformBarbershopController extends Controller
     {
         return view('platform.barbershops-edit', [
             'barbershop' => $barbershop,
+            'timezones' => LatinAmericanTimezones::groupedOptions(),
         ]);
     }
 
@@ -96,10 +101,11 @@ final class PlatformBarbershopController extends Controller
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 Rule::unique(Barbershop::class, 'slug')->ignore($barbershop),
             ],
-            'timezone' => ['required', 'string', 'max:64'],
+            'timezone' => ['required', 'string', Rule::in(LatinAmericanTimezones::identifiers())],
             'status' => ['required', Rule::in([Barbershop::STATUS_ACTIVE, Barbershop::STATUS_INACTIVE])],
         ], [
             'slug.regex' => 'El slug solo puede usar minúsculas, números y guiones entre palabras.',
+            'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
 
         $barbershop->update($validated);
