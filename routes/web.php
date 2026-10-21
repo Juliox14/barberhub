@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\TenantAppointmentController;
 use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
@@ -34,6 +35,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
     Route::middleware('tenant.member')->prefix('/barbershops/{barbershop:slug}')->group(function (): void {
         Route::get('/dashboard', TenantDashboardController::class)->name('tenant.dashboard');
+        Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('tenant.push-subscriptions.store');
+        Route::delete('/push-subscriptions/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('tenant.push-subscriptions.destroy');
         Route::get('/members', [TenantMembershipController::class, 'index'])->name('tenant.members.index');
         Route::post('/members', [TenantMembershipController::class, 'store'])->name('tenant.members.store');
         Route::put('/members/{membership}', [TenantMembershipController::class, 'update'])->name('tenant.members.update');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Barbershop;
+use App\Models\PushSubscription;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,6 +104,15 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        if ($user !== null) {
+            PushSubscription::query()
+                ->where('user_id', $user->getAuthIdentifier())
+                ->where('session_hash', hash('sha256', $request->session()->getId()))
+                ->delete();
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
