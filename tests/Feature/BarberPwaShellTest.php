@@ -24,15 +24,24 @@ class BarberPwaShellTest extends TestCase
             ->assertSee('name="theme-color"', false)
             ->assertSee('apple-touch-icon', false)
             ->assertSee('Agregar BarberHub a la pantalla de inicio')
-            ->assertSee('aria-live="polite"', false)
-            ->assertSee('/resources/js/pwa.js', false);
+            ->assertSee('aria-live="polite"', false);
+
+        $this->assertMatchesRegularExpression(
+            '~(?:/resources/js/pwa\.js|/build/assets/pwa-[^"\s]+\.js)~',
+            $response->getContent(),
+        );
     }
 
     public function test_public_marketing_page_does_not_render_tenant_pwa_registration(): void
     {
-        $this->get('/')
-            ->assertOk()
-            ->assertDontSee('/resources/js/pwa.js', false)
+        $response = $this->get('/');
+
+        $response->assertOk()
             ->assertDontSee('service-worker.js', false);
+
+        $this->assertDoesNotMatchRegularExpression(
+            '~(?:/resources/js/pwa\.js|/build/assets/pwa-[^"\s]+\.js)~',
+            $response->getContent(),
+        );
     }
 }
