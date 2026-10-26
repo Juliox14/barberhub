@@ -101,6 +101,39 @@
             @endif
         </section>
 
+        @if ($invitableCustomers->isNotEmpty())
+            <section class="space-y-4" aria-labelledby="customer-invitations-heading">
+                <header>
+                    <h2 id="customer-invitations-heading" class="text-lg font-semibold text-white">Vincular historial de clientes</h2>
+                    <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Crea un enlace personal de un solo uso. El cliente deberá iniciar sesión o registrarse y confirmar la vinculación.</p>
+                </header>
+                @if (session('invitation_url'))
+                    <div class="rounded-lg border border-amber-300/40 bg-amber-300/10 p-4 text-sm text-amber-100" role="status">
+                        <p class="font-semibold">Enlace personal listo para compartir</p>
+                        <a href="{{ session('invitation_url') }}" class="mt-2 block break-all underline underline-offset-4">{{ url(session('invitation_url')) }}</a>
+                    </div>
+                @endif
+                <div class="divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
+                    @foreach ($invitableCustomers as $customer)
+                        <form method="POST" action="{{ route('tenant.customer-invitations.store', [$barbershop, $customer]) }}" class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+                            @csrf
+                            <div class="min-w-0">
+                                <p class="font-semibold text-slate-100">{{ $customer->name }}</p>
+                                <p class="mt-1 text-sm text-slate-400">{{ $customer->email ?: 'Sin correo guardado' }}</p>
+                            </div>
+                            <div class="flex flex-col gap-2 sm:min-w-80 sm:flex-row sm:items-end">
+                                <div class="min-w-0 flex-1">
+                                    <label for="invitation-email-{{ $customer->id }}" class="mb-1.5 block text-xs font-medium text-slate-300">Correo de su cuenta</label>
+                                    <input id="invitation-email-{{ $customer->id }}" name="email" type="email" value="{{ $customer->email }}" required autocomplete="email" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+                                </div>
+                                <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Crear enlace para el cliente</button>
+                            </div>
+                        </form>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @if ($canCreateAppointments)
             <x-form-slide-over
                 id="create-appointment"

@@ -62,6 +62,14 @@ final class TenantAppointmentController extends Controller
             'barbers' => $canManageAppointments ? $barbershop->barbers()->where('active', true)->orderBy('display_name')->get() : collect(),
             'services' => $canCreateAppointments ? $barbershop->services()->where('active', true)->orderBy('name')->get() : collect(),
             'customers' => $canCreateAppointments ? $barbershop->customers()->orderBy('name')->get() : collect(),
+            'invitableCustomers' => $canManageAppointments
+                ? $barbershop->customers()->orderBy('name')->get()
+                : ($barber !== null
+                    ? $barbershop->customers()
+                        ->whereHas('appointments', fn ($query) => $query->where('barber_id', $barber->id))
+                        ->orderBy('name')
+                        ->get()
+                    : collect()),
             'roleLabel' => TenantDashboard::roleLabel($membership),
             'canManageMembers' => $canManageAppointments,
             'canManageAppointments' => $canManageAppointments,

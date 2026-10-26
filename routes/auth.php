@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CompleteBarberInvitationController;
+use App\Http\Controllers\CustomerInvitationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -43,6 +44,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('customer-invitations/{token}', [CustomerInvitationController::class, 'show'])
+        ->name('customer-invitations.show');
+    Route::post('customer-invitations/{token}/accept', [CustomerInvitationController::class, 'accept'])
+        ->name('customer-invitations.accept');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

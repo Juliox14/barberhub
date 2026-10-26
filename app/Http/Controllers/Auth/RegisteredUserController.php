@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\CustomerInvitationService;
 use App\Support\TenantDashboard;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -29,24 +30,32 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CustomerInvitationService $invitations): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $intendedUrl = $request->session()->get('url.intended');
+        $invitationPath = $invitations->intendedPathForRegistration($intendedUrl, $validated['email']);
+        $request->session()->forget('url.intended');
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
             'role' => 'client',
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
+
+        if ($invitationPath !== null) {
+            return redirect()->to($invitationPath);
+        }
 
         $destination = TenantDashboard::destinationFor($user);
 

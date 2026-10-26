@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Barbershop;
 use App\Models\PushSubscription;
+use App\Support\CustomerInvitationService;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,18 +26,24 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, CustomerInvitationService $invitations): RedirectResponse
     {
         $request->authenticate();
 
         $request->session()->regenerate();
 
         $user = $request->user();
+        $intendedUrl = $request->session()->pull('url.intended');
+        $invitationPath = $invitations->intendedPathForUser($intendedUrl, $user);
+
+        if ($invitationPath !== null) {
+            return redirect()->to($invitationPath);
+        }
+
         $destination = TenantDashboard::destinationFor($user);
 
         abort_if($destination === null, 403, 'Todavía no tienes una barbería activa asignada.');
 
-        $intendedUrl = $request->session()->pull('url.intended');
         $allowedIntendedPath = $intendedUrl !== null
             ? $this->allowedIntendedDashboardPath($intendedUrl, $user)
             : null;

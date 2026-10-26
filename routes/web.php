@@ -9,6 +9,7 @@ use App\Http\Controllers\TenantAppointmentController;
 use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
 use App\Http\Controllers\TenantBusinessHourController;
+use App\Http\Controllers\TenantCustomerInvitationController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantSelectorController;
@@ -48,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/services', [TenantServiceController::class, 'index'])->name('tenant.services.index');
         Route::post('/services', [TenantServiceController::class, 'store'])->name('tenant.services.store');
         Route::put('/services/{service}', [TenantServiceController::class, 'update'])->name('tenant.services.update');
+        Route::post('/customers/{customer}/invitations', [TenantCustomerInvitationController::class, 'store'])->name('tenant.customer-invitations.store');
         Route::get('/appointments', [TenantAppointmentController::class, 'index'])->name('tenant.appointments.index');
         Route::post('/appointments', [TenantAppointmentController::class, 'store'])->name('tenant.appointments.store');
         Route::put('/appointments/{appointment}/reschedule', [TenantAppointmentController::class, 'reschedule'])->name('tenant.appointments.reschedule');

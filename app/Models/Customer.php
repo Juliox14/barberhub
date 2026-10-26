@@ -31,6 +31,11 @@ class Customer extends Model
         return $this->hasOne(CustomerPreference::class);
     }
 
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(CustomerInvitation::class);
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);

@@ -58,6 +58,10 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 # barberhub
 
+## Customer account invitations
+
+Barbería owners and administrators can create a personal customer invitation link from the agenda. A barber can issue one only for a customer with appointment history assigned to that barber. Links are manually shared, expire after 48 hours, and can be used once. The invited person must sign in or register with the invited email and explicitly confirm; existing appointment records stay attached to the same customer record.
+
 ## Barber PWA notifications
 
 Push notifications are sent to the assigned barber for appointments created by someone else, reschedules and cancellations. They use generic copy and link to the tenant agenda; appointment and customer details are not included in the notification.
