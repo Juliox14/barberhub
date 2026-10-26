@@ -1,6 +1,13 @@
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent) && !window.MSStream;
+const userAgent = window.navigator.userAgent;
+const isIOS = /iphone|ipad|ipod/i.test(userAgent) || (/macintosh/i.test(userAgent) && window.navigator.maxTouchPoints > 1);
+const isMobileDevice = /android|iphone|ipad|ipod/i.test(userAgent) || isIOS;
+const controls = document.querySelector('[data-pwa-controls]');
+const installAlert = document.querySelector('[data-pwa-install-alert]');
+const pushAlert = document.querySelector('[data-push-alert]');
 const installButton = document.querySelector('[data-pwa-install]');
+const installDismiss = document.querySelector('[data-pwa-dismiss="install"]');
+const pushDismiss = document.querySelector('[data-pwa-dismiss="push"]');
 const iosInstructions = document.querySelector('[data-ios-install]');
 const unavailableMessage = document.querySelector('[data-pwa-unavailable]');
 const offlineStatus = document.querySelector('[data-pwa-offline]');
@@ -29,6 +36,45 @@ function decodeApplicationServerKey(value) {
     return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
+function getStorage(key) {
+    try {
+        return window.sessionStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function setStorage(key, value) {
+    try {
+        window.sessionStorage.setItem(key, value);
+    } catch {
+        // The alerts remain usable when browser storage is unavailable.
+    }
+}
+
+function alertStorageKey(type) {
+    return `barberhub:pwa:${controls?.dataset.accountId ?? 'guest'}:${type}`;
+}
+
+function hideAlert(alert) {
+    alert?.classList.add('hidden');
+}
+
+function showAlert(alert, type) {
+    if (isMobileDevice && !getStorage(alertStorageKey(type))) {
+        alert?.classList.remove('hidden');
+    }
+}
+
+installDismiss?.addEventListener('click', () => {
+    setStorage(alertStorageKey('install'), 'dismissed');
+    hideAlert(installAlert);
+});
+pushDismiss?.addEventListener('click', () => {
+    setStorage(alertStorageKey('push'), 'dismissed');
+    hideAlert(pushAlert);
+});
+
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
 updateConnectionStatus();
@@ -44,7 +90,15 @@ if (!window.isSecureContext || !('serviceWorker' in navigator)) {
     });
 }
 
-if (pushControls && pushButton) {
+if (isMobileDevice && !isStandalone) {
+    showAlert(installAlert, 'install');
+}
+
+if (isMobileDevice && controls?.dataset.pushSubscribed !== 'true') {
+    showAlert(pushAlert, 'push');
+}
+
+if (pushControls && pushButton && isMobileDevice && controls?.dataset.pushSubscribed !== 'true') {
     const publicKey = pushControls.dataset.vapidPublicKey;
     const supportsPush = window.isSecureContext
         && 'serviceWorker' in navigator
@@ -106,6 +160,7 @@ if (pushControls && pushButton) {
                 }
 
                 setPushStatus('Notificaciones activadas para este dispositivo.');
+                hideAlert(pushAlert);
                 pushButton.classList.add('hidden');
             } catch (error) {
                 setPushStatus(error instanceof Error ? error.message : 'No se pudieron activar las notificaciones.');
@@ -116,7 +171,7 @@ if (pushControls && pushButton) {
     }
 }
 
-if (!isStandalone) {
+if (isMobileDevice && !isStandalone) {
     if (isIOS) {
         iosInstructions?.classList.remove('hidden');
     } else if (installButton) {
@@ -124,6 +179,11 @@ if (!isStandalone) {
             event.preventDefault();
             installPrompt = event;
             installButton.classList.remove('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            hideAlert(installAlert);
+            setStorage(alertStorageKey('install'), 'installed');
         });
 
         installButton.addEventListener('click', async () => {
@@ -138,7 +198,7 @@ if (!isStandalone) {
                 // A failed or dismissed prompt must not affect BarberHub.
             } finally {
                 installPrompt = null;
-                installButton.classList.add('hidden');
+                hideAlert(installAlert);
                 installButton.disabled = false;
             }
         });
