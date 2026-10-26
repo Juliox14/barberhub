@@ -11,6 +11,7 @@ use App\Models\Membership;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class CustomerInvitationTest extends TestCase
@@ -140,26 +141,193 @@ class CustomerInvitationTest extends TestCase
         $this->assertSame(64, strlen($token));
     }
 
-    public function test_new_account_registration_returns_to_confirmation_and_requires_an_explicit_acceptance(): void
+    public function test_guest_can_open_a_prefilled_invitation_form_without_writing_data(): void
     {
         [$barbershop, $owner] = $this->ownerContext();
-        $customer = Customer::factory()->for($barbershop)->create(['email' => 'newclient@example.com']);
-        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
-
-        $this->actingAsGuest()->get($invitationUrl)->assertRedirect(route('login'));
-        $this->post(route('register', absolute: false), [
-            'name' => 'Nuevo Cliente',
+        $customer = Customer::factory()->for($barbershop)->create([
+            'name' => 'Cliente Original',
+            'phone' => '555-0142',
             'email' => 'newclient@example.com',
+        ]);
+        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $customerBefore = $customer->fresh()->getAttributes();
+        $invitationBefore = CustomerInvitation::query()->firstOrFail()->getAttributes();
+        $usersBefore = User::query()->count();
+
+        $this->actingAsGuest()->get($invitationUrl)
+            ->assertOk()
+            ->assertSee('value="Cliente Original"', false)
+            ->assertSee('value="555-0142"', false)
+            ->assertSee('newclient@example.com')
+            ->assertDontSee('name="email"', false)
+            ->assertSee('Crear cuenta y vincular');
+
+        $this->assertGuest();
+        $this->assertSame($usersBefore, User::query()->count());
+        $this->assertSame($customerBefore, $customer->fresh()->getAttributes());
+        $this->assertSame($invitationBefore, CustomerInvitation::query()->firstOrFail()->getAttributes());
+    }
+
+    public function test_guest_can_create_and_link_account_with_edited_customer_details_and_fixed_invitation_identity(): void
+    {
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create([
+            'name' => 'Nombre anterior',
+            'phone' => '555-0101',
+            'email' => 'old@example.com',
+        ]);
+        $appointment = $this->appointmentFor($barbershop, $customer);
+        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $this->actingAsGuest();
+        $sessionIdBefore = $this->app['session']->getId();
+        $token = basename($invitationUrl);
+
+        $this->post($invitationUrl.'/register', [
+            'name' => 'Nombre actualizado',
+            'phone' => '555-0199',
+            'email' => 'attacker@example.com',
+            'role' => 'owner',
+            'is_platform_admin' => true,
+            'email_verified_at' => now()->toDateTimeString(),
             'password' => 'customer-password',
             'password_confirmation' => 'customer-password',
-        ])->assertRedirect($invitationUrl);
+        ])->assertRedirect('/')->assertSessionHas('status');
 
-        $user = User::query()->where('email', 'newclient@example.com')->firstOrFail();
+        $user = User::query()->where('email', 'old@example.com')->firstOrFail();
+        $customer->refresh();
+        $invitation = CustomerInvitation::query()->firstOrFail();
         $this->assertAuthenticatedAs($user);
-        $this->assertNull($customer->fresh()->user_id);
-        $this->get($invitationUrl)->assertOk()->assertSee('Confirmar vinculación');
-        $this->post($invitationUrl.'/accept')->assertRedirect('/');
-        $this->assertSame($user->id, $customer->fresh()->user_id);
+        $this->assertNotSame($sessionIdBefore, $this->app['session']->getId());
+        $this->assertSame('client', $user->role);
+        $this->assertTrue(Hash::check('customer-password', $user->password));
+        $this->assertFalse($user->is_platform_admin);
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame('Nombre actualizado', $user->name);
+        $this->assertSame('Nombre actualizado', $customer->name);
+        $this->assertSame('555-0199', $customer->phone);
+        $this->assertSame('old@example.com', $customer->email);
+        $this->assertSame($user->id, $customer->user_id);
+        $this->assertSame(now()->toDateTimeString(), $invitation->consumed_at->toDateTimeString());
+        $this->assertSame($user->id, $invitation->accepted_by);
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'customer_id' => $customer->id]);
+        $this->assertSame(64, strlen($token));
+
+        $this->post('/logout')->assertRedirect('/');
+        $this->assertGuest();
+
+        $this->post($invitationUrl.'/register', [
+            'name' => 'Otra cuenta',
+            'phone' => '555-0000',
+            'password' => 'customer-password',
+            'password_confirmation' => 'customer-password',
+        ])->assertGone();
+        $this->assertSame('Nombre actualizado', $customer->fresh()->name);
+        $this->assertSame(1, User::query()->where('email', 'old@example.com')->count());
+    }
+
+    public function test_authenticated_different_user_cannot_create_invited_account_or_be_switched(): void
+    {
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create([
+            'name' => 'Cliente objetivo',
+            'phone' => '555-0111',
+            'email' => 'target@example.com',
+        ]);
+        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $otherUser = User::factory()->create(['email' => 'other@example.com']);
+        $usersBefore = User::query()->count();
+        $this->actingAs($otherUser);
+        $invitation = CustomerInvitation::query()->firstOrFail();
+
+        $response = $this->post($invitationUrl.'/register', [
+            'name' => 'Cuenta no autorizada',
+            'phone' => '555-0999',
+            'password' => 'customer-password',
+            'password_confirmation' => 'customer-password',
+        ]);
+        $customer->refresh();
+        $invitation->refresh();
+
+        $this->assertSame([
+            'status' => 403,
+            'authenticated_user_id' => $otherUser->id,
+            'user_count' => $usersBefore,
+            'customer_user_id' => null,
+            'customer_name' => 'Cliente objetivo',
+            'customer_phone' => '555-0111',
+            'customer_email' => 'target@example.com',
+            'invitation_consumed_at' => null,
+            'invitation_accepted_by' => null,
+        ], [
+            'status' => $response->getStatusCode(),
+            'authenticated_user_id' => auth()->id(),
+            'user_count' => User::query()->count(),
+            'customer_user_id' => $customer->user_id,
+            'customer_name' => $customer->name,
+            'customer_phone' => $customer->phone,
+            'customer_email' => $customer->email,
+            'invitation_consumed_at' => $invitation->consumed_at,
+            'invitation_accepted_by' => $invitation->accepted_by,
+        ]);
+    }
+
+    public function test_invitation_onboarding_clears_phone_when_the_submitted_value_is_blank(): void
+    {
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create([
+            'phone' => '555-0155',
+            'email' => 'clear-phone@example.com',
+        ]);
+        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+
+        $this->actingAsGuest()->post($invitationUrl.'/register', [
+            'name' => $customer->name,
+            'phone' => '',
+            'password' => 'customer-password',
+            'password_confirmation' => 'customer-password',
+        ])->assertRedirect('/');
+
+        $this->assertNull($customer->fresh()->phone);
+    }
+
+    public function test_invalid_invitation_onboarding_can_be_corrected_without_consuming_or_writing(): void
+    {
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create(['email' => 'target@example.com']);
+        $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $customerBefore = $customer->fresh()->getAttributes();
+        $invitationBefore = CustomerInvitation::query()->firstOrFail()->getAttributes();
+        $usersBefore = User::query()->count();
+        $this->actingAsGuest();
+
+        $this->post($invitationUrl.'/register', [
+            'name' => 'Editar nombre',
+            'phone' => '555-0200',
+            'password' => 'customer-password',
+            'password_confirmation' => 'different-password',
+        ])->assertSessionHasErrors('password');
+        $this->assertSame($usersBefore, User::query()->count());
+        $this->assertSame($customerBefore, $customer->fresh()->getAttributes());
+        $this->assertSame($invitationBefore, CustomerInvitation::query()->firstOrFail()->getAttributes());
+
+        $this->post($invitationUrl.'/register', [
+            'name' => 'Editar nombre',
+            'phone' => '555-0200',
+            'password' => 'short',
+            'password_confirmation' => 'short',
+        ])->assertSessionHasErrors('password');
+        $this->assertSame($usersBefore, User::query()->count());
+        $this->assertSame($customerBefore, $customer->fresh()->getAttributes());
+        $this->assertSame($invitationBefore, CustomerInvitation::query()->firstOrFail()->getAttributes());
+
+        $this->post($invitationUrl.'/register', [
+            'name' => 'Nombre corregido',
+            'phone' => '555-0200',
+            'password' => 'customer-password',
+            'password_confirmation' => 'customer-password',
+        ])->assertRedirect('/');
+        $this->assertSame('Nombre corregido', $customer->fresh()->name);
+        $this->assertSame(1, User::query()->where('email', 'target@example.com')->count());
     }
 
     public function test_wrong_logged_in_email_cannot_accept_or_consume_invitation(): void
@@ -206,53 +374,51 @@ class CustomerInvitationTest extends TestCase
         $targetUser = User::factory()->create(['email' => 'target@example.com']);
         $before = $customer->fresh()->getAttributes();
 
-        $this->actingAs($targetUser)->get($invitationUrl)->assertConflict()->assertSee('ya está vinculada', false);
-        $this->actingAs($targetUser)->post($invitationUrl.'/accept')->assertConflict()->assertSee('ya está vinculada', false);
+        $this->actingAs($targetUser)->get($invitationUrl)->assertConflict();
+        $this->actingAs($targetUser)->post($invitationUrl.'/accept')->assertConflict();
 
         $this->assertSame($before, $customer->fresh()->getAttributes());
         $this->assertSame($originalUser->id, $customer->fresh()->user_id);
         $this->assertNull(CustomerInvitation::query()->firstOrFail()->consumed_at);
     }
 
-    public function test_customer_registration_rejects_an_email_that_does_not_match_the_pending_invitation(): void
+    public function test_existing_account_collision_after_guest_form_open_preserves_account_and_requires_login_and_confirmation(): void
     {
         [$barbershop, $owner] = $this->ownerContext();
         $customer = Customer::factory()->for($barbershop)->create(['email' => 'target@example.com']);
+        $appointment = $this->appointmentFor($barbershop, $customer);
         $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $this->actingAsGuest()->get($invitationUrl)->assertOk();
+        $existingUser = User::factory()->create(['email' => 'target@example.com', 'password' => 'existing-password']);
+        $passwordHash = $existingUser->getAuthPassword();
+        $customerBefore = $customer->fresh()->getAttributes();
         $invitationBefore = CustomerInvitation::query()->firstOrFail()->getAttributes();
-        $usersBefore = User::query()->count();
-        $this->actingAsGuest()->get($invitationUrl)->assertRedirect(route('login'));
 
-        $this->from(route('register', absolute: false))
-            ->post(route('register', absolute: false), [
-                'name' => 'Cuenta equivocada',
-                'email' => 'wrong@example.com',
-                'password' => 'customer-password',
-                'password_confirmation' => 'customer-password',
-            ])
-            ->assertRedirect(route('register', absolute: false))
-            ->assertSessionHasErrors('email');
-
-        $this->assertGuest();
-        $this->assertSame($usersBefore, User::query()->count());
-        $this->assertDatabaseMissing('users', ['email' => 'wrong@example.com']);
-        $this->assertNull($customer->fresh()->user_id);
-        $this->assertSame($invitationBefore, CustomerInvitation::query()->firstOrFail()->getAttributes());
-
-        $this->post(route('register', absolute: false), [
-            'name' => 'Cliente Correcto',
-            'email' => 'target@example.com',
+        $this->post($invitationUrl.'/register', [
+            'name' => 'No reemplazar',
+            'phone' => '555-0300',
             'password' => 'customer-password',
             'password_confirmation' => 'customer-password',
-        ])->assertRedirect($invitationUrl);
+        ])->assertRedirect(route('login'));
 
-        $user = User::query()->where('email', 'target@example.com')->firstOrFail();
-        $this->assertAuthenticatedAs($user);
+        $this->assertGuest();
+        $this->assertSame($passwordHash, $existingUser->fresh()->getAuthPassword());
+        $this->assertSame(1, User::query()->where('email', 'target@example.com')->count());
+        $this->assertSame($customerBefore, $customer->fresh()->getAttributes());
+        $this->assertSame($invitationBefore, CustomerInvitation::query()->firstOrFail()->getAttributes());
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'customer_id' => $customer->id]);
+
+        $this->post(route('login', absolute: false), [
+            'email' => 'target@example.com',
+            'password' => 'existing-password',
+        ])->assertRedirect($invitationUrl);
+        $this->get($invitationUrl)->assertOk()->assertSee('Confirmar vinculación');
         $this->assertNull($customer->fresh()->user_id);
         $this->assertNull(CustomerInvitation::query()->firstOrFail()->consumed_at);
-        $this->get($invitationUrl)->assertOk()->assertSee('Confirmar vinculación');
+
         $this->post($invitationUrl.'/accept')->assertRedirect('/');
-        $this->assertSame($user->id, $customer->fresh()->user_id);
+        $this->assertSame($existingUser->id, $customer->fresh()->user_id);
+        $this->assertSame($passwordHash, $existingUser->fresh()->getAuthPassword());
     }
 
     public function test_explicit_linkage_keeps_separate_customer_records_across_barbershops(): void

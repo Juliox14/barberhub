@@ -60,7 +60,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ## Customer account invitations
 
-Barbería owners and administrators can create a personal customer invitation link from the agenda. A barber can issue one only for a customer with appointment history assigned to that barber. Links are manually shared, expire after 48 hours, and can be used once. The invited person must sign in or register with the invited email and explicitly confirm; existing appointment records stay attached to the same customer record.
+Barbería owners and administrators can create a personal customer invitation link from the agenda. A barber can issue one only for a customer with appointment history assigned to that barber. Links are manually shared, expire after 48 hours, and can be used once. For a new account, the link opens a form with the customer name and phone prefilled and editable, the invitation email fixed, and password and confirmation fields; submitting it creates the client account, updates and links the existing customer record, and signs the new account in. An existing account must sign in and explicitly confirm linkage; the invitation never changes its password. Existing appointment records remain attached to the same customer record.
 
 ## Barber PWA notifications
 

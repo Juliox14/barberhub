@@ -7,7 +7,9 @@ use App\Models\Customer;
 use App\Models\CustomerInvitation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -105,6 +107,75 @@ final class CustomerInvitationService
 
             return $invitation;
         });
+    }
+
+    /**
+     * @param  array{name: string, phone: ?string, password: string}  $data
+     * @return array{invitation: CustomerInvitation, user: User}
+     */
+    public function createAccountAndAccept(string $token, array $data): array
+    {
+        try {
+            return DB::transaction(function () use ($token, $data): array {
+                $invitation = $this->activeQuery($token)->lockForUpdate()->first();
+
+                if ($invitation === null) {
+                    throw new HttpException(410, 'La invitación venció o ya fue utilizada.');
+                }
+
+                $customer = Customer::query()
+                    ->whereKey($invitation->customer_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($customer->user_id !== null) {
+                    throw new HttpException(409, 'Esta ficha de cliente ya está vinculada a una cuenta.');
+                }
+
+                if (User::query()->whereRaw('LOWER(email) = ?', [Str::lower($invitation->email)])->exists()) {
+                    throw $this->existingAccountException();
+                }
+
+                $user = User::query()->create([
+                    'name' => $data['name'],
+                    'email' => Str::lower($invitation->email),
+                    'password' => Hash::make($data['password']),
+                    'role' => 'client',
+                ]);
+
+                $customer->forceFill([
+                    'user_id' => $user->id,
+                    'name' => $data['name'],
+                    'phone' => array_key_exists('phone', $data) ? $data['phone'] : $customer->phone,
+                    'email' => Str::lower($invitation->email),
+                ])->save();
+
+                $invitation->forceFill([
+                    'consumed_at' => now(),
+                    'accepted_by' => $user->id,
+                ])->save();
+                $invitation->setRelation('customer', $customer);
+
+                return ['invitation' => $invitation, 'user' => $user];
+            });
+        } catch (QueryException $exception) {
+            $invitationEmail = CustomerInvitation::query()
+                ->where('token_hash', hash('sha256', $token))
+                ->value('email');
+
+            if ($invitationEmail !== null && User::query()->whereRaw('LOWER(email) = ?', [Str::lower($invitationEmail)])->exists()) {
+                throw $this->existingAccountException();
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function existingAccountException(): ValidationException
+    {
+        return ValidationException::withMessages([
+            'email' => 'Ya existe una cuenta con el correo de esta invitación. Inicia sesión para confirmar la vinculación.',
+        ]);
     }
 
     private function activeQuery(string $token): Builder

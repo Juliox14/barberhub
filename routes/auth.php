@@ -13,6 +13,11 @@ use App\Http\Controllers\CompleteBarberInvitationController;
 use App\Http\Controllers\CustomerInvitationController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('customer-invitations/{token}', [CustomerInvitationController::class, 'show'])
+    ->name('customer-invitations.show');
+Route::post('customer-invitations/{token}/register', [CustomerInvitationController::class, 'register'])
+    ->name('customer-invitations.register');
+
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
@@ -44,8 +49,6 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('customer-invitations/{token}', [CustomerInvitationController::class, 'show'])
-        ->name('customer-invitations.show');
     Route::post('customer-invitations/{token}/accept', [CustomerInvitationController::class, 'accept'])
         ->name('customer-invitations.accept');
 
