@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Support\CustomerInvitationService;
+use App\Support\SingleDeviceSession;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -50,7 +52,7 @@ final class CustomerInvitationController extends Controller
         ]);
     }
 
-    public function register(Request $request, string $token, CustomerInvitationService $invitations): RedirectResponse
+    public function register(Request $request, string $token, CustomerInvitationService $invitations, SingleDeviceSession $sessions): RedirectResponse
     {
         abort_if($request->user() !== null, 403, 'Cierra sesión para completar una invitación.');
 
@@ -69,8 +71,16 @@ final class CustomerInvitationController extends Controller
         }
 
         event(new Registered($result['user']));
+        $ownerToken = Str::random(64);
+
+        if (! $sessions->claimAfterCredentials($result['user'], $ownerToken)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Ya hay una sesión activa para esta cuenta. Inicia sesión para solicitar el cambio de dispositivo.',
+            ]);
+        }
+
+        $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
         Auth::login($result['user']);
-        $request->session()->regenerate();
 
         return redirect('/')
             ->with('status', 'Tu cuenta quedó vinculada con el historial de '.$result['invitation']->customer->name.'.');

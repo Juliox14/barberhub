@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsureSingleDeviceSession;
 use App\Http\Middleware\EnsureTenantMembership;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.member' => EnsureTenantMembership::class,
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
+        $middleware->appendToGroup('web', EnsureSingleDeviceSession::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

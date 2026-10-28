@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\CustomerInvitationService;
+use App\Support\SingleDeviceSession;
 use App\Support\TenantDashboard;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -30,7 +32,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request, CustomerInvitationService $invitations): RedirectResponse
+    public function store(Request $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -51,6 +53,15 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        $ownerToken = Str::random(64);
+
+        if (! $sessions->claimAfterCredentials($user, $ownerToken)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Ya hay una sesión activa para esta cuenta. Inicia sesión para solicitar el cambio de dispositivo.',
+            ]);
+        }
+
+        $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
         Auth::login($user);
 
         if ($invitationPath !== null) {

@@ -59,4 +59,8 @@
         ¿No tienes una cuenta?
         <a href="{{ route('register') }}" class="ml-1 font-semibold text-amber-200 underline decoration-amber-200/50 underline-offset-4 outline-none transition hover:text-amber-100 focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#10151a]">Crear cuenta</a>
     </p>
+
+    @if (! empty($sessionConflict))
+        <x-session-conflict-modal />
+    @endif
 </x-guest-layout>

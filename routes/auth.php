@@ -28,6 +28,10 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login/session-conflict/confirm', [AuthenticatedSessionController::class, 'confirmSessionTransfer'])
+        ->name('login.session-conflict.confirm');
+    Route::post('login/session-conflict/cancel', [AuthenticatedSessionController::class, 'cancelSessionTransfer'])
+        ->name('login.session-conflict.cancel');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
