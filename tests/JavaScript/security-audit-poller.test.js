@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSecurityAuditPoller } from '../../resources/js/security-audit-poller.js';
 
-function harness(fetcher) {
+function harness(fetcher, { includeResults = true } = {}) {
     const listeners = { document: new Map(), window: new Map() };
     const timers = new Map();
     function register(target, name, callback, options = {}) {
@@ -25,15 +25,18 @@ function harness(fetcher) {
     }
     let nextTimer = 0;
     const status = { textContent: '' };
-    const results = {
+    const results = includeResults ? {
         innerHTML: '<p>before</p>',
         focused: false,
         contains() { return this.focused; },
-    };
+    } : null;
     const root = {
         dataset: { endpoint: '/platform/security-audit-logs?page=2' },
         querySelector(selector) {
-            return selector === '[data-audit-status]' ? status : results;
+            if (selector === '[data-audit-status]') {
+                return status;
+            }
+            return results;
         },
     };
     const document = {
@@ -189,6 +192,15 @@ test('focused results are not replaced until the user leaves the table', async (
 
     assert.equal(app.results.innerHTML, '<p>before</p>');
     assert.match(app.status.textContent, /cuando termines de usar la tabla/);
+});
+
+test('missing results target reports a recoverable failure instead of a successful refresh', async () => {
+    const app = harness(async () => response('<p>fresh response</p>'), { includeResults: false });
+    app.poller.start();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.notEqual(app.status.textContent, 'Actualizado automáticamente cada 15 segundos.');
+    assert.match(app.status.textContent, /No se pudo actualizar la bitácora/);
 });
 
 test('network failure keeps content and reports a recoverable status', async () => {

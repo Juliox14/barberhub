@@ -6,7 +6,9 @@
         </header>
 
         <div data-audit-poller data-endpoint="{{ route('platform.security-audit-logs.index', ['page' => $auditLogs->currentPage()], false) }}">
-            @include('platform.partials.security-audit-results')
+            <div data-audit-results>
+                @include('platform.partials.security-audit-results')
+            </div>
             <p data-audit-status class="mt-2 min-h-5 text-xs text-slate-400" role="status" aria-live="polite" aria-atomic="true"></p>
         </div>
     </div>

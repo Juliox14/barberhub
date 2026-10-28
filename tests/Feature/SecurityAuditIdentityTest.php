@@ -78,6 +78,41 @@ class SecurityAuditIdentityTest extends TestCase
             ->assertDontSee('Unclassified Account')->assertDontSee('unclassified@example.test');
     }
 
+    public function test_rendered_history_binds_polling_target_and_returns_replaceable_fragment(): void
+    {
+        $admin = User::factory()->create(['is_platform_admin' => true, 'email_verified_at' => now()]);
+        $this->insertAuditRecord(['event' => 'initial.rendered.event']);
+
+        $pageResponse = $this->actingAs($admin)->get('/platform/security-audit-logs');
+        $document = new \DOMDocument;
+        $document->loadHTML($pageResponse->getContent(), LIBXML_NONET);
+        $xpath = new \DOMXPath($document);
+        $pollers = $xpath->query('//*[@data-audit-poller]');
+        $targets = $xpath->query('//*[@data-audit-results]');
+        $nestedTargets = $xpath->query('//*[@data-audit-poller]//*[@data-audit-results]');
+
+        $this->assertSame(1, $pollers->length);
+        $this->assertSame(1, $targets->length);
+        $this->assertSame(1, $nestedTargets->length);
+        $this->assertSame('/platform/security-audit-logs?page=1', $pollers->item(0)->getAttribute('data-endpoint'));
+        $this->assertSame(1, $xpath->query('//*[@data-audit-results]//table')->length);
+        $this->assertStringContainsString('initial.rendered.event', $targets->item(0)->textContent);
+
+        foreach (range(1, 25) as $number) {
+            $this->insertAuditRecord(['event' => 'older.rendered.event.'.$number]);
+        }
+        $this->insertAuditRecord(['event' => 'fresh.rendered.event']);
+
+        $fragmentResponse = $this->withHeader('Accept', 'application/json')->get('/platform/security-audit-logs');
+        $fragment = $fragmentResponse->json('html');
+
+        $this->assertStringContainsString('27 registros disponibles', $fragment);
+        $this->assertStringContainsString('<table', $fragment);
+        $this->assertStringContainsString('fresh.rendered.event', $fragment);
+        $this->assertStringContainsString('aria-label="Paginación de la bitácora"', $fragment);
+        $this->assertStringNotContainsString('data-audit-results', $fragment);
+    }
+
     public function test_json_refresh_remains_restricted_to_platform_administrators(): void
     {
         $user = User::factory()->create(['email_verified_at' => now(), 'is_platform_admin' => false]);

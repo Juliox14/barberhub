@@ -117,7 +117,10 @@ export function createSecurityAuditPoller({
             }
 
             const results = root.querySelector('[data-audit-results]');
-            if (!results || results.innerHTML === payload.html) {
+            if (!results) {
+                throw new Error('missing-results-target');
+            }
+            if (results.innerHTML === payload.html) {
                 setStatus('Actualizado automáticamente cada 15 segundos.');
                 return;
             }
