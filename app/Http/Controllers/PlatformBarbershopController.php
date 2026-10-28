@@ -6,6 +6,7 @@ use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
 use App\Support\LatinAmericanTimezones;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,7 @@ final class PlatformBarbershopController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -53,7 +54,7 @@ final class PlatformBarbershopController extends Controller
             'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
 
-        DB::transaction(function () use ($validated): void {
+        $barbershop = DB::transaction(function () use ($validated): Barbershop {
             $barbershop = Barbershop::query()->create([
                 'name' => $validated['name'],
                 'slug' => $validated['slug'],
@@ -75,7 +76,15 @@ final class PlatformBarbershopController extends Controller
                     'status' => Membership::STATUS_ACTIVE,
                 ],
             );
+
+            return $barbershop;
         });
+        $auditLogger->record('platform.barbershop.created', $request->user(), $barbershop->id, $barbershop->id, [
+            'name' => $barbershop->name,
+            'slug' => $barbershop->slug,
+            'status' => $barbershop->status,
+            'timezone' => $barbershop->timezone,
+        ], $request);
 
         return redirect()
             ->route('platform.barbershops.index')
@@ -90,7 +99,7 @@ final class PlatformBarbershopController extends Controller
         ]);
     }
 
-    public function update(Request $request, Barbershop $barbershop): RedirectResponse
+    public function update(Request $request, Barbershop $barbershop, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -108,16 +117,32 @@ final class PlatformBarbershopController extends Controller
             'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
 
-        $barbershop->update($validated);
+        if ($barbershop->update($validated)) {
+            $auditLogger->record('platform.barbershop.updated', $request->user(), $barbershop->id, $barbershop->id, [
+                'name' => $barbershop->name,
+                'slug' => $barbershop->slug,
+                'status' => $barbershop->status,
+                'timezone' => $barbershop->timezone,
+            ], $request);
+        }
 
         return redirect()
             ->route('platform.barbershops.index')
             ->with('status', 'Barbería actualizada correctamente.');
     }
 
-    public function destroy(Barbershop $barbershop): RedirectResponse
+    public function destroy(Request $request, Barbershop $barbershop, SecurityAuditLogger $auditLogger): RedirectResponse
     {
-        $barbershop->delete();
+        $subjectId = $barbershop->id;
+        $metadata = [
+            'name' => $barbershop->name,
+            'slug' => $barbershop->slug,
+            'status' => $barbershop->status,
+            'timezone' => $barbershop->timezone,
+        ];
+        if ($barbershop->delete()) {
+            $auditLogger->record('platform.barbershop.deleted', $request->user(), $subjectId, $subjectId, $metadata, $request);
+        }
 
         return redirect()
             ->route('platform.barbershops.index')

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
+use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -44,13 +45,14 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function authenticate(SingleDeviceSession $sessions): User
+    public function authenticate(SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger): User
     {
         $this->ensureIsNotRateLimited();
 
         $user = $sessions->verifyCredentials($this->string('email')->toString(), $this->string('password')->toString());
 
         if ($user === null) {
+            $auditLogger->record('login.failed', request: $this);
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

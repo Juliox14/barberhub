@@ -8,6 +8,7 @@ use App\Models\Barbershop;
 use App\Models\PushSubscription;
 use App\Models\User;
 use App\Support\CustomerInvitationService;
+use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
@@ -33,10 +34,10 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions): RedirectResponse|View
+    public function store(LoginRequest $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger): RedirectResponse|View
     {
         $request->session()->forget(SingleDeviceSession::PENDING_KEY);
-        $user = $request->authenticate($sessions);
+        $user = $request->authenticate($sessions, $auditLogger);
         $ownerToken = Str::random(64);
 
         if (! $sessions->claimAfterCredentials($user, $ownerToken)) {
@@ -133,7 +134,7 @@ class AuthenticatedSessionController extends Controller
         return $host !== parse_url(config('app.url'), PHP_URL_HOST);
     }
 
-    public function confirmSessionTransfer(Request $request, SingleDeviceSession $sessions, CustomerInvitationService $invitations): RedirectResponse
+    public function confirmSessionTransfer(Request $request, SingleDeviceSession $sessions, CustomerInvitationService $invitations, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         $pending = $request->session()->pull(SingleDeviceSession::PENDING_KEY);
 
@@ -160,6 +161,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
         $user->refresh();
         Auth::login($user, (bool) ($pending['remember'] ?? false));
+        $auditLogger->record('session.transfer_confirmed', $user, $user, request: $request);
 
         return $this->redirectAuthenticatedUser($request, $invitations, $user);
     }
