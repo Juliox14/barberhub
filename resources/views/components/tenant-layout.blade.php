@@ -126,5 +126,6 @@
             </div>
         </div>
         <x-form-feedback />
+        <x-session-monitor />
     </body>
 </html>

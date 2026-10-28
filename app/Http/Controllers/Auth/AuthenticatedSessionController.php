@@ -21,9 +21,13 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.login');
+        return view('auth.login', [
+            'sessionNotice' => in_array($request->query('session'), ['revoked', 'expired'], true)
+                ? $request->query('session')
+                : null,
+        ]);
     }
 
     /**

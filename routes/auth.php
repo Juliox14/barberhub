@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SessionStatusController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CompleteBarberInvitationController;
 use App\Http\Controllers\CustomerInvitationController;
@@ -51,6 +52,9 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
+
+Route::get('session/status', [SessionStatusController::class, 'show'])
+    ->name('session.status');
 
 Route::middleware('auth')->group(function () {
     Route::post('customer-invitations/{token}/accept', [CustomerInvitationController::class, 'accept'])

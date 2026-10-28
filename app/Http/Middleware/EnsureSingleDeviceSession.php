@@ -15,6 +15,10 @@ final class EnsureSingleDeviceSession
 
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->routeIs('session.status')) {
+            return $next($request);
+        }
+
         $guard = Auth::guard('web');
         $user = $request->user();
 
@@ -47,7 +51,11 @@ final class EnsureSingleDeviceSession
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login');
+            $notice = $request->query('session');
+
+            return redirect()->route('login', in_array($notice, ['revoked', 'expired'], true)
+                ? ['session' => $notice]
+                : []);
         }
 
         return $next($request);

@@ -8,6 +8,16 @@
         </a>
     </nav>
 
+    @if (($sessionNotice ?? null) === 'revoked')
+        <p role="status" class="mb-6 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            Tu sesión se cerró porque iniciaste sesión en otro dispositivo.
+        </p>
+    @elseif (($sessionNotice ?? null) === 'expired')
+        <p role="status" class="mb-6 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            Tu sesión expiró. Inicia sesión nuevamente.
+        </p>
+    @endif
+
     <header class="mb-8">
         <h1 class="text-3xl font-bold tracking-[-0.035em] text-white">Bienvenido de nuevo</h1>
         <p class="mt-2 text-sm leading-6 text-slate-300">Ingresa a tu cuenta para continuar administrando tu barbería.</p>
