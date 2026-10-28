@@ -25,6 +25,11 @@
                             {{ $dashboardLabel }}
                         </x-nav-link>
                     @endif
+                    @if (Auth::user()?->is_platform_admin)
+                        <x-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                            Contención de seguridad
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -80,6 +85,11 @@
             @if ($dashboardRoute !== null && $dashboardLabel !== null)
                 <x-responsive-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute) || request()->routeIs('dashboard')">
                     {{ $dashboardLabel }}
+                </x-responsive-nav-link>
+            @endif
+            @if (Auth::user()?->is_platform_admin)
+                <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                    Contención de seguridad
                 </x-responsive-nav-link>
             @endif
         </div>
