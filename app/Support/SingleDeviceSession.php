@@ -21,14 +21,37 @@ final class SingleDeviceSession
         return $user !== null && Hash::check($password, $user->password) ? $user : null;
     }
 
-    public function claimAfterCredentials(User $user, string $ownerToken): bool
+    public function claimAfterCredentials(User $user, string $ownerToken, ?int $expectedVersion = null): bool
     {
-        return $this->claim($user, $ownerToken, false);
+        return $this->claim($user, $ownerToken, false, $expectedVersion);
     }
 
-    public function confirmTransfer(User $user, string $ownerToken): bool
+    public function confirmTransfer(User $user, string $ownerToken, ?int $expectedVersion = null): bool
     {
-        return $this->claim($user, $ownerToken, true);
+        return $this->claim($user, $ownerToken, true, $expectedVersion);
+    }
+
+    public function revoke(User $user): int
+    {
+        return DB::transaction(function () use ($user): int {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            DB::table(config('session.table'))
+                ->where('user_id', $lockedUser->getKey())
+                ->delete();
+
+            PushSubscription::query()->where('user_id', $lockedUser->getKey())->delete();
+
+            $version = (int) $lockedUser->security_session_version + 1;
+            $lockedUser->forceFill([
+                'active_session_id' => null,
+                'active_session_at' => null,
+                'remember_token' => Str::random(60),
+                'security_session_version' => $version,
+            ])->save();
+
+            return $version;
+        });
     }
 
     public function claimLegacySession(User $user, string $ownerToken): bool
@@ -97,10 +120,15 @@ final class SingleDeviceSession
         });
     }
 
-    private function claim(User $user, string $ownerToken, bool $confirmedTransfer): bool
+    private function claim(User $user, string $ownerToken, bool $confirmedTransfer, ?int $expectedVersion): bool
     {
-        return DB::transaction(function () use ($user, $ownerToken, $confirmedTransfer): bool {
+        return DB::transaction(function () use ($user, $ownerToken, $confirmedTransfer, $expectedVersion): bool {
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if ($expectedVersion !== null && (int) $lockedUser->security_session_version !== $expectedVersion) {
+                return false;
+            }
+
             $currentOwner = $lockedUser->active_session_id;
             $lastActivity = $lockedUser->active_session_at;
             $isCurrentOwner = $currentOwner !== null && hash_equals($currentOwner, $ownerToken);

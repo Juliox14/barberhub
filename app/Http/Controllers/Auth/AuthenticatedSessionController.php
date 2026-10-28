@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Barbershop;
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Support\AccountLoginGuard;
 use App\Support\CustomerInvitationService;
 use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
@@ -34,18 +35,21 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger): RedirectResponse|View
+    public function store(LoginRequest $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard): RedirectResponse|View
     {
         $request->session()->forget(SingleDeviceSession::PENDING_KEY);
-        $user = $request->authenticate($sessions, $auditLogger);
+        $user = $request->authenticate($sessions, $auditLogger, $loginGuard);
         $ownerToken = Str::random(64);
 
-        if (! $sessions->claimAfterCredentials($user, $ownerToken)) {
+        $expectedVersion = (int) $user->getAttribute('security_session_version');
+
+        if (! $loginGuard->claimAfterCredentials($user, $ownerToken, $expectedVersion, $sessions)) {
             $request->session()->put(SingleDeviceSession::PENDING_KEY, [
                 'user_id' => $user->getKey(),
                 'remember' => $request->boolean('remember'),
                 'session_id' => $request->session()->getId(),
                 'password_fingerprint' => $user->password,
+                'security_session_version' => $expectedVersion,
                 'created_at' => now()->timestamp,
             ]);
 
@@ -134,7 +138,7 @@ class AuthenticatedSessionController extends Controller
         return $host !== parse_url(config('app.url'), PHP_URL_HOST);
     }
 
-    public function confirmSessionTransfer(Request $request, SingleDeviceSession $sessions, CustomerInvitationService $invitations, SecurityAuditLogger $auditLogger): RedirectResponse
+    public function confirmSessionTransfer(Request $request, SingleDeviceSession $sessions, CustomerInvitationService $invitations, SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard): RedirectResponse
     {
         $pending = $request->session()->pull(SingleDeviceSession::PENDING_KEY);
 
@@ -149,14 +153,19 @@ class AuthenticatedSessionController extends Controller
         $user = User::query()->findOrFail($pending['user_id']);
 
         abort_unless(
-            isset($pending['password_fingerprint'])
-            && hash_equals($pending['password_fingerprint'], $user->password),
+            isset($pending['password_fingerprint'], $pending['security_session_version'])
+            && is_int($pending['security_session_version'])
+            && hash_equals($pending['password_fingerprint'], $user->password)
+            && $pending['security_session_version'] === (int) $user->getAttribute('security_session_version'),
             419,
         );
 
         $ownerToken = Str::random(64);
 
-        abort_unless($sessions->confirmTransfer($user, $ownerToken), 419);
+        abort_unless(
+            $loginGuard->confirmTransfer($user, $ownerToken, $pending['security_session_version'], $sessions),
+            419,
+        );
 
         $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
         $user->refresh();
