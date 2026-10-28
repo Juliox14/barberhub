@@ -5,6 +5,7 @@ use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\SecurityAuditLogController;
 use App\Http\Controllers\TenantAppointmentController;
 use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
@@ -25,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware('platform.admin')->prefix('platform')->name('platform.')->group(function (): void {
         Route::get('/dashboard', PlatformDashboardController::class)->name('dashboard');
+        Route::get('/security-audit-logs', [SecurityAuditLogController::class, 'index'])->name('security-audit-logs.index');
         Route::get('/barbershops', [PlatformBarbershopController::class, 'index'])->name('barbershops.index');
         Route::get('/barbershops/create', [PlatformBarbershopController::class, 'create'])->name('barbershops.create');
         Route::post('/barbershops', [PlatformBarbershopController::class, 'store'])->name('barbershops.store');

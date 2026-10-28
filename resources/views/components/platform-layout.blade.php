@@ -37,6 +37,9 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5M8 10h.01M12 10h.01M16 10h.01"/></svg>
                         Barberías
                     </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('platform.security-audit-logs.index')" :active="$activePage === 'security-audit-logs'">
+                        Seguridad
+                    </x-ui.nav-link>
                 </nav>
 
                 <div class="bh-sidebar__upcoming mt-8 border-t border-slate-800 pt-6">
@@ -44,7 +47,6 @@
                     <div class="mt-3 space-y-1 text-sm text-slate-500" aria-label="Módulos aún no disponibles">
                         <span class="flex items-center gap-3 px-3 py-2.5"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Miembros</span>
                         <span class="flex items-center gap-3 px-3 py-2.5"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M7 3v4m10-4v4M3 11h18"/></svg>Citas</span>
-                        <span class="flex items-center gap-3 px-3 py-2.5"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3 4 6v5c0 5 3.4 8.8 8 10 4.6-1.2 8-5 8-10V6l-8-3Z"/></svg>Seguridad</span>
                     </div>
                 </div>
 
