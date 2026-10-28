@@ -1,3 +1,5 @@
+@include('platform.partials.security-alerts')
+
 <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#11171d]">
         <div class="flex flex-col justify-between gap-3 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
             <div>

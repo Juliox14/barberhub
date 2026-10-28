@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 final class SecurityAuditLogController extends Controller
@@ -37,7 +38,13 @@ final class SecurityAuditLogController extends Controller
             $log->setRelation('subjectUser', $log->hasUserSubject() ? $usersById->get($log->subject_id) : null);
         });
 
-        $data = ['auditLogs' => $auditLogs];
+        $securityAlerts = DB::table('security_alerts')
+            ->leftJoin('users', 'security_alerts.subject_id', '=', 'users.id')
+            ->leftJoin('barbershops', 'security_alerts.barbershop_id', '=', 'barbershops.id')
+            ->select('security_alerts.*', 'users.name as account_name', 'users.email as account_email', 'barbershops.name as shop_name')
+            ->orderByDesc('security_alerts.updated_at')->orderByDesc('security_alerts.id')->limit(20)->get();
+
+        $data = ['auditLogs' => $auditLogs, 'securityAlerts' => $securityAlerts];
         if ($request->expectsJson()) {
             return response()->json([
                 'html' => view('platform.partials.security-audit-results', $data)->render(),

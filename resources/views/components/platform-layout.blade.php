@@ -38,7 +38,10 @@
                         Barberías
                     </x-ui.nav-link>
                     <x-ui.nav-link :href="route('platform.security-audit-logs.index')" :active="$activePage === 'security-audit-logs'">
-                        Seguridad
+                        Bitácora y alertas
+                    </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('platform.security.index')" :active="$activePage === 'security'">
+                        Contención de seguridad
                     </x-ui.nav-link>
                 </nav>
 
