@@ -48,12 +48,17 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard): User
     {
-        $this->ensureIsNotRateLimited();
         $email = $this->string('email')->toString();
 
         if ($loginGuard->lockedUser($email) !== null) {
-            $this->throwFailedAuthentication($auditLogger, $loginGuard, $email);
+            $auditLogger->record('login.failed', request: $this);
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.temporarily_blocked'),
+            ]);
         }
+
+        $this->ensureIsNotRateLimited();
 
         $user = $sessions->verifyCredentials($email, $this->string('password')->toString());
 
@@ -74,7 +79,9 @@ class LoginRequest extends FormRequest
         RateLimiter::hit($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.failed'),
+            'email' => $loginGuard->lockedUser($email) !== null
+                ? trans('auth.temporarily_blocked')
+                : trans('auth.failed'),
         ]);
     }
 

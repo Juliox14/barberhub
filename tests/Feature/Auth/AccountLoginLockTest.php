@@ -21,6 +21,38 @@ class AccountLoginLockTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const LOCK_NOTICE = 'El acceso está bloqueado temporalmente. Intentá más tarde o usá «¿Olvidaste tu contraseña?» para recuperar el acceso.';
+
+    public function test_threshold_and_subsequent_attempts_explain_temporary_block_without_extending_or_revealing_credentials(): void
+    {
+        $this->freezeTime();
+        Notification::fake();
+        $user = User::factory()->create();
+
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $response = $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.'.$attempt])->from('/login')
+                ->post('/login', ['email' => $user->email, 'password' => 'wrong-password']);
+            $response->assertRedirect('/login')->assertSessionHasErrors('email');
+            $this->assertSame($attempt === 10 ? self::LOCK_NOTICE : trans('auth.failed'), $this->firstEmailError($response));
+        }
+
+        $lockedState = $user->fresh()->getAttributes();
+        for ($attempt = 0; $attempt < 7; $attempt++) {
+            $response = $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10'])->from('/login')
+                ->post('/login', ['email' => $user->email, 'password' => 'password']);
+            $response->assertRedirect('/login')->assertSessionHasErrors('email');
+            $this->assertSame(self::LOCK_NOTICE, $this->firstEmailError($response));
+            $this->assertSame($lockedState, $user->fresh()->getAttributes());
+            $this->assertGuest();
+        }
+
+        $page = $this->withCookie(config('session.cookie'), $response->getSession()->getId())
+            ->get('/login')->assertOk()->assertSee(self::LOCK_NOTICE)
+            ->assertSee(route('password.request'), false)->assertDontSee('wrong-password');
+        $this->assertSame(1, substr_count($page->getContent(), self::LOCK_NOTICE));
+        Notification::assertNothingSent();
+    }
+
     public function test_tenth_failed_attempt_locks_account_across_ips_without_extending_lock(): void
     {
         $this->travelTo(now()->startOfSecond());
