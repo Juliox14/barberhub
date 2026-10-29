@@ -18,6 +18,13 @@ class BarberAppointmentCreationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     public function test_barber_sees_own_appointment_form_and_tenant_customers(): void
     {
         $barbershop = Barbershop::factory()->create();
@@ -32,6 +39,8 @@ class BarberAppointmentCreationTest extends TestCase
             ->assertSee($service->name)
             ->assertSee($customer->name)
             ->assertSee($otherBarberCustomer->name)
+            ->assertSee('Otro (cliente sin registrar)')
+            ->assertSee('name="new_customer_name"', false)
             ->assertDontSee('name="barber_id"', false)
             ->assertViewHas('canManageMembers', false);
     }

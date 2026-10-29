@@ -18,6 +18,13 @@ class TenantAppointmentManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     public function test_owner_can_view_tenant_appointments_and_create_one(): void
     {
         $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
@@ -95,6 +102,56 @@ class TenantAppointmentManagementTest extends TestCase
             ->assertDontSee($otherBarber->display_name)
             ->assertSee('Crear cita')
             ->assertDontSee('name="barber_id"', false);
+    }
+
+    public function test_owner_and_admin_see_the_unregistered_customer_option(): void
+    {
+        foreach ([Membership::ROLE_OWNER, Membership::ROLE_ADMIN] as $role) {
+            $barbershop = Barbershop::factory()->create();
+            $manager = User::factory()->create();
+            Membership::factory()->for($manager)->for($barbershop)->create(['role' => $role]);
+
+            $this->actingAs($manager)
+                ->get(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+                ->assertOk()
+                ->assertSee('Otro (cliente sin registrar)')
+                ->assertSee('id="appointment-create"', false)
+                ->assertSee('name="form_context" value="create-appointment"', false)
+                ->assertSee('name="new_customer_name"', false)
+                ->assertSee('form="appointment-create"', false);
+        }
+    }
+
+    public function test_owner_and_admin_can_create_appointments_for_unregistered_customers(): void
+    {
+        foreach ([Membership::ROLE_OWNER, Membership::ROLE_ADMIN] as $role) {
+            $barbershop = Barbershop::factory()->create();
+            $manager = User::factory()->create();
+            Membership::factory()->for($manager)->for($barbershop)->create(['role' => $role]);
+            [$barber, $service] = $this->scheduleableRecords($barbershop);
+            $usersBefore = User::count();
+
+            $this->actingAs($manager)
+                ->post(route('tenant.appointments.store', $barbershop, false), [
+                    'barber_id' => $barber->id,
+                    'service_id' => $service->id,
+                    'customer_id' => '',
+                    'new_customer_name' => 'Cliente sin cuenta '.$role,
+                    'starts_at' => '2026-10-05T11:00',
+                ])
+                ->assertRedirect(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false));
+
+            $customer = Customer::query()->where('name', 'Cliente sin cuenta '.$role)->sole();
+            $this->assertSame($barbershop->id, $customer->barbershop_id);
+            $this->assertNull($customer->user_id);
+            $this->assertSame($usersBefore, User::count());
+            $this->assertDatabaseHas('appointments', [
+                'barbershop_id' => $barbershop->id,
+                'barber_id' => $barber->id,
+                'service_id' => $service->id,
+                'customer_id' => $customer->id,
+            ]);
+        }
     }
 
     public function test_admin_can_create_an_appointment(): void
