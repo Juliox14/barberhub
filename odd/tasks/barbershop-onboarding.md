@@ -9,7 +9,7 @@ S3. "desde main"
 S4. "AHH sisi, ahora entiendo, por invitacion, su rol inicial será owner"
 
 ## Tasks
-T1 | S1,S3,S4 | delegated worker (context backstop; invitation behavior) | done | RED exit 2; GREEN invitation + platform 20 tests/145 assertions; owner-specific Pint passed and formatting reconciled; commit pending.
+T1 | S1,S3,S4 | delegated worker (context backstop; invitation behavior) | done | RED exit 2; GREEN invitation + platform 20 tests/145 assertions; owner-specific Pint passed and formatting reconciled; commit dbb9448 on feat/barbershop-owner-invitation (446 insertions/8 deletions).
 T2 | S2,S3 | delegated worker (independent appointment component behavior) | done | RED exit 1; GREEN manager 10 tests/61 assertions, barber 9/55; parent presentation check 8/159 exit 0 after Vite build; commit pending.
 T3 | S1-S4 | independent verifier (Risk item 2: account invitation and membership) + parent integration checks | done | full suite 266 tests/1349 assertions exit 0; git diff --check exit 0; independent invitation/platform/barber check 28 tests/193 assertions exit 0, all specs pass.
 
