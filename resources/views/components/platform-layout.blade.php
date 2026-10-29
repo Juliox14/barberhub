@@ -37,12 +37,17 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5M8 10h.01M12 10h.01M16 10h.01"/></svg>
                         Barberías
                     </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('platform.security-audit-logs.index')" :active="$activePage === 'security-audit-logs'">
-                        Bitácora y alertas
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('platform.security.index')" :active="$activePage === 'security'">
-                        Contención de seguridad
-                    </x-ui.nav-link>
+                    <details open data-security-navigation="platform">
+                        <summary class="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-300">Seguridad</summary>
+                        <div class="ml-3 space-y-1 border-l border-slate-700 pl-2">
+                            <x-ui.nav-link :href="route('platform.security.index')" :active="$activePage === 'security'">
+                                Contención de seguridad
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('platform.security-audit-logs.index')" :active="$activePage === 'security-audit-logs'">
+                                Bitácora y alertas
+                            </x-ui.nav-link>
+                        </div>
+                    </details>
                 </nav>
 
                 <div class="bh-sidebar__upcoming mt-8 border-t border-slate-800 pt-6">

@@ -26,9 +26,17 @@
                         </x-nav-link>
                     @endif
                     @if (Auth::user()?->is_platform_admin)
-                        <x-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
-                            Contención de seguridad
-                        </x-nav-link>
+                        <details data-security-navigation="desktop" class="relative self-center" @if (request()->routeIs('platform.security.*', 'platform.security-audit-logs.*')) open @endif>
+                            <summary class="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Seguridad</summary>
+                            <div class="absolute left-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+                                <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                                    Contención de seguridad
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('platform.security-audit-logs.index')" :active="request()->routeIs('platform.security-audit-logs.*')">
+                                    Bitácora y alertas
+                                </x-responsive-nav-link>
+                            </div>
+                        </details>
                     @endif
                 </div>
             </div>
@@ -88,9 +96,17 @@
                 </x-responsive-nav-link>
             @endif
             @if (Auth::user()?->is_platform_admin)
-                <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
-                    Contención de seguridad
-                </x-responsive-nav-link>
+                <details open data-security-navigation="mobile">
+                    <summary class="cursor-pointer px-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Seguridad</summary>
+                    <div class="ml-4 border-l border-gray-200">
+                        <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                            Contención de seguridad
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('platform.security-audit-logs.index')" :active="request()->routeIs('platform.security-audit-logs.*')">
+                            Bitácora y alertas
+                        </x-responsive-nav-link>
+                    </div>
+                </details>
             @endif
         </div>
 

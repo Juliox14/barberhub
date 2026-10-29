@@ -1,11 +1,9 @@
 @include('platform.partials.security-alerts')
 
-<section class="overflow-hidden rounded-xl border border-slate-800 bg-[#11171d]">
-        <div class="flex flex-col justify-between gap-3 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
-            <div>
-                <h2 class="text-lg font-bold text-white">Eventos registrados</h2>
-                <p class="mt-1 text-sm text-slate-400">{{ $auditLogs->total() }} {{ $auditLogs->total() === 1 ? 'registro disponible' : 'registros disponibles' }}.</p>
-            </div>
+<details open data-security-section="audit-log" class="overflow-hidden rounded-xl border border-slate-800 bg-[#11171d]">
+        <summary class="cursor-pointer px-5 py-5 text-lg font-bold text-white outline-none hover:text-amber-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300 sm:px-6">Eventos registrados</summary>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-y border-slate-800 px-5 py-4 sm:px-6">
+            <p class="text-sm text-slate-400">{{ $auditLogs->total() }} {{ $auditLogs->total() === 1 ? 'registro disponible' : 'registros disponibles' }}.</p>
             <span class="inline-flex w-fit items-center gap-2 rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">Solo lectura</span>
         </div>
 
@@ -89,4 +87,4 @@
                 </div>
             </nav>
         @endif
-</section>
+</details>

@@ -1,5 +1,5 @@
-<section class="mb-6 rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6" aria-labelledby="security-alerts-title">
-    <h2 id="security-alerts-title" class="text-lg font-bold text-white">Alertas de seguridad</h2>
+<details open data-security-section="alerts" class="mb-6 rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
+    <summary class="cursor-pointer rounded-md text-lg font-bold text-white outline-none hover:text-amber-100 focus-visible:ring-2 focus-visible:ring-amber-300">Alertas de seguridad</summary>
     <p class="mt-2 text-sm text-slate-400">Últimos 20 grupos. Cada grupo conserva el total de ocurrencias y la última acción; la bitácora inferior conserva los eventos individuales. El correo se limita a uno por grupo cada 15 minutos.</p>
     <p class="mt-2 text-xs text-slate-400">
         Responsable: {{ config('security.alert_recipient') ?: 'sin configurar (solo alertas internas)' }}.
@@ -24,4 +24,4 @@
             <p class="py-3 text-sm text-slate-400">Todavía no hay alertas de contención.</p>
         @endforelse
     </div>
-</section>
+</details>

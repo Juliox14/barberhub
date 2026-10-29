@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSecurityAuditPoller } from '../../resources/js/security-audit-poller.js';
 
-function harness(fetcher, { includeResults = true } = {}) {
+function harness(fetcher, { includeResults = true, sectionStates = [] } = {}) {
     const listeners = { document: new Map(), window: new Map() };
     const timers = new Map();
     function register(target, name, callback, options = {}) {
@@ -26,7 +26,14 @@ function harness(fetcher, { includeResults = true } = {}) {
     let nextTimer = 0;
     const status = { textContent: '' };
     const results = includeResults ? {
-        innerHTML: '<p>before</p>',
+        html: '<p>before</p>',
+        get innerHTML() { return this.html; },
+        set innerHTML(value) {
+            this.html = value;
+            sectionStates = sectionStates.map(({ dataset }) => ({ dataset, open: true }));
+        },
+        get sections() { return sectionStates; },
+        querySelectorAll() { return sectionStates; },
         focused: false,
         contains() { return this.focused; },
     } : null;
@@ -80,6 +87,27 @@ test('refresh updates results in place using the current page endpoint', async (
     assert.equal(calls[0].options.headers.Accept, 'application/json');
     assert.equal(calls[0].options.credentials, 'same-origin');
     assert.equal(app.status.textContent, 'Actualizado automáticamente cada 15 segundos.');
+});
+
+test('refresh preserves each section disclosure state across replaced fragments', async () => {
+    let fragment = '<details open>new alerts and history</details>';
+    const app = harness(async () => response(fragment), {
+        sectionStates: [
+            { dataset: { securitySection: 'alerts' }, open: false },
+            { dataset: { securitySection: 'audit-log' }, open: true },
+        ],
+    });
+
+    await app.poller.refresh();
+    assert.equal(app.results.innerHTML, fragment);
+    assert.deepEqual(app.results.sections.map(({ open }) => open), [false, true]);
+
+    app.results.sections[0].open = true;
+    app.results.sections[1].open = false;
+    fragment = '<details open>another refreshed fragment</details>';
+    await app.poller.refresh();
+    assert.equal(app.results.innerHTML, fragment);
+    assert.deepEqual(app.results.sections.map(({ open }) => open), [true, false]);
 });
 
 test('polling pauses while hidden, resumes visibly, and never overlaps requests', async () => {

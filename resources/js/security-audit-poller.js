@@ -129,7 +129,16 @@ export function createSecurityAuditPoller({
                 return;
             }
 
+            const sectionStates = new Map(
+                [...results.querySelectorAll('details[data-security-section]')]
+                    .map((section) => [section.dataset.securitySection, section.open]),
+            );
             results.innerHTML = payload.html;
+            for (const section of results.querySelectorAll('details[data-security-section]')) {
+                if (sectionStates.has(section.dataset.securitySection)) {
+                    section.open = sectionStates.get(section.dataset.securitySection);
+                }
+            }
             setStatus('Actualizado automáticamente cada 15 segundos.');
         } catch (error) {
             if (sequence === requestSequence && !stopped && (error?.name !== 'AbortError' || timedOut)) {

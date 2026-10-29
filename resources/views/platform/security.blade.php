@@ -5,12 +5,10 @@
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Revoca sesiones de cuentas con un motivo documentado o suspende un módulo de una barbería durante 15 minutos. Las restricciones vigentes no se prolongan al repetir la solicitud.</p>
         </header>
 
-        <section class="space-y-4 rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
-            <div>
-                <h2 class="text-lg font-bold text-white">Revocar sesiones de una cuenta</h2>
-                <p class="mt-1 text-sm text-slate-400">Se cerrarán sus sesiones activas, se invalidarán sus suscripciones push y se rotará su token de acceso recordado.</p>
-            </div>
-            <div class="divide-y divide-slate-800">
+        <details open data-security-section="sessions" class="rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
+            <summary class="cursor-pointer rounded-md text-lg font-bold text-white outline-none hover:text-amber-100 focus-visible:ring-2 focus-visible:ring-amber-300">Revocar sesiones de una cuenta</summary>
+            <p class="mt-3 text-sm text-slate-400">Se cerrarán sus sesiones activas, se invalidarán sus suscripciones push y se rotará su token de acceso recordado.</p>
+            <div class="mt-4 divide-y divide-slate-800">
                 @foreach ($users as $account)
                     <form method="POST" action="{{ route('platform.security.sessions.revoke', $account) }}" class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,2fr)_auto] sm:items-end">
                         @csrf
@@ -27,13 +25,11 @@
                     </form>
                 @endforeach
             </div>
-        </section>
+        </details>
 
-        <section class="space-y-4 rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
-            <div>
-                <h2 class="text-lg font-bold text-white">Suspender o liberar un módulo</h2>
-                <p class="mt-1 text-sm text-slate-400">Solo se bloquea el módulo seleccionado en esa barbería. El panel, las herramientas de sesión y los demás módulos permanecen disponibles.</p>
-            </div>
+        <details open data-security-section="modules" class="space-y-4 rounded-xl border border-slate-800 bg-[#11171d] p-5 sm:p-6">
+            <summary class="cursor-pointer rounded-md text-lg font-bold text-white outline-none hover:text-amber-100 focus-visible:ring-2 focus-visible:ring-amber-300">Suspender o liberar un módulo</summary>
+            <p class="text-sm text-slate-400">Solo se bloquea el módulo seleccionado en esa barbería. El panel, las herramientas de sesión y los demás módulos permanecen disponibles.</p>
             @foreach ($barbershops as $barbershop)
                 <article class="rounded-lg border border-slate-800 bg-[#0c1116] p-4">
                     <h3 class="font-semibold text-white">{{ $barbershop->name }} <span class="font-normal text-slate-500">({{ $barbershop->slug }})</span></h3>
@@ -72,6 +68,6 @@
                     </div>
                 </article>
             @endforeach
-        </section>
+        </details>
     </div>
 </x-platform-layout>

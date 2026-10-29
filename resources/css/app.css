@@ -121,6 +121,19 @@
         .bh-sidebar--collapsed nav {
             flex: none;
         }
+
+        .bh-sidebar--collapsed [data-security-navigation] > div {
+            margin-left: 0;
+            border-left: 0;
+            padding-left: 0;
+        }
+
+        .bh-sidebar--collapsed [data-security-navigation] summary,
+        .bh-sidebar--collapsed [data-security-navigation] a {
+            white-space: normal;
+            padding: 0.5rem 0.25rem;
+            font-size: 0.625rem;
+        }
     }
 
     .bh-topbar {
