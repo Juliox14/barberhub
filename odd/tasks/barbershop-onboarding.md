@@ -10,10 +10,10 @@ S4. "AHH sisi, ahora entiendo, por invitacion, su rol inicial será owner"
 
 ## Tasks
 T1 | S1,S3,S4 | delegated worker (context backstop; invitation behavior) | done | RED exit 2; GREEN invitation + platform 20 tests/145 assertions; owner-specific Pint passed and formatting reconciled; commit dbb9448 on feat/barbershop-owner-invitation (446 insertions/8 deletions).
-T2 | S2,S3 | delegated worker (independent appointment component behavior) | done | RED exit 1; GREEN manager 10 tests/61 assertions, barber 9/55; parent presentation check 8/159 exit 0 after Vite build; commit pending.
+T2 | S2,S3 | delegated worker (independent appointment component behavior) | done | RED exit 1; GREEN manager 10 tests/61 assertions, barber 9/55; parent presentation check 8/159 exit 0 after Vite build; commit 21b1343 on feat/barbershop-appointment-form (118 insertions/44 deletions).
 T3 | S1-S4 | independent verifier (Risk item 2: account invitation and membership) + parent integration checks | done | full suite 266 tests/1349 assertions exit 0; git diff --check exit 0; independent invitation/platform/barber check 28 tests/193 assertions exit 0, all specs pass.
 
-T4 | S1-S4 | parent local delivery | in_progress | chain: feat/barbershop-onboarding -> feat/barbershop-owner-invitation -> feat/barbershop-appointment-form; no push or PR.
+T4 | S1-S4 | parent local delivery | done | local chain created: feat/barbershop-onboarding@e1c9da8 -> feat/barbershop-owner-invitation@01a1722 (behavior dbb9448) -> feat/barbershop-appointment-form (behavior 21b1343); no push or PR.
 
 ## Log
 L1. Original request verbatim:
@@ -26,6 +26,7 @@ L1. Original request verbatim:
 L2. User corrections verbatim: "Esa rama es vieja, eliminala y trabaja en una nueva"; "crea otra rama"; "desde main".
 L3. User clarification verbatim: "AHH sisi, ahora entiendo, por invitacion, su rol inicial será owner".
 L4. Read-only exploration on main confirmed existing barber password-broker invitation, owner completion requires its own eligibility, and appointment backend already accepts new_customer_name for managers. No .ai/rules directory. Preserve existing owner-email attachment behavior and all barber behavior unless the requested addition requires otherwise.
+L11. Local branch chain committed. Risk: item 2 (owner account credentials/membership); independent verification passed. Invitation unit kept coherent at 454 authored changed lines; appointment unit 162. Final worktree holds both changes on feat/barbershop-appointment-form; feature base and owner slice remain separately reviewable. No dependencies changed, no native review (switch off), no push or PR. Production mail transport and visual browser checks remain untested; template rendering/build and simulated mail behavior passed.
 L10. Independent verifier passed S1/S3/S4 behavior and S2 source integration; invitation/platform/barber command 28 tests/193 assertions exit 0 in isolated scratch. Initial scratch cp command failed exit 1 (unsupported --exclude), tar-based setup succeeded; no product test failed. S2 behavior covered by parent full suite and writer focused tests. RDD off; native assessment unavailable was not treated as approval. No browser visual inspection or real mail delivery was performed.
 L9. Parent full integration command: APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= php artisan test --compact; 266 tests passed, 1349 assertions, exit 0. git diff --check exit 0. No real database or email used. Independent verifier still pending.
 L8. User selected delivery verbatim: "Ramas encadenadas por funcionalidad (recomendado)". Owner invitation unit is ~454 authored lines including tests; keep coherent security unit, appointment form separate dependent branch. T1 returned completed, 20 tests/145 assertions GREEN; path-targeted Pint reconciled test formatting.
