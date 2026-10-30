@@ -2,9 +2,11 @@
 
 import Alpine from 'alpinejs';
 import { createSessionMonitor } from './session-monitor.js';
+import { createPlatformSidebar } from './platform-sidebar.js';
 
 window.Alpine = Alpine;
 
+Alpine.data('platformSidebar', createPlatformSidebar);
 Alpine.start();
 
 document.querySelectorAll('[data-session-monitor]').forEach((element) => {

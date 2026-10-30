@@ -63,6 +63,9 @@ class SecurityInterfaceInteractionTest extends TestCase
     {
         $group = '//details[@data-security-navigation="'.$surface.'"]';
         $this->assertSame(1, $dom->query($group.'/summary[contains(., "Seguridad")]')->length);
+        if ($surface === 'platform') {
+            $this->assertSame('openSecurityGroup($event)', $dom->query($group.'/summary')->item(0)->getAttribute('x-on:click'));
+        }
         foreach (['platform.security.index', 'platform.security-audit-logs.index'] as $route) {
             $this->assertSame(1, $dom->query($group.'//a[@href="'.route($route).'"]')->length);
         }

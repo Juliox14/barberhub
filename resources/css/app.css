@@ -122,17 +122,16 @@
             flex: none;
         }
 
-        .bh-sidebar--collapsed [data-security-navigation] > div {
-            margin-left: 0;
-            border-left: 0;
-            padding-left: 0;
+        .bh-sidebar--collapsed [data-security-navigation] > div,
+        .bh-sidebar--collapsed [data-security-navigation] summary > span,
+        .bh-sidebar--collapsed [data-security-navigation] summary > svg:last-child {
+            display: none;
         }
 
-        .bh-sidebar--collapsed [data-security-navigation] summary,
-        .bh-sidebar--collapsed [data-security-navigation] a {
-            white-space: normal;
-            padding: 0.5rem 0.25rem;
-            font-size: 0.625rem;
+        .bh-sidebar--collapsed [data-security-navigation] summary {
+            justify-content: center;
+            gap: 0;
+            padding: 0.625rem 0.75rem;
         }
     }
 

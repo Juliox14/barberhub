@@ -12,7 +12,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="bh-app font-sans antialiased">
-        <div x-data="{ menuOpen: false, sidebarCollapsed: localStorage.getItem('bh-sidebar-collapsed') === 'true' }" :class="sidebarCollapsed ? 'lg:grid-cols-[5.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[250px_minmax(0,1fr)]'" class="min-h-screen lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-[cubic-bezier(0.16,1,0.3,1)]">
+        <div x-data="platformSidebar" :class="sidebarCollapsed ? 'lg:grid-cols-[5.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[250px_minmax(0,1fr)]'" class="min-h-screen lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-[cubic-bezier(0.16,1,0.3,1)]">
             <aside
                 class="bh-sidebar fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r px-4 py-6 transition-[transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0"
                 :class="{ 'translate-x-0': menuOpen, 'bh-sidebar--collapsed': sidebarCollapsed }"
@@ -37,8 +37,12 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5M8 10h.01M12 10h.01M16 10h.01"/></svg>
                         Barberías
                     </x-ui.nav-link>
-                    <details open data-security-navigation="platform">
-                        <summary class="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-300">Seguridad</summary>
+                    <details open data-security-navigation="platform" class="group">
+                        <summary x-on:click="openSecurityGroup($event)" aria-label="Seguridad" title="Seguridad" class="flex cursor-pointer list-none items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden">
+                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.75 20 6v5.25c0 4.9-3.35 8.6-8 10-4.65-1.4-8-5.1-8-10V6l8-3.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m8.75 12 2.1 2.1 4.4-4.4"/></svg>
+                            <span>Seguridad</span>
+                            <svg class="ml-auto h-4 w-4 shrink-0 group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
+                        </summary>
                         <div class="ml-3 space-y-1 border-l border-slate-700 pl-2">
                             <x-ui.nav-link :href="route('platform.security.index')" :active="$activePage === 'security'">
                                 Contención de seguridad
