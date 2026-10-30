@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
+use App\Support\AccountLoginGuard;
+use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -44,23 +46,43 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function authenticate(SingleDeviceSession $sessions): User
+    public function authenticate(SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard): User
     {
-        $this->ensureIsNotRateLimited();
+        $email = $this->string('email')->toString();
 
-        $user = $sessions->verifyCredentials($this->string('email')->toString(), $this->string('password')->toString());
-
-        if ($user === null) {
-            RateLimiter::hit($this->throttleKey());
+        if ($loginGuard->lockedUser($email) !== null) {
+            $auditLogger->record('login.failed', request: $this);
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => trans('auth.temporarily_blocked'),
             ]);
         }
 
+        $this->ensureIsNotRateLimited();
+
+        $user = $sessions->verifyCredentials($email, $this->string('password')->toString());
+
+        if ($user === null) {
+            $this->throwFailedAuthentication($auditLogger, $loginGuard, $email);
+        }
+
+        $loginGuard->clearFailedWindow($user);
         RateLimiter::clear($this->throttleKey());
 
         return $user;
+    }
+
+    private function throwFailedAuthentication(SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard, string $email): never
+    {
+        $auditLogger->record('login.failed', request: $this);
+        $loginGuard->recordFailedAttempt($email);
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'email' => $loginGuard->lockedUser($email) !== null
+                ? trans('auth.temporarily_blocked')
+                : trans('auth.failed'),
+        ]);
     }
 
     /**

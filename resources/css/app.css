@@ -121,6 +121,18 @@
         .bh-sidebar--collapsed nav {
             flex: none;
         }
+
+        .bh-sidebar--collapsed [data-security-navigation] > div,
+        .bh-sidebar--collapsed [data-security-navigation] summary > span,
+        .bh-sidebar--collapsed [data-security-navigation] summary > svg:last-child {
+            display: none;
+        }
+
+        .bh-sidebar--collapsed [data-security-navigation] summary {
+            justify-content: center;
+            gap: 0;
+            padding: 0.625rem 0.75rem;
+        }
     }
 
     .bh-topbar {

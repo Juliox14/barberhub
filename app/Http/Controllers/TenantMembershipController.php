@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\SecurityAuditLogger;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ final class TenantMembershipController extends Controller
         ]);
     }
 
-    public function store(Request $request, Barbershop $barbershop): RedirectResponse
+    public function store(Request $request, Barbershop $barbershop, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         $this->authorizeManagement($barbershop);
 
@@ -51,7 +52,7 @@ final class TenantMembershipController extends Controller
             'email.exists' => 'El correo debe pertenecer a una cuenta existente.',
         ]);
 
-        DB::transaction(function () use ($barbershop, $validated): void {
+        [$subject, $membership, $wasExisting, $saved] = DB::transaction(function () use ($barbershop, $validated): array {
             $user = User::query()
                 ->where('email', $validated['email'])
                 ->firstOrFail();
@@ -61,22 +62,36 @@ final class TenantMembershipController extends Controller
                 'barbershop_id' => $barbershop->id,
             ]);
 
+            $wasExisting = $membership->exists;
             $status = $validated['status'] ?? Membership::STATUS_ACTIVE;
 
             $this->ensureLastActiveOwnerRemains($barbershop, $membership, $validated['role'], $status);
 
-            $membership->fill([
+            $saved = $membership->fill([
                 'role' => $validated['role'],
                 'status' => $status,
             ])->save();
+
+            return [$user, $membership, $wasExisting, $saved];
         });
+
+        if ($saved) {
+            $auditLogger->record(
+                $wasExisting ? 'tenant.membership.updated' : 'tenant.membership.created',
+                $request->user(),
+                $subject,
+                $barbershop->id,
+                ['role' => $membership->role, 'status' => $membership->status],
+                $request,
+            );
+        }
 
         return redirect()
             ->route('tenant.members.index', $barbershop)
             ->with('status', 'Membresía guardada correctamente.');
     }
 
-    public function update(Request $request, Barbershop $barbershop, Membership $membership): RedirectResponse
+    public function update(Request $request, Barbershop $barbershop, Membership $membership, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         abort_unless($membership->barbershop_id === $barbershop->id, 404);
 
@@ -87,35 +102,62 @@ final class TenantMembershipController extends Controller
             'status' => ['required', Rule::in($this->statuses())],
         ]);
 
-        DB::transaction(function () use ($barbershop, $membership, $validated): void {
+        $subject = User::query()->findOrFail($membership->user_id);
+
+        $saved = DB::transaction(function () use ($barbershop, $membership, $validated): bool {
             $membership->refresh();
 
             $this->ensureLastActiveOwnerRemains($barbershop, $membership, $validated['role'], $validated['status']);
 
-            $membership->update([
+            return $membership->update([
                 'role' => $validated['role'],
                 'status' => $validated['status'],
             ]);
         });
+
+        if ($saved) {
+            $auditLogger->record(
+                'tenant.membership.updated',
+                $request->user(),
+                $subject,
+                $barbershop->id,
+                ['role' => $membership->role, 'status' => $membership->status],
+                $request,
+            );
+        }
 
         return redirect()
             ->route('tenant.members.index', $barbershop)
             ->with('status', 'Membresía actualizada correctamente.');
     }
 
-    public function destroy(Barbershop $barbershop, Membership $membership): RedirectResponse
+    public function destroy(Request $request, Barbershop $barbershop, Membership $membership, SecurityAuditLogger $auditLogger): RedirectResponse
     {
         abort_unless($membership->barbershop_id === $barbershop->id, 404);
 
         $this->authorizeManagement($barbershop);
+        $subject = User::query()->findOrFail($membership->user_id);
+        $role = $membership->role;
+        $status = $membership->status;
 
-        DB::transaction(function () use ($barbershop, $membership): void {
+        $deleted = DB::transaction(function () use ($barbershop, $membership): bool {
             $membership->refresh();
 
             $this->ensureLastActiveOwnerRemains($barbershop, $membership, Membership::ROLE_BARBER, Membership::STATUS_INACTIVE);
 
-            $membership->delete();
+            return $membership->delete();
         });
+
+        if ($deleted) {
+            $auditLogger->record(
+                'tenant.membership.deleted',
+                $request->user(),
+                $subject,
+                $barbershop->id,
+                ['role' => $role, 'status' => $status],
+                $request,
+            );
+        }
 
         return redirect()
             ->route('tenant.members.index', $barbershop)

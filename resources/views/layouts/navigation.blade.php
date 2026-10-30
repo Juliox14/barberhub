@@ -25,6 +25,23 @@
                             {{ $dashboardLabel }}
                         </x-nav-link>
                     @endif
+                    @if (Auth::user()?->is_platform_admin)
+                        <details data-security-navigation="desktop" class="group relative self-center" @if (request()->routeIs('platform.security.*', 'platform.security-audit-logs.*')) open @endif>
+                            <summary class="flex cursor-pointer list-none items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
+                                <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.75 20 6v5.25c0 4.9-3.35 8.6-8 10-4.65-1.4-8-5.1-8-10V6l8-3.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m8.75 12 2.1 2.1 4.4-4.4"/></svg>
+                                <span>Seguridad</span>
+                                <svg class="ml-auto h-4 w-4 shrink-0 group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
+                            </summary>
+                            <div class="absolute left-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+                                <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                                    Contención de seguridad
+                                </x-responsive-nav-link>
+                                <x-responsive-nav-link :href="route('platform.security-audit-logs.index')" :active="request()->routeIs('platform.security-audit-logs.*')">
+                                    Bitácora y alertas
+                                </x-responsive-nav-link>
+                            </div>
+                        </details>
+                    @endif
                 </div>
             </div>
 
@@ -81,6 +98,23 @@
                 <x-responsive-nav-link :href="$dashboardHref" :active="request()->routeIs($dashboardRoute) || request()->routeIs('dashboard')">
                     {{ $dashboardLabel }}
                 </x-responsive-nav-link>
+            @endif
+            @if (Auth::user()?->is_platform_admin)
+                <details open data-security-navigation="mobile" class="group">
+                    <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
+                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.75 20 6v5.25c0 4.9-3.35 8.6-8 10-4.65-1.4-8-5.1-8-10V6l8-3.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m8.75 12 2.1 2.1 4.4-4.4"/></svg>
+                        <span>Seguridad</span>
+                        <svg class="ml-auto h-4 w-4 shrink-0 group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
+                    </summary>
+                    <div class="ml-4 border-l border-gray-200">
+                        <x-responsive-nav-link :href="route('platform.security.index')" :active="request()->routeIs('platform.security.*')">
+                            Contención de seguridad
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('platform.security-audit-logs.index')" :active="request()->routeIs('platform.security-audit-logs.*')">
+                            Bitácora y alertas
+                        </x-responsive-nav-link>
+                    </div>
+                </details>
             @endif
         </div>
 

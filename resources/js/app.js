@@ -2,9 +2,11 @@
 
 import Alpine from 'alpinejs';
 import { createSessionMonitor } from './session-monitor.js';
+import { createPlatformSidebar } from './platform-sidebar.js';
 
 window.Alpine = Alpine;
 
+Alpine.data('platformSidebar', createPlatformSidebar);
 Alpine.start();
 
 document.querySelectorAll('[data-session-monitor]').forEach((element) => {
@@ -17,3 +19,11 @@ document.querySelectorAll('[data-session-monitor]').forEach((element) => {
         expiredLoginUrl: element.dataset.loginExpiredUrl,
     }).start();
 });
+
+if (document.querySelector('[data-audit-poller]')) {
+    import('./security-audit-poller.js').then(({ createSecurityAuditPoller }) => {
+        document.querySelectorAll('[data-audit-poller]').forEach((root) => {
+            createSecurityAuditPoller({ root, window, document }).start();
+        });
+    });
+}
