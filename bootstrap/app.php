@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordCurrent;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureSingleDeviceSession;
 use App\Http\Middleware\EnsureTenantMembership;
+use App\Http\Middleware\EnsureTwoFactor;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,9 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
         $middleware->appendToGroup('web', EnsureSingleDeviceSession::class);
+        $middleware->appendToGroup('web', EnsureTwoFactor::class);
+        $middleware->appendToGroup('web', EnsurePasswordCurrent::class);
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'code', 'recovery_code']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

@@ -23,6 +23,12 @@ return [
         'numeric' => 'El campo :attribute debe ser mayor o igual que :min.',
         'string' => 'El campo :attribute debe tener al menos :min caracteres.',
     ],
+    'password' => [
+        'letters' => 'La contraseña debe incluir al menos una letra.',
+        'mixed' => 'La contraseña debe incluir mayúsculas y minúsculas.',
+        'numbers' => 'La contraseña debe incluir al menos un número.',
+        'symbols' => 'La contraseña debe incluir al menos un símbolo.',
+    ],
     'numeric' => 'El campo :attribute debe ser un número.',
     'regex' => 'El formato del campo :attribute no es válido.',
     'required' => 'El campo :attribute es obligatorio.',

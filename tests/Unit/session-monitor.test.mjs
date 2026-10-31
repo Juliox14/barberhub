@@ -67,6 +67,9 @@ function createBrowser({ status = 'visible', fetchImpl = async () => ({ status: 
         endpoint: '/session/status',
         revokedLoginUrl: '/login?session=revoked',
         expiredLoginUrl: '/login?session=expired',
+        passwordRenewalUrl: '/password/renew',
+        twoFactorChallengeUrl: '/two-factor/challenge',
+        twoFactorSettingsUrl: '/two-factor/settings',
     };
     if (injectFetch) monitorOptions.fetch = fetchImpl;
     const monitor = windowObject.SessionMonitor.createSessionMonitor(monitorOptions);
@@ -380,3 +383,21 @@ test('account channels are isolated and unavailable coordination APIs do not cra
     blockedStorage.monitor.stop();
     assert.equal(blockedStorage.timers.size, 0);
 });
+
+for (const [status, httpStatus, target] of [
+    ['password_expired', 401, '/password/renew'],
+    ['two_factor_challenge', 403, '/two-factor/challenge'],
+    ['two_factor_required', 403, '/two-factor/settings'],
+]) {
+    test(`credential restriction ${status} redirects without ending the session`, async () => {
+        const first = createBrowser({ fetchImpl: async () => ({ status: httpStatus, json: async () => ({ status, redirect: 'https://untrusted.example' }) }) });
+        const second = createBrowser({ channels: first.channels, storage: first.storage });
+        first.monitor.start();
+        second.monitor.start();
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.deepEqual(first.redirects, [target]);
+        assert.deepEqual(second.redirects, [target]);
+        assert.equal(first.timers.size, 0);
+        assert.equal(first.storage.get('barberhub-session-notice'), undefined);
+    });
+}

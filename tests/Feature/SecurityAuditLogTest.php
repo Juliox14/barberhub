@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -65,7 +66,7 @@ class SecurityAuditLogTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        app(\App\Support\SecurityAuditLogger::class)->record(
+        app(SecurityAuditLogger::class)->record(
             'login.failed',
             metadata: ['password' => 'must-not-be-stored'],
         );
@@ -127,8 +128,8 @@ class SecurityAuditLogTest extends TestCase
 
         $this->actingAs($user)->from('/profile')->put('/password', [
             'current_password' => 'password',
-            'password' => 'replacement-secret',
-            'password_confirmation' => 'replacement-secret',
+            'password' => 'ReplacementSecret123!',
+            'password_confirmation' => 'ReplacementSecret123!',
         ])->assertRedirect('/profile');
         $this->assertDatabaseHas('security_audit_logs', [
             'event' => 'password.updated',
@@ -142,8 +143,8 @@ class SecurityAuditLogTest extends TestCase
             $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'reset-secret',
-                'password_confirmation' => 'reset-secret',
+                'password' => 'ResetSecret123!',
+                'password_confirmation' => 'ResetSecret123!',
             ])->assertRedirect(route('login'));
 
             return true;
@@ -155,8 +156,8 @@ class SecurityAuditLogTest extends TestCase
             'subject_id' => $user->id,
         ]);
         $logs = json_encode($this->auditRows(), JSON_THROW_ON_ERROR);
-        $this->assertStringNotContainsString('replacement-secret', $logs);
-        $this->assertStringNotContainsString('reset-secret', $logs);
+        $this->assertStringNotContainsString('ReplacementSecret123!', $logs);
+        $this->assertStringNotContainsString('ResetSecret123!', $logs);
     }
 
     public function test_platform_barbershop_mutations_record_successful_subject_identity(): void

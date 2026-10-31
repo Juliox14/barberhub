@@ -111,6 +111,7 @@
                             <p class="text-xs text-slate-400">{{ $roleLabel }}</p>
                         </div>
                         <div class="bh-user-avatar" aria-hidden="true">{{ str(Auth::user()->name)->substr(0, 1)->upper() }}</div>
+                        <x-account-settings-menu />
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="rounded-md p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" aria-label="Cerrar sesión">
@@ -120,9 +121,11 @@
                     </div>
                 </header>
                 <main class="p-4 sm:p-6 lg:p-8">
-                    <x-pwa-controls />
+                    <x-credential-security-notice />
+                    <x-pwa-controls :barbershop="$barbershop" />
                     {{ $slot }}
                 </main>
+                <x-credits-footer />
             </div>
         </div>
         <x-form-feedback />

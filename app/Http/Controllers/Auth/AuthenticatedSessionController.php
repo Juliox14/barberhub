@@ -12,9 +12,12 @@ use App\Support\CustomerInvitationService;
 use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
 use App\Support\TenantDashboard;
+use App\Support\TwoFactorAuthentication;
+use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -37,30 +40,54 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request, CustomerInvitationService $invitations, SingleDeviceSession $sessions, SecurityAuditLogger $auditLogger, AccountLoginGuard $loginGuard): RedirectResponse|View
     {
-        $request->session()->forget(SingleDeviceSession::PENDING_KEY);
+        $request->session()->forget([SingleDeviceSession::PENDING_KEY, TwoFactorLogin::PENDING_KEY, TwoFactorLogin::VERIFIED_KEY]);
         $user = $request->authenticate($sessions, $auditLogger, $loginGuard);
-        $ownerToken = Str::random(64);
+        if (app(TwoFactorAuthentication::class)->enabled($user)) {
+            app(TwoFactorLogin::class)->begin($request, $user);
 
-        $expectedVersion = (int) $user->getAttribute('security_session_version');
-
-        if (! $loginGuard->claimAfterCredentials($user, $ownerToken, $expectedVersion, $sessions)) {
-            $request->session()->put(SingleDeviceSession::PENDING_KEY, [
-                'user_id' => $user->getKey(),
-                'remember' => $request->boolean('remember'),
-                'session_id' => $request->session()->getId(),
-                'password_fingerprint' => $user->password,
-                'security_session_version' => $expectedVersion,
-                'created_at' => now()->timestamp,
-            ]);
-
-            return view('auth.login', ['sessionConflict' => true]);
+            return redirect()->route('two-factor.challenge');
         }
 
-        $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
-        $user->refresh();
-        Auth::login($user, $request->boolean('remember'));
+        return $this->finishAuthentication($request, $user, $request->boolean('remember'), $invitations, $sessions, $loginGuard);
+    }
 
-        return $this->redirectAuthenticatedUser($request, $invitations, $user);
+    public function finishAuthentication(Request $request, User $user, bool $remember, CustomerInvitationService $invitations, SingleDeviceSession $sessions, AccountLoginGuard $loginGuard): RedirectResponse|View
+    {
+        return DB::transaction(function () use ($request, $user, $remember, $invitations, $sessions, $loginGuard): RedirectResponse|View {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            abort_unless(hash_equals($user->password, $lockedUser->password)
+                && (int) $user->security_session_version === (int) $lockedUser->security_session_version, 419);
+            $user = $lockedUser;
+            if (app(TwoFactorAuthentication::class)->enabled($user) && ! app(TwoFactorLogin::class)->verified($request, $user)) {
+                app(TwoFactorLogin::class)->begin($request, $user);
+
+                return redirect()->route('two-factor.challenge');
+            }
+            $ownerToken = Str::random(64);
+
+            $expectedVersion = (int) $user->getAttribute('security_session_version');
+
+            if (! $loginGuard->claimAfterCredentials($user, $ownerToken, $expectedVersion, $sessions)) {
+                $request->session()->put(SingleDeviceSession::PENDING_KEY, [
+                    'user_id' => $user->getKey(),
+                    'remember' => $remember,
+                    'two_factor_version' => (int) $user->two_factor_version,
+                    'two_factor_verified' => app(TwoFactorLogin::class)->verified($request, $user),
+                    'session_id' => $request->session()->getId(),
+                    'password_fingerprint' => $user->password,
+                    'security_session_version' => $expectedVersion,
+                    'created_at' => now()->timestamp,
+                ]);
+
+                return view('auth.login', ['sessionConflict' => true]);
+            }
+
+            $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
+            $user->refresh();
+            Auth::login($user, $remember);
+
+            return $this->redirectAuthenticatedUser($request, $invitations, $user);
+        });
     }
 
     private function redirectAuthenticatedUser(Request $request, CustomerInvitationService $invitations, User $user): RedirectResponse
@@ -142,37 +169,47 @@ class AuthenticatedSessionController extends Controller
     {
         $pending = $request->session()->pull(SingleDeviceSession::PENDING_KEY);
 
-        abort_unless(
-            is_array($pending)
-            && ($pending['session_id'] ?? null) === $request->session()->getId()
-            && is_int($pending['created_at'] ?? null)
-            && $pending['created_at'] >= now()->subMinutes(10)->timestamp,
-            419,
-        );
+        return DB::transaction(function () use ($request, $sessions, $invitations, $auditLogger, $loginGuard, $pending): RedirectResponse {
+            abort_unless(
+                is_array($pending)
+                && ($pending['session_id'] ?? null) === $request->session()->getId()
+                && is_int($pending['created_at'] ?? null)
+                && $pending['created_at'] >= now()->subMinutes(10)->timestamp,
+                419,
+            );
 
-        $user = User::query()->findOrFail($pending['user_id']);
+            $user = User::query()->lockForUpdate()->findOrFail($pending['user_id']);
 
-        abort_unless(
-            isset($pending['password_fingerprint'], $pending['security_session_version'])
-            && is_int($pending['security_session_version'])
-            && hash_equals($pending['password_fingerprint'], $user->password)
-            && $pending['security_session_version'] === (int) $user->getAttribute('security_session_version'),
-            419,
-        );
+            abort_unless(
+                isset($pending['password_fingerprint'], $pending['security_session_version'])
+                && is_int($pending['security_session_version'])
+                && hash_equals($pending['password_fingerprint'], $user->password)
+                && $pending['security_session_version'] === (int) $user->getAttribute('security_session_version'),
+                419,
+            );
 
-        $ownerToken = Str::random(64);
+            abort_unless(
+                ! app(TwoFactorAuthentication::class)->enabled($user)
+                    || (($pending['two_factor_verified'] ?? false) === true
+                        && ($pending['two_factor_version'] ?? null) === (int) $user->two_factor_version
+                        && app(TwoFactorLogin::class)->verified($request, $user)),
+                419,
+            );
 
-        abort_unless(
-            $loginGuard->confirmTransfer($user, $ownerToken, $pending['security_session_version'], $sessions),
-            419,
-        );
+            $ownerToken = Str::random(64);
 
-        $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
-        $user->refresh();
-        Auth::login($user, (bool) ($pending['remember'] ?? false));
-        $auditLogger->record('session.transfer_confirmed', $user, $user, request: $request);
+            abort_unless(
+                $loginGuard->confirmTransfer($user, $ownerToken, $pending['security_session_version'], $sessions),
+                419,
+            );
 
-        return $this->redirectAuthenticatedUser($request, $invitations, $user);
+            $request->session()->put(SingleDeviceSession::OWNER_TOKEN_KEY, $ownerToken);
+            $user->refresh();
+            Auth::login($user, (bool) ($pending['remember'] ?? false));
+            $auditLogger->record('session.transfer_confirmed', $user, $user, request: $request);
+
+            return $this->redirectAuthenticatedUser($request, $invitations, $user);
+        });
     }
 
     public function cancelSessionTransfer(Request $request): RedirectResponse

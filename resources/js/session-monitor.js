@@ -6,7 +6,7 @@ const POLL_INTERVAL = 30_000;
 const REQUEST_TIMEOUT = 8_000;
 const LEASE_DURATION = 40_000;
 
-export function createSessionMonitor({ window: browser, document, fetch: request, accountId, endpoint, revokedLoginUrl, expiredLoginUrl }) {
+export function createSessionMonitor({ window: browser, document, fetch: request, accountId, endpoint, revokedLoginUrl, expiredLoginUrl, passwordRenewalUrl, twoFactorChallengeUrl, twoFactorSettingsUrl }) {
     const accountKey = encodeURIComponent(String(accountId));
     const channelName = `barberhub-session-${accountKey}`;
     const leaseKey = `${channelName}-lease`;
@@ -55,6 +55,18 @@ export function createSessionMonitor({ window: browser, document, fetch: request
         post({ type: 'session-ended', status });
         stop({ notify: false });
         redirectToLogin(status);
+    }
+
+    function redirectForCredentialPolicy(status, notify = true) {
+        const target = {
+            password_expired: passwordRenewalUrl,
+            two_factor_challenge: twoFactorChallengeUrl,
+            two_factor_required: twoFactorSettingsUrl,
+        }[status];
+        if (!active || typeof target !== 'string' || !target) return;
+        if (notify) post({ type: 'credentials-required', status });
+        stop({ notify: false });
+        browser.location.assign(target);
     }
 
     function stopPolling({ notify = true } = {}) {
@@ -121,7 +133,7 @@ export function createSessionMonitor({ window: browser, document, fetch: request
                     signal: controller.signal,
                 });
 
-                return response.status === 401
+                return response.status === 401 || response.status === 403
                     ? { status: response.status, body: await response.json() }
                     : { status: response.status };
             })();
@@ -131,6 +143,8 @@ export function createSessionMonitor({ window: browser, document, fetch: request
             if (result?.status === 401
                 && (result.body?.status === 'revoked' || result.body?.status === 'expired')) {
                 handleSessionEnd(result.body.status);
+            } else if (result?.status === 401 || result?.status === 403) {
+                redirectForCredentialPolicy(result.body?.status);
             }
         } catch {
             // Offline, timeout, malformed JSON, and server errors never imply revocation.
@@ -269,6 +283,8 @@ export function createSessionMonitor({ window: browser, document, fetch: request
             if (!active) return;
             stop({ notify: false });
             redirectToLogin(event.data.status);
+        } else if (event.data?.type === 'credentials-required') {
+            redirectForCredentialPolicy(event.data.status, false);
         } else if (event.data?.type === 'available' && isVisible()) {
             if (retryTimer !== null) {
                 browser.clearTimeout(retryTimer);

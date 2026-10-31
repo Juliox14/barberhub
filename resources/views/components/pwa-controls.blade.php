@@ -1,3 +1,5 @@
+@props(['barbershop' => null])
+
 <div data-pwa-controls data-account-id="{{ $accountId }}" data-push-subscribed="{{ $pushSubscribed ? 'true' : 'false' }}">
     <div class="fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-lg flex-col gap-3" aria-label="Avisos de BarberHub">
         <section class="hidden rounded-xl border border-slate-800 bg-[#111820] p-4 shadow-lg" role="alert" aria-label="Instalación de BarberHub" data-pwa-install-alert>
@@ -14,7 +16,7 @@
         </section>
         <section class="hidden rounded-xl border border-slate-800 bg-[#111820] p-4 shadow-lg" role="alert" aria-label="Notificaciones de BarberHub" data-push-alert>
             <div class="flex items-start gap-3">
-                <div class="min-w-0 flex-1" data-push-controls data-subscribe-url="{{ route('tenant.push-subscriptions.store', request()->route('barbershop')) }}" data-vapid-public-key="{{ config('webpush.public_key') }}">
+                <div class="min-w-0 flex-1" data-push-controls data-subscribe-url="{{ route('tenant.push-subscriptions.store', $barbershop ?? request()->route('barbershop')) }}" data-vapid-public-key="{{ config('webpush.public_key') }}">
                     <p class="font-semibold text-slate-100">Avisos de tu agenda</p>
                     <p class="mt-1 text-sm leading-6 text-slate-300" role="status" aria-live="polite" data-push-status>Comprueba si este dispositivo admite notificaciones push.</p>
                     <p class="mt-2 hidden text-sm leading-6 text-amber-200" data-ios-push-install>En iPhone o iPad, instala BarberHub en la pantalla de inicio antes de activar las notificaciones.</p>

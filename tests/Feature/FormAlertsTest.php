@@ -39,8 +39,8 @@ class FormAlertsTest extends TestCase
 
         $this->actingAs($user)->from('/profile')->put('/password', [
             'current_password' => 'incorrect-password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'NewPassword123!',
+            'password_confirmation' => 'NewPassword123!',
         ])->assertSessionHasErrorsIn('updatePassword', ['current_password']);
 
         $response = $this->withCookie(config('session.cookie'), session()->getId())->get('/profile');

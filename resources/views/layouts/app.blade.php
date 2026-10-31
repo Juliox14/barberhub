@@ -29,6 +29,7 @@
 
             <!-- Page Content -->
             <main>
+                    <x-credential-security-notice />
                 {{ $slot }}
             </main>
         </div>

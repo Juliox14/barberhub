@@ -190,8 +190,8 @@ class AccountLoginLockTest extends TestCase
             $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'ResetPassword123!',
+                'password_confirmation' => 'ResetPassword123!',
             ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
 
             return true;

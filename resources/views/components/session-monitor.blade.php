@@ -4,4 +4,7 @@
     data-status-url="{{ route('session.status', absolute: false) }}"
     data-login-revoked-url="{{ route('login', ['session' => 'revoked'], absolute: false) }}"
     data-login-expired-url="{{ route('login', ['session' => 'expired'], absolute: false) }}"
+    data-password-renewal-url="{{ route('password.renew', absolute: false) }}"
+    data-two-factor-challenge-url="{{ route('two-factor.challenge', absolute: false) }}"
+    data-two-factor-settings-url="{{ route('two-factor.settings', absolute: false) }}"
 ></div>
