@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\PasswordPolicy;
 use App\Support\SingleDeviceSession;
+use App\Support\TwoFactorAuthentication;
+use App\Support\TwoFactorLogin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +38,16 @@ class SessionStatusController extends Controller
 
         if (PasswordPolicy::expired($owner)) {
             return response()->json(['status' => 'password_expired'], 401)
+                ->header('Cache-Control', 'no-store, private');
+        }
+        $factor = app(TwoFactorAuthentication::class);
+        $login = app(TwoFactorLogin::class);
+        if ($factor->enabled($owner) && ! $login->verified($request, $owner)) {
+            return response()->json(['status' => 'two_factor_challenge', 'redirect' => route('two-factor.challenge')], 403)
+                ->header('Cache-Control', 'no-store, private');
+        }
+        if ($login->enrollmentOverdue($owner)) {
+            return response()->json(['status' => 'two_factor_required', 'redirect' => route('two-factor.settings')], 403)
                 ->header('Cache-Control', 'no-store, private');
         }
 

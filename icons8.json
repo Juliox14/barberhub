@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "icons": {
+    "pack": "ios7",
+    "sizes": [20],
+    "color": "#94a3b8",
+    "items": {
+      "settings": {
+        "id": "364",
+        "commonName": "settings",
+        "file": "public/images/icons/account-settings.png",
+        "source": "https://icons8.com/icon/364/settings",
+        "license": "free-with-attribution"
+      }
+    }
+  }
+}

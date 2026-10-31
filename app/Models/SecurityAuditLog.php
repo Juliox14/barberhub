@@ -38,6 +38,8 @@ class SecurityAuditLog extends Model
     {
         return in_array($this->event, [
             'login.succeeded', 'logout', 'password.updated', 'password.reset',
+            'two_factor.enabled', 'two_factor.disabled', 'two_factor.recovery_regenerated',
+            'two_factor.recovery_used', 'two_factor.failed', 'two_factor.verified',
             'security.account_locked', 'security.session_revoked',
             'session.transfer_confirmed', 'tenant.membership.created',
             'tenant.membership.updated', 'tenant.membership.deleted',

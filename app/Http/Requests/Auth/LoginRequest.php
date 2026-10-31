@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\AccountLoginGuard;
 use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
+use App\Support\TwoFactorLogin;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class LoginRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        $this->session()->forget(SingleDeviceSession::PENDING_KEY);
+        $this->session()->forget([SingleDeviceSession::PENDING_KEY, TwoFactorLogin::PENDING_KEY, TwoFactorLogin::VERIFIED_KEY]);
     }
 
     /**
