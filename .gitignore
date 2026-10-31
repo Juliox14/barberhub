@@ -39,3 +39,6 @@ Thumbs.db
 
 # Local Pi runtime state
 .atl/
+
+# Temporary visual references
+/references/
