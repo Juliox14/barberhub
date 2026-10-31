@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SessionStatusController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CompleteBarberInvitationController;
+use App\Http\Controllers\CompleteOwnerInvitationController;
 use App\Http\Controllers\CustomerInvitationController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,15 @@ Route::middleware('guest')->group(function () {
 
     Route::post('barber-invitations', [CompleteBarberInvitationController::class, 'store'])
         ->name('barber-invitations.complete');
+
+    Route::get('owner-invitations/{token}', [CompleteOwnerInvitationController::class, 'create'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:6,1')
+        ->name('owner-invitations.accept');
+
+    Route::post('owner-invitations', [CompleteOwnerInvitationController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('owner-invitations.complete');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
