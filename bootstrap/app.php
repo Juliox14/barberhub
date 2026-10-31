@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordCurrent;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureSingleDeviceSession;
 use App\Http\Middleware\EnsureTenantMembership;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
         $middleware->appendToGroup('web', EnsureSingleDeviceSession::class);
+        $middleware->appendToGroup('web', EnsurePasswordCurrent::class);
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -17,6 +17,9 @@ document.querySelectorAll('[data-session-monitor]').forEach((element) => {
         endpoint: element.dataset.statusUrl,
         revokedLoginUrl: element.dataset.loginRevokedUrl,
         expiredLoginUrl: element.dataset.loginExpiredUrl,
+        passwordRenewalUrl: element.dataset.passwordRenewalUrl,
+        twoFactorChallengeUrl: element.dataset.twoFactorChallengeUrl,
+        twoFactorSettingsUrl: element.dataset.twoFactorSettingsUrl,
     }).start();
 });
 

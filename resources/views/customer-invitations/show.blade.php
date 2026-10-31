@@ -50,6 +50,7 @@
             <div>
                 <label for="password" class="block text-sm font-semibold text-slate-100">Contraseña</label>
                 <input id="password" class="mt-2 block w-full rounded-xl border border-slate-600 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="password" name="password" required autocomplete="new-password" />
+                <x-password-requirements />
                 @error('password')
                     <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
                 @enderror

@@ -17,6 +17,7 @@
         <div>
             <x-input-label for="password" value="Nueva contraseña" />
             <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required autofocus autocomplete="new-password" />
+            <x-password-requirements />
         </div>
 
         <div>

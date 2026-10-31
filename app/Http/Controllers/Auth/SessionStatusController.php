@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\PasswordPolicy;
 use App\Support\SingleDeviceSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,6 @@ class SessionStatusController extends Controller
         }
 
         $owner = User::query()
-            ->select(['id', 'active_session_id', 'active_session_at'])
             ->find($user->getKey());
 
         if ($owner === null || $owner->active_session_at === null
@@ -32,6 +32,11 @@ class SessionStatusController extends Controller
         if (! is_string($owner->active_session_id)
             || ! hash_equals($owner->active_session_id, $ownerToken)) {
             return $this->revokedResponse($request);
+        }
+
+        if (PasswordPolicy::expired($owner)) {
+            return response()->json(['status' => 'password_expired'], 401)
+                ->header('Cache-Control', 'no-store, private');
         }
 
         return response()->json(['status' => 'current'])

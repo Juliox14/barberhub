@@ -189,8 +189,8 @@ class CustomerInvitationTest extends TestCase
             'role' => 'owner',
             'is_platform_admin' => true,
             'email_verified_at' => now()->toDateTimeString(),
-            'password' => 'customer-password',
-            'password_confirmation' => 'customer-password',
+            'password' => 'CustomerPassword123!',
+            'password_confirmation' => 'CustomerPassword123!',
         ])->assertRedirect('/')->assertSessionHas('status');
 
         $user = User::query()->where('email', 'old@example.com')->firstOrFail();
@@ -199,7 +199,7 @@ class CustomerInvitationTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertNotSame($sessionIdBefore, $this->app['session']->getId());
         $this->assertSame('client', $user->role);
-        $this->assertTrue(Hash::check('customer-password', $user->password));
+        $this->assertTrue(Hash::check('CustomerPassword123!', $user->password));
         $this->assertFalse($user->is_platform_admin);
         $this->assertNull($user->email_verified_at);
         $this->assertSame('Nombre actualizado', $user->name);
@@ -218,8 +218,8 @@ class CustomerInvitationTest extends TestCase
         $this->post($invitationUrl.'/register', [
             'name' => 'Otra cuenta',
             'phone' => '555-0000',
-            'password' => 'customer-password',
-            'password_confirmation' => 'customer-password',
+            'password' => 'CustomerPassword123!',
+            'password_confirmation' => 'CustomerPassword123!',
         ])->assertGone();
         $this->assertSame('Nombre actualizado', $customer->fresh()->name);
         $this->assertSame(1, User::query()->where('email', 'old@example.com')->count());
@@ -283,8 +283,8 @@ class CustomerInvitationTest extends TestCase
         $this->actingAsGuest()->post($invitationUrl.'/register', [
             'name' => $customer->name,
             'phone' => '',
-            'password' => 'customer-password',
-            'password_confirmation' => 'customer-password',
+            'password' => 'CustomerPassword123!',
+            'password_confirmation' => 'CustomerPassword123!',
         ])->assertRedirect('/');
 
         $this->assertNull($customer->fresh()->phone);
@@ -303,7 +303,7 @@ class CustomerInvitationTest extends TestCase
         $this->post($invitationUrl.'/register', [
             'name' => 'Editar nombre',
             'phone' => '555-0200',
-            'password' => 'customer-password',
+            'password' => 'CustomerPassword123!',
             'password_confirmation' => 'different-password',
         ])->assertSessionHasErrors('password');
         $this->assertSame($usersBefore, User::query()->count());
@@ -323,8 +323,8 @@ class CustomerInvitationTest extends TestCase
         $this->post($invitationUrl.'/register', [
             'name' => 'Nombre corregido',
             'phone' => '555-0200',
-            'password' => 'customer-password',
-            'password_confirmation' => 'customer-password',
+            'password' => 'CustomerPassword123!',
+            'password_confirmation' => 'CustomerPassword123!',
         ])->assertRedirect('/');
         $this->assertSame('Nombre corregido', $customer->fresh()->name);
         $this->assertSame(1, User::query()->where('email', 'target@example.com')->count());
@@ -397,8 +397,8 @@ class CustomerInvitationTest extends TestCase
         $this->post($invitationUrl.'/register', [
             'name' => 'No reemplazar',
             'phone' => '555-0300',
-            'password' => 'customer-password',
-            'password_confirmation' => 'customer-password',
+            'password' => 'CustomerPassword123!',
+            'password_confirmation' => 'CustomerPassword123!',
         ])->assertRedirect(route('login'));
 
         $this->assertGuest();
