@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CompleteBarberInvitationController;
 use App\Http\Controllers\CompleteOwnerInvitationController;
 use App\Http\Controllers\CustomerInvitationController;
+use App\Http\Middleware\EnsureAdaptiveRecaptcha;
 use Illuminate\Support\Facades\Route;
 
 Route::get('customer-invitations/{token}', [CustomerInvitationController::class, 'show'])
@@ -22,23 +23,31 @@ Route::post('customer-invitations/{token}/register', [CustomerInvitationControll
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [RegisteredUserController::class, 'store'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
+        ->name('register.store');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
+        ->name('login.store');
     Route::post('login/session-conflict/confirm', [AuthenticatedSessionController::class, 'confirmSessionTransfer'])
         ->name('login.session-conflict.confirm');
     Route::post('login/session-conflict/cancel', [AuthenticatedSessionController::class, 'cancelSessionTransfer'])
         ->name('login.session-conflict.cancel');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware(EnsureAdaptiveRecaptcha::class)
         ->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])

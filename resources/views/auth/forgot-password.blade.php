@@ -14,6 +14,8 @@
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
         </div>
 
+        <x-recaptcha-challenge :required="$recaptchaRequired ?? false" :available="$recaptchaAvailable ?? false" :site-key="$recaptchaSiteKey ?? null" />
+
         <div class="flex items-center justify-end mt-4">
             <x-primary-button>
                 {{ __('Email Password Reset Link') }}
