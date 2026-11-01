@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\AdaptiveChallengeTracker;
 use App\Support\RecaptchaService;
+use App\Support\RecaptchaVerification;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View as ViewFacade;
@@ -15,12 +16,14 @@ final class EnsureAdaptiveRecaptcha
     public function __construct(
         private readonly AdaptiveChallengeTracker $tracker,
         private readonly RecaptchaService $recaptcha,
+        private readonly RecaptchaVerification $verification,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $tracker = $this->tracker;
         $recaptcha = $this->recaptcha;
+        $verification = $this->verification;
         $flow = $this->flow($request);
         if ($flow === null) {
             return $next($request);
@@ -34,12 +37,15 @@ final class EnsureAdaptiveRecaptcha
         }
 
         if (! config('recaptcha.enabled')) {
+            $verification->forgetAll($request);
+
             return $next($request);
         }
 
         $required = $tracker->challengeRequired($flow, $request->ip());
 
         if ($request->isMethod('GET')) {
+            $required = $required && ! $verification->isRemembered($request, $flow, $request->ip());
             ViewFacade::share([
                 'recaptchaRequired' => $required,
                 'recaptchaAvailable' => $required && $recaptcha->configured(),
@@ -57,12 +63,17 @@ final class EnsureAdaptiveRecaptcha
             }
         }
 
-        if ($required && (! is_string($token) || mb_strlen($token) > 4096 || ! $recaptcha->verify($token, $request->ip()))) {
-            throw ValidationException::withMessages([
-                'g-recaptcha-response' => $recaptcha->configured()
-                    ? 'No pudimos verificar el desafío. Inténtalo nuevamente.'
-                    : 'La verificación de seguridad no está disponible. Inténtalo más tarde.',
-            ]);
+        $hasProof = $required && $verification->isRemembered($request, $flow, $request->ip());
+        if ($required && ! $hasProof) {
+            if (! is_string($token) || mb_strlen($token) > 4096 || ! $recaptcha->verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'g-recaptcha-response' => $recaptcha->configured()
+                        ? 'No pudimos verificar el desafío. Inténtalo nuevamente.'
+                        : 'La verificación de seguridad no está disponible. Inténtalo más tarde.',
+                ]);
+            }
+
+            $verification->rememberSuccessfulChallenge($request, $flow, $request->ip());
         }
 
         $tracker->admit($flow, $request->ip());

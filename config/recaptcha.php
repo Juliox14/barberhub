@@ -9,7 +9,11 @@ return [
     | RECAPTCHA_SECRET_KEY, and RECAPTCHA_HOSTNAMES as a comma-separated
     | allow-list. Protection is disabled by default. The per-flow IP counter
     | admits three POSTs, then requires a challenge, and expires after 15
-    | minutes. The hostname default is derived from APP_URL, never request Host.
+    | minutes. A successful required challenge is remembered for five fixed
+    | minutes in the same browser session, IP, and form flow; reuse does not
+    | reset or shorten the independent 15-minute IP counter. A protected request
+    | while disabled clears that session's remembered verifications. The hostname
+    | default is derived from APP_URL, never request Host.
     */
     'enabled' => (bool) env('RECAPTCHA_ENABLED', false),
     'site_key' => env('RECAPTCHA_SITE_KEY'),
