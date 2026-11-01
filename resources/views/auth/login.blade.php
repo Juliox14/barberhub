@@ -59,6 +59,8 @@
             Recordarme
         </label>
 
+        <x-recaptcha-challenge :required="$recaptchaRequired ?? false" :available="$recaptchaAvailable ?? false" :site-key="$recaptchaSiteKey ?? null" />
+
         <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3.5 text-sm font-bold text-[#1a1409] shadow-[0_10px_24px_rgba(251,191,36,0.16)] outline-none transition hover:bg-amber-200 focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#10151a] active:bg-amber-400">
             Entrar
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 10h12m-5-5 5 5-5 5"/></svg>
