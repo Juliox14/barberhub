@@ -31,7 +31,9 @@ class RecaptchaChallengeTest extends TestCase
         Notification::fake();
 
         foreach (['/login', '/register', '/forgot-password'] as $url) {
-            $this->get($url)->assertDontSee('google.com/recaptcha');
+            $this->get($url)
+                ->assertDontSee('google.com/recaptcha')
+                ->assertDontSee('data-recaptcha-modal');
         }
 
         $this->post('/login', [])->assertSessionHasErrors(['email', 'password']);
@@ -152,6 +154,31 @@ class RecaptchaChallengeTest extends TestCase
 
         $this->get('/register')->assertSee('no está disponible')->assertDontSee(self::SECRET_KEY);
         $this->from('/register')->post('/register', [])->assertSessionHasErrors('g-recaptcha-response');
+    }
+
+    public function test_required_challenge_renders_as_an_accessible_out_of_flow_overlay(): void
+    {
+        $this->enableRecaptcha();
+
+        foreach (range(1, 3) as $attempt) {
+            $this->post('/login', ['email' => "overlay{$attempt}@example.com"])
+                ->assertSessionHasErrors('password');
+        }
+
+        $response = $this->get('/login');
+
+        $response->assertSee('data-recaptcha-modal', false)
+            ->assertSee('style="display: none;"', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee('aria-labelledby="recaptcha-modal-title"', false)
+            ->assertSee('aria-describedby="recaptcha-modal-description"', false)
+            ->assertSee('aria-modal="false"', false)
+            ->assertSee('data-recaptcha-open', false)
+            ->assertSee('data-callback="barberHubRecaptchaSuccess"', false)
+            ->assertSee('data-expired-callback="barberHubRecaptchaExpired"', false)
+            ->assertSee('data-error-callback="barberHubRecaptchaError"', false)
+            ->assertSee('fixed inset-0', false)
+            ->assertSee('google.com/recaptcha/api.js');
     }
 
     public function test_valid_challenge_reaches_registration_and_sends_one_provider_verification(): void
