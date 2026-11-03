@@ -113,7 +113,13 @@ class PublicBookingTest extends TestCase
         $token = $summary->json('draft_id');
         $response = $this->postJson(route('public.booking.store', $shop), ['draft_id' => $token, 'barber_id' => 999]);
         $response->assertOk()->assertJsonPath('confirmed', true);
+        $appointment = Appointment::query()->sole();
         $this->assertDatabaseHas('appointments', ['customer_id' => $linked->id, 'barber_id' => $barber->id, 'starts_at' => '2026-10-05 10:00:00']);
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id, 'barbershop_id' => $shop->id, 'customer_id' => $linked->id,
+            'actor_kind' => 'customer', 'actor_user_id' => $user->id, 'event_kind' => 'created',
+            'after_status' => Appointment::STATUS_SCHEDULED,
+        ]);
         $this->postJson(route('public.booking.store', $shop), ['draft_id' => $token])->assertExactJson($response->json());
         $this->assertDatabaseCount('appointments', 1);
         $this->assertDatabaseCount('customers', 1);
@@ -138,6 +144,12 @@ class PublicBookingTest extends TestCase
         $this->postJson(route('public.booking.store', $shop), ['draft_id' => $summary->json('draft_id')])->assertOk();
         $this->assertDatabaseCount('customers', 2);
         $this->assertDatabaseCount('appointments', 1);
+        $appointment = Appointment::query()->sole();
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id, 'barbershop_id' => $shop->id, 'customer_id' => $appointment->customer_id,
+            'actor_kind' => 'guest', 'actor_user_id' => null, 'event_kind' => 'created',
+            'after_status' => Appointment::STATUS_SCHEDULED,
+        ]);
         $this->assertDatabaseHas('customers', ['barbershop_id' => $shop->id, 'email' => 'guest@example.com', 'name' => 'Invitado', 'user_id' => null]);
         $after = $existing->fresh()->getAttributes();
         ksort($before);

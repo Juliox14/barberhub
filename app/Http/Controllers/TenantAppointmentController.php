@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Membership;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\AppointmentHistory;
 use App\Support\AppointmentPushDispatcher;
 use App\Support\AppointmentScheduler;
 use App\Support\TenantDashboard;
@@ -78,7 +79,7 @@ final class TenantAppointmentController extends Controller
         ]);
     }
 
-    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, AppointmentPushDispatcher $pushDispatcher): RedirectResponse
+    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, AppointmentPushDispatcher $pushDispatcher, AppointmentHistory $history): RedirectResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 403);
@@ -134,7 +135,7 @@ final class TenantAppointmentController extends Controller
             : null;
         $startsAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['starts_at'], $barbershop->timezone);
 
-        $appointment = DB::transaction(function () use ($barbershop, $barber, $service, $customer, $validated, $startsAt, $scheduler): Appointment {
+        $appointment = DB::transaction(function () use ($barbershop, $barber, $service, $customer, $validated, $startsAt, $scheduler, $history, $user): Appointment {
             if (isset($validated['new_customer_name'])) {
                 $customer = $barbershop->customers()->create([
                     'name' => trim($validated['new_customer_name']),
@@ -142,13 +143,16 @@ final class TenantAppointmentController extends Controller
                 ]);
             }
 
-            return $scheduler->schedule(
+            $appointment = $scheduler->schedule(
                 barbershop: $barbershop,
                 barber: $barber,
                 service: $service,
                 customer: $customer,
                 startsAt: $startsAt,
             );
+            $history->record($appointment, 'created', 'staff', $user, null, $appointment->getRawOriginal('starts_at'), null, Appointment::STATUS_SCHEDULED);
+
+            return $appointment;
         });
 
         $pushDispatcher->dispatch($appointment, $user, 'assigned');
@@ -158,15 +162,25 @@ final class TenantAppointmentController extends Controller
             ->with('status', 'Cita creada correctamente.');
     }
 
-    public function reschedule(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentScheduler $scheduler, AppointmentPushDispatcher $pushDispatcher): RedirectResponse
+    public function reschedule(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentScheduler $scheduler, AppointmentPushDispatcher $pushDispatcher, AppointmentHistory $history): RedirectResponse
     {
         $appointment = $this->authorizeAppointmentAction($request, $barbershop, $appointment);
         $validated = $request->validate([
             'starts_at' => ['required', 'date_format:Y-m-d\\TH:i'],
         ]);
         $startsAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['starts_at'], $barbershop->timezone);
-        $appointment = $scheduler->reschedule($appointment, $startsAt);
         $user = $request->user();
+        $appointment = DB::transaction(function () use ($appointment, $startsAt, $scheduler, $history, $user): Appointment {
+            Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
+            $locked = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
+            $before = $locked->getRawOriginal('starts_at');
+            $rescheduled = $scheduler->reschedule($locked, $startsAt);
+            if ($before !== $rescheduled->getRawOriginal('starts_at')) {
+                $history->record($rescheduled, 'rescheduled', 'staff', $user, $before, $rescheduled->getRawOriginal('starts_at'), Appointment::STATUS_SCHEDULED, Appointment::STATUS_SCHEDULED);
+            }
+
+            return $rescheduled;
+        });
         abort_unless($user instanceof User, 403);
         $pushDispatcher->dispatch($appointment, $user, 'rescheduled');
 
@@ -175,31 +189,33 @@ final class TenantAppointmentController extends Controller
             ->with('status', 'Cita reprogramada correctamente.');
     }
 
-    public function cancel(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentPushDispatcher $pushDispatcher): RedirectResponse
+    public function cancel(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentPushDispatcher $pushDispatcher, AppointmentHistory $history): RedirectResponse
     {
-        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_CANCELLED, 'Cita cancelada.', $pushDispatcher);
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_CANCELLED, 'Cita cancelada.', $pushDispatcher, $history);
     }
 
-    public function complete(Request $request, Barbershop $barbershop, Appointment $appointment): RedirectResponse
+    public function complete(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentHistory $history): RedirectResponse
     {
-        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_COMPLETED, 'Cita marcada como completada.');
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_COMPLETED, 'Cita marcada como completada.', null, $history);
     }
 
-    public function noShow(Request $request, Barbershop $barbershop, Appointment $appointment): RedirectResponse
+    public function noShow(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentHistory $history): RedirectResponse
     {
-        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_NO_SHOW, 'Cita marcada como no asistió.');
+        return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_NO_SHOW, 'Cita marcada como no asistió.', null, $history);
     }
 
-    private function transition(Request $request, Barbershop $barbershop, Appointment $appointment, string $status, string $message, ?AppointmentPushDispatcher $pushDispatcher = null): RedirectResponse
+    private function transition(Request $request, Barbershop $barbershop, Appointment $appointment, string $status, string $message, ?AppointmentPushDispatcher $pushDispatcher, AppointmentHistory $history): RedirectResponse
     {
         $appointment = $this->authorizeAppointmentAction($request, $barbershop, $appointment);
 
-        DB::transaction(function () use ($appointment, $status): void {
+        DB::transaction(function () use ($appointment, $status, $history, $request): void {
             Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
             $lockedAppointment = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
 
             abort_unless($lockedAppointment->status === Appointment::STATUS_SCHEDULED, 404);
+            $before = $lockedAppointment->getRawOriginal('starts_at');
             $lockedAppointment->update(['status' => $status]);
+            $history->record($lockedAppointment, $status, 'staff', $request->user(), $before, $before, Appointment::STATUS_SCHEDULED, $status);
         });
 
         if ($status === Appointment::STATUS_CANCELLED && $pushDispatcher !== null) {
