@@ -15,7 +15,9 @@ use App\Notifications\PublicBookingConfirmed;
 use App\Support\ModuleContainment;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class PublicBookingTest extends TestCase
@@ -116,7 +118,10 @@ class PublicBookingTest extends TestCase
         $this->assertDatabaseCount('appointments', 1);
         $this->assertDatabaseCount('customers', 1);
         Notification::assertSentOnDemandTimes(PublicBookingConfirmed::class, 1);
-        Notification::assertSentOnDemand(PublicBookingConfirmed::class, fn ($notice, $channels, $notifiable): bool => $notifiable->routes['mail'] === $user->email);
+        Notification::assertSentOnDemand(PublicBookingConfirmed::class, fn ($notice, $channels, $notifiable): bool => $notifiable->routes['mail'] === $user->email
+            && $notice->managementUrl !== null
+            && URL::hasValidSignature(Request::create($notice->managementUrl))
+            && str_contains($notice->managementUrl, '/appointments/1/manage'));
     }
 
     public function test_guest_must_verify_and_gets_a_new_contact_record_without_email_linking(): void

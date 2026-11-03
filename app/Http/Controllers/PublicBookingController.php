@@ -10,6 +10,7 @@ use App\Support\AppointmentScheduler;
 use App\Support\GuestBookingVerification;
 use App\Support\ModuleContainment;
 use App\Support\PublicBookingAvailability;
+use App\Support\PublicBookingManagement;
 use App\Support\TenantBranding;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -143,7 +144,11 @@ final class PublicBookingController extends Controller
             Cache::put($key, $draft, 600);
             $verification->consume($request, $barbershop, $summary['email']);
             try {
-                Notification::route('mail', $summary['email'])->notify(new PublicBookingConfirmed($barbershop->name, $summary));
+                Notification::route('mail', $summary['email'])->notify(new PublicBookingConfirmed(
+                    $barbershop->name,
+                    $summary,
+                    PublicBookingManagement::url($barbershop, $appointment),
+                ));
                 $receipt['email_sent'] = true;
             } catch (Throwable $exception) {
                 report($exception);
