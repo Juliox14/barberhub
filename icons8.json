@@ -5,6 +5,13 @@
     "sizes": [20],
     "color": "#94a3b8",
     "items": {
+      "branding": {
+        "id": "4922",
+        "commonName": "paint-palette",
+        "file": "public/images/icons/brand-palette.png",
+        "source": "https://icons8.com/icon/4922/paint-palette",
+        "license": "free-with-attribution"
+      },
       "settings": {
         "id": "364",
         "commonName": "settings",

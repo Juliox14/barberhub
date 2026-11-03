@@ -5,11 +5,13 @@ use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\PlatformSecurityController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SecurityAuditLogController;
 use App\Http\Controllers\TenantAppointmentController;
 use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
+use App\Http\Controllers\TenantBrandingController;
 use App\Http\Controllers\TenantBusinessHourController;
 use App\Http\Controllers\TenantCustomerInvitationController;
 use App\Http\Controllers\TenantDashboardController;
@@ -22,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/barbershops/{barbershop:slug}/brand/{kind}', [TenantBrandingController::class, 'asset'])->name('tenant.branding.asset');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
@@ -44,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
     Route::middleware('tenant.member')->prefix('/barbershops/{barbershop:slug}')->group(function (): void {
         Route::get('/dashboard', TenantDashboardController::class)->name('tenant.dashboard');
+        Route::get('/branding', [TenantBrandingController::class, 'edit'])->name('tenant.branding.edit');
+        Route::put('/branding', [TenantBrandingController::class, 'update'])->name('tenant.branding.update');
         Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('tenant.push-subscriptions.store');
         Route::delete('/push-subscriptions/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('tenant.push-subscriptions.destroy');
         Route::middleware(EnsureModuleAvailable::class.':members')->group(function (): void {
@@ -91,5 +97,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::prefix('/barbershops/{barbershop:slug}/book')->name('public.booking.')->group(function (): void {
+    Route::get('/', [PublicBookingController::class, 'create'])->name('create');
+    Route::post('/summary', [PublicBookingController::class, 'summary'])->middleware('throttle:30,1')->name('summary');
+    Route::post('/', [PublicBookingController::class, 'store'])->middleware('throttle:30,1')->name('store');
+});
+
+require __DIR__.'/public-availability.php';
+require __DIR__.'/guest-booking-verification.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/password-policy.php';

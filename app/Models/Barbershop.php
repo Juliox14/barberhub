@@ -8,7 +8,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'status', 'timezone'])]
+#[Fillable([
+    'name',
+    'slug',
+    'status',
+    'timezone',
+    'brand_primary_color',
+    'brand_accent_color',
+    'brand_description',
+    'brand_logo_path',
+    'brand_cover_path',
+])]
 class Barbershop extends Model
 {
     /** @use HasFactory<BarbershopFactory> */

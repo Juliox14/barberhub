@@ -1,4 +1,4 @@
-@props(['barbershop', 'roleLabel', 'activePage' => 'dashboard', 'canManageMembers' => false])
+@props(['barbershop', 'roleLabel', 'activePage' => 'dashboard', 'canManageMembers' => false, 'canManageBranding' => false])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -72,6 +72,13 @@
                         <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Disponibilidad</span>
                     @endif
 
+                    @if ($canManageBranding)
+                        <x-ui.nav-link :href="route('tenant.branding.edit', $barbershop)" :active="$activePage === 'branding'">
+                            <img src="{{ asset('images/icons/brand-palette.png') }}" alt="" class="h-5 w-5" width="20" height="20" aria-hidden="true">
+                            Marca
+                        </x-ui.nav-link>
+                    @endif
+
                     <x-ui.nav-link :href="route('tenant.appointments.index', $barbershop)" :active="$activePage === 'appointments'">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M16 3v4M8 3v4M3 10h18"/><path stroke-linecap="round" stroke-linejoin="round" d="m8 15 2 2 5-5"/></svg>
                         Agenda
@@ -100,8 +107,11 @@
                         <button type="button" class="rounded-md p-2 text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:hidden" x-on:click="menuOpen = true" aria-label="Abrir menú">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
                         </button>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-100">{{ $barbershop->name }}</p>
+                        @if ($barbershop->brand_logo_path)
+                            <img src="{{ route('tenant.branding.asset', [$barbershop, 'logo']) }}" alt="" class="h-9 w-9 shrink-0 rounded-md bg-slate-100 object-contain p-0.5">
+                        @endif
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-slate-100">{{ $barbershop->name }}</p>
                             <p class="text-xs text-slate-400">{{ $barbershop->timezone }}</p>
                         </div>
                     </div>
