@@ -97,5 +97,6 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/public-availability.php';
+require __DIR__.'/guest-booking-verification.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/password-policy.php';
