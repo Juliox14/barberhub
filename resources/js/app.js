@@ -1,6 +1,8 @@
 
 
 import Alpine from 'alpinejs';
+import '../css/tenant-branding.css';
+import { createTenantBrandingEditor } from './tenant-branding.js';
 import { createSessionMonitor } from './session-monitor.js';
 import { createPlatformSidebar } from './platform-sidebar.js';
 import { initializePasswordFeedback } from './password-feedback.js';
@@ -9,6 +11,7 @@ import { initializeRecaptchaModal } from './recaptcha-modal.js';
 window.Alpine = Alpine;
 
 Alpine.data('platformSidebar', createPlatformSidebar);
+Alpine.data('tenantBrandingEditor', (initial, drafts) => createTenantBrandingEditor({ initial, drafts }));
 Alpine.start();
 initializePasswordFeedback(document);
 initializeRecaptchaModal(document, window);

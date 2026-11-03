@@ -6,12 +6,18 @@ use App\Events\AccountLoginLocked;
 use App\Events\PlatformSecurityAction;
 use App\Listeners\RecordContainmentSecurityEvent;
 use App\Listeners\RecordSecurityAuditEvent;
+use App\Models\Barbershop;
+use App\Models\Membership;
+use App\Models\User;
+use App\Support\TenantDashboard;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View as ViewFacade;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,5 +40,15 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, [RecordSecurityAuditEvent::class, 'logout']);
         Event::listen(PasswordReset::class, [RecordSecurityAuditEvent::class, 'passwordReset']);
         Event::listen(Lockout::class, [RecordSecurityAuditEvent::class, 'lockout']);
+
+        ViewFacade::composer('components.tenant-layout', function (View $view): void {
+            $barbershop = $view->getData()['barbershop'] ?? null;
+            $user = request()->user();
+            $canManageBranding = $barbershop instanceof Barbershop
+                && $user instanceof User
+                && TenantDashboard::membershipFor($user, $barbershop)?->role === Membership::ROLE_OWNER;
+
+            $view->with('canManageBranding', $canManageBranding);
+        });
     }
 }

@@ -1,0 +1,204 @@
+.bh-branding-editor {
+    min-width: 0;
+}
+
+.bh-branding-editor__columns {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1280px) {
+    .bh-branding-editor__columns {
+        grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr);
+        gap: 2rem;
+    }
+}
+
+.bh-branding-editor__panel {
+    min-width: 0;
+    border: 1px solid #28313a;
+    border-radius: 0.875rem;
+    background: #11171d;
+    padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .bh-branding-editor__panel {
+        padding: 1.5rem;
+    }
+}
+
+.bh-branding-preview__viewport {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+    overflow: hidden;
+    border: 1px solid #39434d;
+    border-radius: 1rem;
+    background: #e9e7e2;
+    box-shadow: 0 14px 34px rgb(0 0 0 / 22%);
+    transition: max-width 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bh-branding-preview__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.bh-branding-preview__control {
+    min-height: 2.75rem;
+    border: 1px solid #39434d;
+    border-radius: 0.5rem;
+    background: #0d1217;
+    padding: 0.5rem 0.75rem;
+    color: #e2e8f0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.bh-branding-preview__control[aria-pressed="true"] {
+    border-color: #f2bd55;
+    color: #f7d792;
+}
+
+.bh-branding-preview__control:focus-visible,
+.bh-branding-editor button:focus-visible,
+.bh-branding-editor input:focus-visible,
+.bh-branding-editor textarea:focus-visible {
+    outline: 2px solid #f2bd55;
+    outline-offset: 2px;
+}
+
+.bh-customer-brand {
+    --bh-brand-primary: #496c35;
+    --bh-brand-accent: #b8885a;
+    --bh-brand-primary-ink: #fff;
+    --bh-brand-accent-ink: #000;
+    --bh-brand-surface: #f8f7f4;
+    --bh-customer-ink: #1f2937;
+    display: block;
+    overflow: hidden;
+    background: var(--bh-brand-surface);
+    color: var(--bh-customer-ink);
+    color-scheme: light;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.bh-customer-cover {
+    height: 9rem;
+    overflow: hidden;
+    background: #e7e5df;
+}
+
+.bh-customer-cover--empty {
+    background: #eae8e2;
+}
+
+.bh-customer-cover__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bh-customer-content {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .bh-customer-content {
+        padding: 1.5rem;
+    }
+}
+
+.bh-customer-identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.bh-customer-logo {
+    display: block;
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: none;
+    border-radius: 0.875rem;
+    object-fit: contain;
+    background: white;
+    padding: 0.25rem;
+}
+
+.bh-customer-logo--empty {
+    display: grid;
+    place-items: center;
+    background: var(--bh-brand-primary);
+    color: var(--bh-brand-primary-ink);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.bh-customer-name {
+    min-width: 0;
+    margin: 0;
+    color: var(--bh-customer-ink);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.bh-customer-description {
+    max-width: 65ch;
+    margin: 0;
+    color: #374151;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
+
+.bh-customer-swatches,
+.bh-customer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+}
+
+.bh-customer-swatch,
+.bh-customer-button {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.bh-customer-swatch--primary,
+.bh-customer-button--primary {
+    background: var(--bh-brand-primary);
+    color: var(--bh-brand-primary-ink);
+}
+
+.bh-customer-swatch--accent,
+.bh-customer-button--accent {
+    background: var(--bh-brand-accent);
+    color: var(--bh-brand-accent-ink);
+}
+
+.bh-customer-button:disabled {
+    cursor: not-allowed;
+}
