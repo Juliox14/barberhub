@@ -55,6 +55,12 @@ class PublicBookingTest extends TestCase
         $xpath = new \DOMXPath($html);
         $this->assertSame(1, $xpath->query('//form[@id="public-booking-form" and @method="POST"]')->length);
         $this->assertSame(0, $xpath->query('//form//form')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-booking-wizard]')->length);
+        foreach ([1, 2, 3] as $step) {
+            $this->assertSame(1, $xpath->query('//*[@data-step-panel="'.$step.'"]')->length);
+        }
+        $this->assertSame(4, $xpath->query('//*[@data-progress-step]')->length);
+        $this->assertSame(2, $xpath->query('//button[@type="button" and (@data-wizard-back or @data-wizard-next)]')->length);
         $slots = $xpath->query('//input[@name="slot"]');
         $this->assertGreaterThan(0, $slots->length);
         foreach ($slots as $slot) {
@@ -214,10 +220,12 @@ class PublicBookingTest extends TestCase
         $cookie = $page->getCookie(config('session.cookie'));
         $this->withCookie($cookie->getName(), $cookie->getValue());
         $summary = $this->post(route('public.booking.summary', $shop), $this->payload($service, $barber))
-            ->assertOk()->assertSee('Revisa tu reserva')->assertSee($barber->display_name)->assertSee($user->email);
+            ->assertOk()->assertSee('Revisa tu reserva')->assertSee($barber->display_name)->assertSee($user->email)
+            ->assertSee('Paso 3 de 4 · Datos personales y confirmación');
         $draft = $summary->viewData('draft_id');
         $this->post(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk()
-            ->assertSee('¡Tu cita está confirmada!')->assertSee($barber->display_name)->assertSee($user->email);
+            ->assertSee('¡Tu cita está confirmada!')->assertSee($barber->display_name)->assertSee($user->email)
+            ->assertSee('Paso 4 de 4 · Reserva confirmada');
         $this->assertDatabaseCount('appointments', 1);
         Notification::assertSentOnDemandTimes(PublicBookingConfirmed::class, 1);
     }

@@ -1,4 +1,5 @@
 <x-public-booking-layout :barbershop="$barbershop" :branding="$branding">
+    <div class="bh-public-wizard" data-booking-wizard data-initial-step="{{ $errors->has('slot') || (old('name') && ! old('slot')) ? 2 : (old('slot') ? 3 : 1) }}">
     <section class="bh-public-intro bh-public-intro--editorial" aria-labelledby="booking-heading">
         <div class="bh-public-intro__copy">
             <p class="bh-public-intro__description">{{ $branding['description'] ?: $barbershop->name }}</p>
@@ -22,9 +23,10 @@
     @if ($services->isEmpty())
         <section class="bh-public-panel"><h2>Aún no hay servicios para reservar</h2><p>Contacta a la barbería para consultar su disponibilidad.</p></section>
     @else
+        @include('public.booking-progress', ['step' => 1])
         <div class="bh-public-columns bh-public-columns--editorial">
             <form method="GET" action="{{ route('public.booking.create', $barbershop) }}" class="bh-public-form bh-public-flow" data-availability data-availability-url="{{ route('public.availability', $barbershop) }}">
-                <section aria-labelledby="service-heading">
+                <section aria-labelledby="service-heading" data-step-panel="1" tabindex="-1">
                     <header class="bh-public-section-heading"><span aria-hidden="true">01</span><h2 id="service-heading">Elige tu servicio</h2><small>Servicios disponibles</small></header>
                     <fieldset>
                         <legend class="sr-only">Servicios disponibles</legend>
@@ -37,7 +39,7 @@
                         @endforeach
                     </fieldset>
                 </section>
-                <section aria-labelledby="slot-heading">
+                <section aria-labelledby="slot-heading" data-step-panel="2" tabindex="-1">
                     <header class="bh-public-section-heading"><span aria-hidden="true">02</span><h2 id="slot-heading">Encuentra tu horario</h2>
                         <p data-slot-status role="status" aria-live="polite" class="bh-public-slot-status">
                             @if (!$service)
@@ -82,7 +84,7 @@
                     </div>
                 </section>
             </form>
-            <aside id="booking-details" class="bh-public-panel bh-public-reservation" aria-labelledby="reservation-heading" tabindex="-1">
+            <aside id="booking-details" class="bh-public-panel bh-public-reservation" aria-labelledby="reservation-heading" data-step-panel="3" tabindex="-1">
                 <header class="bh-public-reservation__heading"><div><span>Paso 03</span><h2 id="reservation-heading">Tu reserva</h2></div><p class="bh-public-reservation__tenant">{{ $barbershop->name }}</p></header>
                 <dl class="bh-public-preview">
                     <div>
@@ -127,7 +129,12 @@
         </div>
         <nav class="bh-public-mobile-bar" aria-label="Continuar con la reserva">
             <div><strong data-booking-price>{{ $service?->price ?? '—' }}</strong><span data-booking-time>Elige un horario</span><small data-booking-service>{{ $service?->name ?? 'Elige un servicio' }}</small></div>
-            <a href="#booking-details" class="bh-public-button">Continuar</a>
+            <div class="bh-public-wizard-actions">
+                <button type="button" class="bh-public-button bh-public-button--secondary" data-wizard-back hidden>Volver</button>
+                <button type="button" class="bh-public-button" data-wizard-next hidden>Continuar</button>
+                <a href="#booking-details" class="bh-public-button" data-wizard-fallback>Continuar</a>
+            </div>
         </nav>
     @endif
+    </div>
 </x-public-booking-layout>

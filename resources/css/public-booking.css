@@ -172,6 +172,30 @@
 .bh-public-details dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .bh-public-footer { padding-block: 3rem; color: var(--bh-public-muted); font-size: .75rem; }
 
+.bh-public-progress, .bh-public-wizard-actions > button { display: none; }
+.bh-public-wizard-actions { display: flex; gap: .5rem; }
+@media (max-width: 1023px) {
+    .bh-public-progress { display: grid; gap: .75rem; margin-block: 1.5rem; }
+    .bh-public-progress p { margin: 0; font-weight: 600; }
+    .bh-public-progress ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+    .bh-public-progress li { display: grid; gap: .375rem; padding-top: .5rem; border-top: 2px solid var(--bh-public-border); color: var(--bh-public-muted); font-size: .6875rem; overflow-wrap: anywhere; }
+    .bh-public-progress li[aria-current=step] { border-color: var(--bh-brand-primary); color: inherit; font-weight: 700; }
+    .bh-public-wizard:not([data-wizard-enhanced]) .bh-public-progress { display: none; }
+    [data-wizard-enhanced] .bh-public-wizard-actions > button { display: inline-flex; }
+    [data-wizard-enhanced] [data-wizard-fallback],
+    [data-wizard-enhanced][data-wizard-step="1"] [data-step-panel]:not([data-step-panel="1"]),
+    [data-wizard-enhanced][data-wizard-step="2"] [data-step-panel]:not([data-step-panel="2"]),
+    [data-wizard-enhanced][data-wizard-step="3"] .bh-public-flow,
+    [data-wizard-enhanced]:not([data-wizard-step="1"]) .bh-public-intro { display: none; }
+    [data-wizard-enhanced] [data-step-panel] { scroll-margin-block: 6rem; }
+    [data-wizard-enhanced] .bh-public-mobile-bar { flex-wrap: wrap; }
+    [data-wizard-enhanced] .bh-public-mobile-bar > div:first-child { flex: 1 1 6rem; }
+    [data-wizard-enhanced] .bh-public-mobile-bar span { display: block; margin-left: 0; }
+    [data-wizard-enhanced] .bh-public-mobile-bar small { max-width: 10rem; }
+    [data-wizard-enhanced] .bh-public-wizard-actions { margin-left: auto; }
+    .bh-public:has([data-wizard-enhanced]) { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
+}
+
 @media (min-width: 600px) {
     .bh-public-filter-row { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
     .bh-public input:not([type=radio]):not([type=hidden]), .bh-public select { font-size: .875rem; }

@@ -1,4 +1,5 @@
 <x-public-booking-layout :barbershop="$barbershop" :branding="$branding" title="Cita confirmada">
+    @include('public.booking-progress', ['step' => 4])
     <section class="bh-public-panel bh-public-summary">
         <h1>¡Tu cita está confirmada!</h1>
         @if ($email_sent)

@@ -1,4 +1,5 @@
 <x-public-booking-layout :barbershop="$barbershop" :branding="$branding" title="Revisa tu reserva">
+    @include('public.booking-progress', ['step' => 3])
     <section class="bh-public-panel bh-public-summary">
         <h1>Revisa tu reserva</h1>
         <p>Este es el profesional que atenderá tu cita. El horario se vuelve a comprobar al confirmar.</p>

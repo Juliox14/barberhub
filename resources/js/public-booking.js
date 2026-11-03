@@ -1,3 +1,5 @@
+import { initializeBookingWizard } from './public-booking-wizard.js';
+
 export async function requestVerification(url, payload, csrfToken, fetchImplementation = fetch) {
     const response = await fetchImplementation(url, {
         method: 'POST',
@@ -190,6 +192,7 @@ function initializeAvailability(document, fetchImplementation) {
 
 export function initializePublicBooking(document, fetchImplementation = fetch) {
     initializeAvailability(document, fetchImplementation);
+    initializeBookingWizard(document);
     document.querySelectorAll('[data-public-booking]').forEach((form) => {
         updateBookingSubmit(form);
         const issue = form.querySelector('[data-issue-code]');
