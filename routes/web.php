@@ -5,6 +5,7 @@ use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
 use App\Http\Controllers\PlatformSecurityController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SecurityAuditLogController;
 use App\Http\Controllers\TenantAppointmentController;
@@ -94,6 +95,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::prefix('/barbershops/{barbershop:slug}/book')->name('public.booking.')->group(function (): void {
+    Route::get('/', [PublicBookingController::class, 'create'])->name('create');
+    Route::post('/summary', [PublicBookingController::class, 'summary'])->middleware('throttle:30,1')->name('summary');
+    Route::post('/', [PublicBookingController::class, 'store'])->middleware('throttle:30,1')->name('store');
 });
 
 require __DIR__.'/public-availability.php';

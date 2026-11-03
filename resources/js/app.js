@@ -2,6 +2,7 @@
 
 import Alpine from 'alpinejs';
 import '../css/tenant-branding.css';
+import '../css/public-booking.css';
 import { createTenantBrandingEditor } from './tenant-branding.js';
 import { createSessionMonitor } from './session-monitor.js';
 import { createPlatformSidebar } from './platform-sidebar.js';
@@ -15,6 +16,10 @@ Alpine.data('tenantBrandingEditor', (initial, drafts) => createTenantBrandingEdi
 Alpine.start();
 initializePasswordFeedback(document);
 initializeRecaptchaModal(document, window);
+
+if (document.querySelector('[data-public-booking]')) {
+    import('./public-booking.js').then(({ initializePublicBooking }) => initializePublicBooking(document));
+}
 
 document.querySelectorAll('[data-session-monitor]').forEach((element) => {
     createSessionMonitor({
