@@ -74,6 +74,7 @@
 
                     @if ($canManageBranding)
                         <x-ui.nav-link :href="route('tenant.branding.edit', $barbershop)" :active="$activePage === 'branding'">
+                            <img src="{{ asset('images/icons/brand-palette.png') }}" alt="" class="h-5 w-5" width="20" height="20" aria-hidden="true">
                             Marca
                         </x-ui.nav-link>
                     @endif
