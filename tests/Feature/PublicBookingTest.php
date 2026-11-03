@@ -40,7 +40,53 @@ class PublicBookingTest extends TestCase
             ->assertSee('&lt;script&gt;bad()&lt;/script&gt;', false)
             ->assertDontSee('<script>bad()</script>', false)
             ->assertDontSee($hidden->name)->assertDontSee($foreign->name)
-            ->assertSee('Sin preferencia');
+            ->assertSee('Sin preferencia')
+            ->assertSee('data-availability-url="'.route('public.availability', $shop).'"', false)
+            ->assertSee('data-slot-list', false)->assertSee('data-slot-status', false)
+            ->assertSee('data-public-booking', false);
+    }
+
+    public function test_reference_layout_keeps_slots_associated_with_the_real_booking_form(): void
+    {
+        [$shop, $service] = $this->context();
+        $response = $this->get(route('public.booking.create', [$shop, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
+        $html = new \DOMDocument;
+        $html->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($html);
+        $this->assertSame(1, $xpath->query('//form[@id="public-booking-form" and @method="POST"]')->length);
+        $this->assertSame(0, $xpath->query('//form//form')->length);
+        $slots = $xpath->query('//input[@name="slot"]');
+        $this->assertGreaterThan(0, $slots->length);
+        foreach ($slots as $slot) {
+            $this->assertSame('public-booking-form', $slot->getAttribute('form'));
+            $this->assertTrue($slot->hasAttribute('required'));
+        }
+        $this->assertSame(1, $xpath->query('//form[@id="public-booking-form"]//input[@name="email" and @required]')->length);
+        $this->assertSame(1, $xpath->query('//a[@href="#booking-details"]')->length);
+        $this->assertSame('Nombre y apellido', $xpath->query('//input[@name="name"]')->item(0)->getAttribute('placeholder'));
+        $this->assertSame('tu@correo.com', $xpath->query('//input[@name="email"]')->item(0)->getAttribute('placeholder'));
+        $phone = $xpath->query('//input[@name="phone"]')->item(0);
+        $this->assertSame('10 dígitos', $phone->getAttribute('placeholder'));
+        $this->assertSame('40', $phone->getAttribute('maxlength'));
+        $this->assertFalse($phone->hasAttribute('required'));
+        $this->assertSame(1, $xpath->query('//div[@data-date-options and @hidden]')->length);
+        $this->assertSame(1, $xpath->query('//details[@data-date-picker and @open]//input[@type="date" and @required]')->length);
+        $this->assertSame(2, $xpath->query('//*[@data-verification-controls]//button')->length);
+        $this->assertSame(0, $xpath->query('//*[@data-verification-controls]//*[@data-code-status]')->length);
+        $this->assertSame(1, $xpath->query('//form[@id="public-booking-form"]//*[@data-code-status]')->length);
+        $submit = $xpath->query('//button[@data-slot-submit]')->item(0);
+        $this->assertSame('Confirmar reserva', trim($submit->textContent));
+        $this->assertTrue($submit->hasAttribute('disabled'));
+        $this->assertSame(1, $xpath->query('//form[@data-email-verified="false" and @data-availability-ready="true"]')->length);
+        $accountPage = $this->actingAs(User::factory()->create())->get(route('public.booking.create', [$shop, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
+        $html->loadHTML($accountPage->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $accountXpath = new \DOMXPath($html);
+        $this->assertFalse($accountXpath->query('//button[@data-slot-submit]')->item(0)->hasAttribute('disabled'));
+        $this->assertSame(1, $accountXpath->query('//form[@data-email-verified="true" and @data-availability-ready="true"]')->length);
+        $response->assertSee('data-booking-price', false)->assertSee('data-booking-time', false)
+            ->assertDontSee('Cancelación gratuita')->assertDontSee('Los Muchachos');
+        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseCount('customers', 0);
     }
 
     public function test_verified_account_can_confirm_exact_summary_once_without_guest_code(): void
