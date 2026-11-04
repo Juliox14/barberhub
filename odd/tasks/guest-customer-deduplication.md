@@ -8,9 +8,9 @@ S2. "Va, empieza con la primera entrega, pero crea una rama, no trabajes sobre m
 S3. "NO, mejor lo dejemos como estaba, empieza con la primera entrega." — Preserve current guest code verification, expiry, session/shop binding and consumption; no remembered browser or verified-email registry.
 
 ## Tasks
-T1 [S1-S3] inline; done; RED reproduced 3 customers instead of 1; GREEN 43 focused tests, 525 assertions; commit: pending.
-T2 [S1-S3] inline integration test + targeted independent verify; done; real PostgreSQL HTTP concurrency test passed twice (parent and independent mw2hsy48-4-i1ki: 1 test, 24 assertions, exit 0); shared-customer access independently passed (1 test, 17 assertions); commit: pending.
-T3 [S1-S3] inline; in_progress; final suite passed (511 discovered, 510 passed, 1 PostgreSQL-only skip on SQLite; 4343 assertions), Pint and diff checks passed; preparing scoped work-unit commit; commit: pending.
+T1 [S1-S3] inline; done; RED reproduced 3 customers instead of 1; GREEN 43 focused tests, 525 assertions; commit: 5f71300.
+T2 [S1-S3] inline integration test + targeted independent verify; done; real PostgreSQL HTTP concurrency test passed twice (parent and independent mw2hsy48-4-i1ki: 1 test, 24 assertions, exit 0); shared-customer access independently passed (1 test, 17 assertions); commit: 5f71300.
+T3 [S1-S3] inline; done; final suite passed (511 discovered, 510 passed, 1 PostgreSQL-only skip on SQLite; 4343 assertions), Pint and diff checks passed; scoped work-unit commit: 5f71300.
 
 ## Log
 L1. User: "Oye, por que si creo tres citas distintas con el mismo correo y nombre exacto con una cuenta no registrada, el sistema lo toma como 3 clientes distintos? como podemos abordar eso?"
@@ -33,3 +33,4 @@ L17. Added tests/Feature/GuestBookingConcurrencyTest.php: opt-in by DB_CONNECTIO
 L18. job-4 completed exit 0: real PostgreSQL concurrency test passed, 1 test and 24 assertions, 1.3s. It executed actual HTTP confirmations, observed blocking via pg_blocking_pids, verified one customer/two appointments and scratch schema removal. Independent targeted run mw2hsy48-4-i1ki and final full suite job-5 are in progress; no commit before both results.
 L19. job-5 completed exit 0: 511 tests discovered, 510 passed, 1 expected PostgreSQL-only skip under SQLite, 4343 assertions. The skipped scenario separately passed on real PostgreSQL (job-4). Pint and git diff --check passed. Current work unit forecast is ~385 authored changed lines including task document, within the approximate 400-line review slice; unrelated files remain excluded.
 L20. Independent verifier mw2hsy48-4-i1ki ran permanent PostgreSQL HTTP test once: exit 0, 1 passed, 24 assertions, 1.58s. PASS: distinct backends, observed pg_blocking_pids wait, both confirmations succeed after commit, two distinct appointments/times share one customer. Scratch cleanup assertion passed; no severe defects observed. All requested verification is complete.
+L21. Committed only this work unit as 5f71300 (fix(booking): reuse matching guest customers safely), 387 authored diff lines, on feat/guest-customer-deduplication. RDD confirmed off; no native review started. No push/PR/merge; unrelated platform/tenant changes remain uncommitted. Rollback boundary: guest resolver/controller integration and its tests; original verification-code flow remains unchanged. Final task evidence recorded separately.
