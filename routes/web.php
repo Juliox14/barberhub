@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
+use App\Http\Controllers\PlatformMemberController;
 use App\Http\Controllers\PlatformSecurityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware('platform.admin')->prefix('platform')->name('platform.')->group(function (): void {
         Route::get('/dashboard', PlatformDashboardController::class)->name('dashboard');
+        Route::get('/members', [PlatformMemberController::class, 'index'])->name('members.index');
         Route::get('/security', [PlatformSecurityController::class, 'index'])->name('security.index');
         Route::post('/security/sessions/{user}/revoke', [PlatformSecurityController::class, 'revokeSession'])->name('security.sessions.revoke');
         Route::post('/security/barbershops/{barbershop}/modules/suspend', [PlatformSecurityController::class, 'suspendModule'])->name('security.modules.suspend');

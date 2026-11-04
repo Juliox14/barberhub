@@ -37,6 +37,9 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-5 8 5v12M2 21h20M8 21v-5h8v5M8 10h.01M12 10h.01M16 10h.01"/></svg>
                         Barberías
                     </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('platform.members.index')" :active="$activePage === 'members'">
+                        Miembros
+                    </x-ui.nav-link>
                     <details open data-security-navigation="platform" class="group">
                         <summary x-on:click="openSecurityGroup($event)" aria-label="Seguridad" title="Seguridad" class="flex cursor-pointer list-none items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-200 outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden">
                             <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.75 20 6v5.25c0 4.9-3.35 8.6-8 10-4.65-1.4-8-5.1-8-10V6l8-3.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m8.75 12 2.1 2.1 4.4-4.4"/></svg>
@@ -53,14 +56,6 @@
                         </div>
                     </details>
                 </nav>
-
-                <div class="bh-sidebar__upcoming mt-8 border-t border-slate-800 pt-6">
-                    <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
-                    <div class="mt-3 space-y-1 text-sm text-slate-500" aria-label="Módulos aún no disponibles">
-                        <span class="flex items-center gap-3 px-3 py-2.5"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Miembros</span>
-                        <span class="flex items-center gap-3 px-3 py-2.5"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M7 3v4m10-4v4M3 11h18"/></svg>Citas</span>
-                    </div>
-                </div>
 
                 <x-ui.surface as="div" class="mt-auto p-4">
                     <p class="text-sm font-semibold text-white">Administración global</p>
