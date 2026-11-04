@@ -15,7 +15,9 @@ use App\Notifications\PublicBookingConfirmed;
 use App\Support\ModuleContainment;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class PublicBookingTest extends TestCase
@@ -78,6 +80,10 @@ class PublicBookingTest extends TestCase
         $this->assertSame(1, $xpath->query('//div[@data-date-options and @hidden]')->length);
         $this->assertSame(1, $xpath->query('//details[@data-date-picker and @open]//input[@type="date" and @required]')->length);
         $this->assertSame(2, $xpath->query('//*[@data-verification-controls]//button')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-code-controls and @hidden]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-email-code and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-verify-code and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-resend-status]')->length);
         $this->assertSame(0, $xpath->query('//*[@data-verification-controls]//*[@data-code-status]')->length);
         $this->assertSame(1, $xpath->query('//form[@id="public-booking-form"]//*[@data-code-status]')->length);
         $submit = $xpath->query('//button[@data-slot-submit]')->item(0);
@@ -111,12 +117,21 @@ class PublicBookingTest extends TestCase
         $token = $summary->json('draft_id');
         $response = $this->postJson(route('public.booking.store', $shop), ['draft_id' => $token, 'barber_id' => 999]);
         $response->assertOk()->assertJsonPath('confirmed', true);
+        $appointment = Appointment::query()->sole();
         $this->assertDatabaseHas('appointments', ['customer_id' => $linked->id, 'barber_id' => $barber->id, 'starts_at' => '2026-10-05 10:00:00']);
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id, 'barbershop_id' => $shop->id, 'customer_id' => $linked->id,
+            'actor_kind' => 'customer', 'actor_user_id' => $user->id, 'event_kind' => 'created',
+            'after_status' => Appointment::STATUS_SCHEDULED,
+        ]);
         $this->postJson(route('public.booking.store', $shop), ['draft_id' => $token])->assertExactJson($response->json());
         $this->assertDatabaseCount('appointments', 1);
         $this->assertDatabaseCount('customers', 1);
         Notification::assertSentOnDemandTimes(PublicBookingConfirmed::class, 1);
-        Notification::assertSentOnDemand(PublicBookingConfirmed::class, fn ($notice, $channels, $notifiable): bool => $notifiable->routes['mail'] === $user->email);
+        Notification::assertSentOnDemand(PublicBookingConfirmed::class, fn ($notice, $channels, $notifiable): bool => $notifiable->routes['mail'] === $user->email
+            && $notice->managementUrl !== null
+            && URL::hasValidSignature(Request::create($notice->managementUrl))
+            && str_contains($notice->managementUrl, '/appointments/1/manage'));
     }
 
     public function test_guest_must_verify_and_gets_a_new_contact_record_without_email_linking(): void
@@ -133,6 +148,12 @@ class PublicBookingTest extends TestCase
         $this->postJson(route('public.booking.store', $shop), ['draft_id' => $summary->json('draft_id')])->assertOk();
         $this->assertDatabaseCount('customers', 2);
         $this->assertDatabaseCount('appointments', 1);
+        $appointment = Appointment::query()->sole();
+        $this->assertDatabaseHas('appointment_events', [
+            'appointment_id' => $appointment->id, 'barbershop_id' => $shop->id, 'customer_id' => $appointment->customer_id,
+            'actor_kind' => 'guest', 'actor_user_id' => null, 'event_kind' => 'created',
+            'after_status' => Appointment::STATUS_SCHEDULED,
+        ]);
         $this->assertDatabaseHas('customers', ['barbershop_id' => $shop->id, 'email' => 'guest@example.com', 'name' => 'Invitado', 'user_id' => null]);
         $after = $existing->fresh()->getAttributes();
         ksort($before);

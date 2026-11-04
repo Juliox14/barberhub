@@ -11,7 +11,7 @@ final class AppointmentPushDispatcher
     /**
      * @param  'assigned'|'rescheduled'|'cancelled'  $event
      */
-    public function dispatch(Appointment $appointment, User $actor, string $event): void
+    public function dispatch(Appointment $appointment, ?User $actor, string $event): void
     {
         if (! in_array($event, ['assigned', 'rescheduled', 'cancelled'], true)) {
             return;
@@ -19,7 +19,7 @@ final class AppointmentPushDispatcher
 
         $recipientUserId = (int) $appointment->barber()->value('user_id');
 
-        if ($recipientUserId === 0 || $recipientUserId === $actor->id) {
+        if ($recipientUserId === 0 || $recipientUserId === $actor?->id) {
             return;
         }
 
@@ -27,6 +27,6 @@ final class AppointmentPushDispatcher
             return;
         }
 
-        SendAppointmentPush::dispatch($appointment->id, $recipientUserId, $actor->id, $event)->afterCommit();
+        SendAppointmentPush::dispatch($appointment->id, $recipientUserId, $actor?->id, $event)->afterCommit();
     }
 }

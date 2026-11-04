@@ -6,10 +6,12 @@ use App\Models\Appointment;
 use App\Models\Barbershop;
 use App\Models\Customer;
 use App\Notifications\PublicBookingConfirmed;
+use App\Support\AppointmentHistory;
 use App\Support\AppointmentScheduler;
 use App\Support\GuestBookingVerification;
 use App\Support\ModuleContainment;
 use App\Support\PublicBookingAvailability;
+use App\Support\PublicBookingManagement;
 use App\Support\TenantBranding;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -88,12 +90,12 @@ final class PublicBookingController extends Controller
         return $this->respond($request, $barbershop, 'public.booking-summary', ['draft_id' => $draftId, 'summary' => $summary]);
     }
 
-    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification): Response|JsonResponse|RedirectResponse
+    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history): Response|JsonResponse|RedirectResponse
     {
         $this->ensureAvailable($barbershop);
         $validated = $request->validate(['draft_id' => ['required', 'string', 'size:64', 'alpha_num:ascii']]);
         $key = $this->draftKey($request, $barbershop, $validated['draft_id']);
-        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification): Response|JsonResponse|RedirectResponse {
+        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification, $history): Response|JsonResponse|RedirectResponse {
             $draft = Cache::get($key);
             abort_unless(is_array($draft), 404, 'El resumen venció. Selecciona nuevamente tu horario.');
             $account = $request->user()?->email_verified_at !== null ? $request->user() : null;
@@ -111,7 +113,7 @@ final class PublicBookingController extends Controller
                 throw ValidationException::withMessages(['slot' => 'Ese horario ya pasó. Selecciona otro.']);
             }
             try {
-                $appointment = DB::transaction(function () use ($barbershop, $draft, $summary, $account, $startsAt, $scheduler): Appointment {
+                $appointment = DB::transaction(function () use ($barbershop, $draft, $summary, $account, $startsAt, $scheduler, $history): Appointment {
                     $barber = $barbershop->barbers()->where('active', true)->findOrFail($draft['barber_id']);
                     $service = $barbershop->services()->where('active', true)->findOrFail($draft['service_id']);
                     if ((string) $service->price !== (string) $summary['price'] || $service->duration_minutes !== $summary['duration']) {
@@ -125,7 +127,19 @@ final class PublicBookingController extends Controller
                         'name' => $summary['name'], 'email' => $summary['email'], 'phone' => $summary['phone'],
                     ]);
 
-                    return $scheduler->schedule($barbershop, $barber, $service, $customer, $startsAt);
+                    $appointment = $scheduler->schedule($barbershop, $barber, $service, $customer, $startsAt);
+                    $history->record(
+                        $appointment,
+                        'created',
+                        $account === null ? 'guest' : 'customer',
+                        $account,
+                        null,
+                        $appointment->getRawOriginal('starts_at'),
+                        null,
+                        Appointment::STATUS_SCHEDULED,
+                    );
+
+                    return $appointment;
                 });
             } catch (ValidationException $exception) {
                 if ($request->expectsJson()) {
@@ -143,7 +157,11 @@ final class PublicBookingController extends Controller
             Cache::put($key, $draft, 600);
             $verification->consume($request, $barbershop, $summary['email']);
             try {
-                Notification::route('mail', $summary['email'])->notify(new PublicBookingConfirmed($barbershop->name, $summary));
+                Notification::route('mail', $summary['email'])->notify(new PublicBookingConfirmed(
+                    $barbershop->name,
+                    $summary,
+                    PublicBookingManagement::url($barbershop, $appointment),
+                ));
                 $receipt['email_sent'] = true;
             } catch (Throwable $exception) {
                 report($exception);

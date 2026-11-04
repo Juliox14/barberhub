@@ -138,7 +138,12 @@ class GuestBookingEmailVerificationTest extends TestCase
             ->assertJsonStructure(['status']);
         Notification::assertSentOnDemandTimes(GuestBookingEmailCode::class, 1);
         $this->useSessionCookie($sessionCookie);
-        $this->travel(60)->seconds();
+        $this->travel(299)->seconds();
+        $this->postJson($this->issueUrl($barbershop), ['email' => 'guest@example.com'])
+            ->assertOk()
+            ->assertExactJson(['status' => 'Si el correo es válido, recibirás un código.']);
+        Notification::assertSentOnDemandTimes(GuestBookingEmailCode::class, 1);
+        $this->travel(1)->seconds();
         $this->postJson($this->issueUrl($barbershop), ['email' => 'guest@example.com'])
             ->assertOk()
             ->assertJsonStructure(['status']);

@@ -33,7 +33,7 @@ final class SendAppointmentPush implements ShouldQueue
     public function __construct(
         public int $appointmentId,
         public int $recipientUserId,
-        public int $actorUserId,
+        public ?int $actorUserId,
         public string $event,
     ) {}
 

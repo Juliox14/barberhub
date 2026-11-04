@@ -194,27 +194,29 @@ test('changing filters updates the actual form, clears stale slots and keeps con
     assert.equal(contact.value, 'Sin perder mis datos');
 });
 
-function verificationPage(fetchImplementation, availabilityReady = 'true') {
+function verificationPage(fetchImplementation, availabilityReady = 'true', timers = {}) {
     const issue = element();
-    const verify = element();
+    const verify = element({ disabled: true });
+    const codeControls = element({ hidden: true });
     const status = element();
+    const resendStatus = element();
     const email = element({ value: 'guest@example.com', reportValidity: () => true });
-    const code = element({ value: '123456' });
+    const code = element({ value: '123456', disabled: true });
     const controls = element();
     const submit = element();
     const csrf = element({ value: 'csrf' });
-    const nodes = { '[data-issue-code]': issue, '[data-verify-code]': verify, '[data-code-status]': status,
-        '[name="email"]': email, '[data-email-code]': code, '[data-verification-controls]': controls, '[data-slot-submit]': submit, '[name="_token"]': csrf };
+    const nodes = { '[data-issue-code]': issue, '[data-verify-code]': verify, '[data-code-status]': status, '[data-resend-status]': resendStatus,
+        '[name="email"]': email, '[data-email-code]': code, '[data-verification-controls]': controls, '[data-code-controls]': codeControls, '[data-slot-submit]': submit, '[name="_token"]': csrf };
     const form = element({
         dataset: { issueUrl: '/issue', verifyUrl: '/verify', emailVerified: 'false', availabilityReady },
         querySelector: (selector) => nodes[selector] ?? null,
     });
     const document = { querySelectorAll: (selector) => selector === '[data-public-booking]' ? [form] : [] };
-    initializePublicBooking(document, fetchImplementation);
-    return { issue, verify, status, email, code, controls, submit };
+    initializePublicBooking(document, fetchImplementation, timers);
+    return { issue, verify, status, resendStatus, email, code, controls, codeControls, submit };
 }
 
-test('only confirmed email hides verification controls and changing the address restores them', async () => {
+test('only confirmed email hides verification controls and changing address requires a new code', async () => {
     const requests = [];
     const page = verificationPage(async (url, options) => {
         requests.push({ url, payload: JSON.parse(options.body) });
@@ -222,14 +224,19 @@ test('only confirmed email hides verification controls and changing the address 
     });
 
     assert.equal(page.submit.disabled, true);
+    assert.equal(page.codeControls.hidden, true);
+    assert.equal(page.code.disabled, true);
+    assert.equal(page.verify.disabled, true);
     page.code.value = 'abc';
     await page.verify.listeners.click();
     assert.equal(requests.length, 0);
     assert.match(page.status.textContent, /código de 6 dígitos/);
     await page.issue.listeners.click();
     assert.equal(page.controls.hidden, false);
+    assert.equal(page.codeControls.hidden, false);
     assert.equal(page.code.disabled, false);
     assert.equal(page.status.textContent, 'Código enviado.');
+    assert.equal(page.resendStatus.textContent, 'Puedes solicitar otro código en 300 segundos.');
     assert.equal(page.submit.disabled, true);
     page.code.value = '123456';
     await page.verify.listeners.click();
@@ -248,7 +255,8 @@ test('only confirmed email hides verification controls and changing the address 
     page.email.value = 'other@example.com';
     page.email.listeners.input();
     assert.equal(page.controls.hidden, false);
-    assert.equal(page.code.disabled, false);
+    assert.equal(page.codeControls.hidden, true);
+    assert.equal(page.code.disabled, true);
     assert.equal(page.code.value, '');
     assert.match(page.status.textContent, /verifica la nueva dirección/);
     assert.equal(page.submit.disabled, true);
@@ -262,10 +270,21 @@ test('only confirmed email hides verification controls and changing the address 
     page.email.value = 'autofill@example.com';
     page.email.listeners.change();
     assert.equal(page.controls.hidden, false);
-    assert.equal(page.code.disabled, false);
+    assert.equal(page.codeControls.hidden, true);
+    assert.equal(page.code.disabled, true);
     assert.equal(page.code.value, '');
     assert.equal(requests.length, 4);
     assert.equal(page.submit.disabled, true);
+});
+
+test('failed issue requests keep code entry hidden and do not start a cooldown', async () => {
+    const page = verificationPage(async () => { throw new Error('offline'); });
+    await page.issue.listeners.click();
+    assert.equal(page.codeControls.hidden, true);
+    assert.equal(page.code.disabled, true);
+    assert.equal(page.verify.disabled, true);
+    assert.equal(page.issue.disabled, false);
+    assert.match(page.status.textContent, /offline/);
 });
 
 test('failed or unconfirmed responses keep code controls available without claiming success', async () => {
@@ -273,11 +292,15 @@ test('failed or unconfirmed responses keep code controls available without claim
         { ok: false, json: async () => ({ verified: false }) },
         { ok: true, json: async () => ({ verified: false }) },
     ]) {
-        const page = verificationPage(async () => response);
+        const page = verificationPage(async (url) => url === '/issue'
+            ? { ok: true, json: async () => ({ status: 'Si el correo es válido, recibirás un código.' }) }
+            : response);
+        await page.issue.listeners.click();
         await page.verify.listeners.click();
         assert.equal(page.controls.hidden, false);
+        assert.equal(page.codeControls.hidden, false);
         assert.equal(page.code.disabled, false);
-        assert.equal(page.issue.disabled, false);
+        assert.equal(page.issue.disabled, true);
         assert.equal(page.verify.disabled, false);
         assert.equal(page.submit.disabled, true);
         assert.doesNotMatch(page.status.textContent, /Correo verificado/);
@@ -285,39 +308,107 @@ test('failed or unconfirmed responses keep code controls available without claim
     }
 });
 
-test('a late verification for a changed address cannot hide controls or overwrite the new request', async () => {
+test('a late issue response for a changed address cannot reveal controls or overwrite the new request', async () => {
     const pending = [];
     const page = verificationPage((url) => new Promise((resolve) => pending.push({ url, resolve })));
-    const old = page.verify.listeners.click();
+    const old = page.issue.listeners.click();
     assert.equal(page.issue.disabled, true);
-    assert.equal(page.verify.disabled, true);
-    await page.verify.listeners.click();
-    assert.equal(pending.length, 1);
     page.email.value = 'new@example.com';
     page.email.listeners.input();
-    assert.equal(page.controls.hidden, false);
-    assert.equal(page.code.value, '');
+    assert.equal(page.codeControls.hidden, true);
     const current = page.issue.listeners.click();
     assert.equal(pending.length, 2);
-    pending[0].resolve({ ok: true, json: async () => ({ verified: true }) });
+    pending[0].resolve({ ok: true, json: async () => ({ status: 'Código enviado.' }) });
     await old;
-    assert.equal(page.controls.hidden, false);
+    assert.equal(page.codeControls.hidden, true);
     assert.equal(page.status.textContent, 'Procesando…');
-    assert.equal(page.issue.disabled, true);
-    assert.equal(page.verify.disabled, true);
     pending[1].resolve({ ok: true, json: async () => ({ status: 'Código enviado.' }) });
     await current;
-    assert.equal(page.controls.hidden, false);
-    assert.equal(page.status.textContent, 'Código enviado.');
-    assert.equal(page.issue.disabled, false);
+    assert.equal(page.codeControls.hidden, false);
+    assert.match(page.resendStatus.textContent, /300 segundos/);
+    assert.equal(page.issue.disabled, true);
     assert.equal(page.verify.disabled, false);
 });
 
 test('email confirmation alone cannot enable booking without available slots', async () => {
-    const page = verificationPage(async () => ({ ok: true, json: async () => ({ verified: true }) }), 'false');
+    const page = verificationPage(async (url) => ({ ok: true, json: async () => url === '/verify' ? { verified: true } : { status: 'Código enviado.' } }), 'false');
+    await page.issue.listeners.click();
+    page.code.value = '123456';
     await page.verify.listeners.click();
     assert.equal(page.controls.hidden, true);
     assert.equal(page.submit.disabled, true);
+});
+
+function fakeClock() {
+    let currentTime = 0;
+    let nextId = 0;
+    const intervals = new Map();
+    return {
+        now: () => currentTime,
+        setInterval: (callback) => {
+            const id = ++nextId;
+            intervals.set(id, callback);
+            return id;
+        },
+        clearInterval: (id) => intervals.delete(id),
+        advance(milliseconds) {
+            currentTime += milliseconds;
+            [...intervals.values()].forEach((callback) => callback());
+        },
+        get activeIntervals() { return intervals.size; },
+    };
+}
+
+test('resend stays disabled for 299 seconds, enables at 300 seconds, and email switching does not bypass cooldown', async () => {
+    const clock = fakeClock();
+    let sent = 0;
+    const page = verificationPage(async () => {
+        sent++;
+        return { ok: true, json: async () => ({ status: 'Si el correo es válido, recibirás un código.' }) };
+    }, 'true', clock);
+    await page.issue.listeners.click();
+    assert.equal(sent, 1);
+    assert.equal(page.issue.disabled, true);
+    assert.equal(page.codeControls.hidden, false);
+    clock.advance(299999);
+    assert.equal(page.issue.disabled, true);
+    clock.advance(1);
+    assert.equal(page.issue.disabled, false);
+    await page.issue.listeners.click();
+    assert.equal(sent, 2);
+    page.email.value = 'other@example.com';
+    page.email.listeners.input();
+    page.email.value = 'guest@example.com';
+    page.email.listeners.input();
+    assert.equal(page.issue.disabled, true);
+});
+
+test('switching away from and back to a cooling email resumes its countdown', async () => {
+    const clock = fakeClock();
+    const page = verificationPage(async () => ({ ok: true, json: async () => ({ status: 'Código enviado.' }) }), 'true', clock);
+    await page.issue.listeners.click();
+    page.email.value = 'other@example.com';
+    page.email.listeners.input();
+    assert.equal(page.issue.disabled, false);
+    page.email.value = 'guest@example.com';
+    page.email.listeners.input();
+    assert.equal(page.issue.disabled, true);
+    clock.advance(300000);
+    assert.equal(page.issue.disabled, false);
+    assert.equal(clock.activeIntervals, 0);
+});
+
+test('resend countdown never overwrites verification results and stops after verification', async () => {
+    const clock = fakeClock();
+    const page = verificationPage(async (url) => ({ ok: true, json: async () => url === '/verify' ? { verified: true } : { status: 'Código enviado.' } }), 'true', clock);
+    await page.issue.listeners.click();
+    page.code.value = '123456';
+    await page.verify.listeners.click();
+    const verificationMessage = page.status.textContent;
+    assert.match(verificationMessage, /Correo verificado/);
+    assert.equal(clock.activeIntervals, 0);
+    clock.advance(300000);
+    assert.equal(page.status.textContent, verificationMessage);
 });
 
 test('verified accounts keep their existing code-free path and still need available slots', () => {
