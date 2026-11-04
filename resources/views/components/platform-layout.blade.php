@@ -38,6 +38,7 @@
                         Barberías
                     </x-ui.nav-link>
                     <x-ui.nav-link :href="route('platform.members.index')" :active="$activePage === 'members'">
+                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         Miembros
                     </x-ui.nav-link>
                     <details open data-security-navigation="platform" class="group">
