@@ -16,7 +16,7 @@ final class GuestBookingVerification
 
     private const PROOF_TTL_MINUTES = 10;
 
-    private const RESEND_COOLDOWN_SECONDS = 60;
+    private const RESEND_COOLDOWN_SECONDS = 300;
 
     private const MAX_WRONG_ATTEMPTS = 5;
 

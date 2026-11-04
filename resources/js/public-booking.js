@@ -190,25 +190,62 @@ function initializeAvailability(document, fetchImplementation) {
     });
 }
 
-export function initializePublicBooking(document, fetchImplementation = fetch) {
+export function initializePublicBooking(document, fetchImplementation = fetch, timers = {}) {
     initializeAvailability(document, fetchImplementation);
     initializeBookingWizard(document);
+    const now = timers.now ?? Date.now;
+    const setIntervalImplementation = timers.setInterval ?? setInterval;
+    const clearIntervalImplementation = timers.clearInterval ?? clearInterval;
+    const cooldowns = new Map();
+    const issuedEmails = new Set();
     document.querySelectorAll('[data-public-booking]').forEach((form) => {
         updateBookingSubmit(form);
         const issue = form.querySelector('[data-issue-code]');
         const verify = form.querySelector('[data-verify-code]');
         const status = form.querySelector('[data-code-status]');
+        const resendStatus = form.querySelector('[data-resend-status]');
         const email = form.querySelector('[name="email"]');
         const code = form.querySelector('[data-email-code]');
         const controls = form.querySelector('[data-verification-controls]');
-        if (!issue || !verify || !status || !email || !code || !controls) return;
+        const codeControls = form.querySelector('[data-code-controls]');
+        if (!issue || !verify || !status || !resendStatus || !email || !code || !controls || !codeControls) return;
         const normalizeEmail = (value) => value.trim().toLowerCase();
         let currentEmail = normalizeEmail(email.value);
         let revision = 0;
         let pending = false;
+        let cooldownTimer;
         const csrf = form.querySelector('[name="_token"]').value;
+        const stopCooldownTimer = () => {
+            if (cooldownTimer === undefined) return;
+            clearIntervalImplementation(cooldownTimer);
+            cooldownTimer = undefined;
+        };
+        const ensureCooldownTimer = () => {
+            if (cooldownTimer !== undefined || cooldowns.size === 0) return;
+            cooldownTimer = setIntervalImplementation(refreshCooldown, 1000);
+            cooldownTimer?.unref?.();
+        };
+        const refreshCooldown = () => {
+            const currentTime = now();
+            for (const [emailAddress, expiresAt] of cooldowns) {
+                if (expiresAt <= currentTime) cooldowns.delete(emailAddress);
+            }
+            const remaining = Math.max(0, (cooldowns.get(currentEmail) ?? 0) - currentTime);
+            issue.disabled = pending || remaining > 0;
+            issue.textContent = issuedEmails.has(currentEmail) ? 'Reenviar código' : 'Enviar código';
+            resendStatus.textContent = remaining > 0
+                ? `Puedes solicitar otro código en ${Math.ceil(remaining / 1000)} segundos.`
+                : '';
+            if (cooldowns.size === 0) stopCooldownTimer();
+        };
+        const startCooldown = () => {
+            issuedEmails.add(currentEmail);
+            cooldowns.set(currentEmail, now() + 300000);
+            ensureCooldownTimer();
+            refreshCooldown();
+        };
         const perform = async (url, payload, successMessage, confirmsEmail = false) => {
-            if (pending || controls.hidden || !email.reportValidity()) return;
+            if (pending || (confirmsEmail && codeControls.hidden) || !email.reportValidity()) return;
             const requestRevision = ++revision;
             const submittedEmail = normalizeEmail(payload.email);
             const isCurrent = () => requestRevision === revision && submittedEmail === normalizeEmail(email.value);
@@ -229,16 +266,24 @@ export function initializePublicBooking(document, fetchImplementation = fetch) {
                     form.dataset.emailVerified = 'true';
                     updateBookingSubmit(form);
                     controls.hidden = true;
+                    codeControls.hidden = true;
                     code.value = '';
                     code.disabled = true;
+                    verify.disabled = true;
+                    stopCooldownTimer();
+                } else {
+                    codeControls.hidden = false;
+                    code.disabled = false;
+                    verify.disabled = false;
+                    startCooldown();
                 }
             } catch (error) {
                 if (isCurrent()) status.textContent = error.message || 'No pudimos conectarnos. Intenta nuevamente.';
             } finally {
                 if (requestRevision === revision) {
                     pending = false;
-                    issue.disabled = false;
-                    verify.disabled = false;
+                    issue.disabled = cooldowns.has(currentEmail) && cooldowns.get(currentEmail) > now();
+                    if (!codeControls.hidden && form.dataset.emailVerified !== 'true') verify.disabled = false;
                 }
             }
         };
@@ -259,13 +304,17 @@ export function initializePublicBooking(document, fetchImplementation = fetch) {
             form.dataset.emailVerified = 'false';
             updateBookingSubmit(form);
             controls.hidden = false;
+            codeControls.hidden = true;
             issue.disabled = false;
-            verify.disabled = false;
-            code.disabled = false;
+            verify.disabled = true;
+            code.disabled = true;
             code.value = '';
             status.textContent = 'Si cambias el correo, verifica la nueva dirección antes de continuar.';
+            ensureCooldownTimer();
+            refreshCooldown();
         };
         email.addEventListener('input', resetVerification);
         email.addEventListener('change', resetVerification);
+        refreshCooldown();
     });
 }

@@ -80,6 +80,10 @@ class PublicBookingTest extends TestCase
         $this->assertSame(1, $xpath->query('//div[@data-date-options and @hidden]')->length);
         $this->assertSame(1, $xpath->query('//details[@data-date-picker and @open]//input[@type="date" and @required]')->length);
         $this->assertSame(2, $xpath->query('//*[@data-verification-controls]//button')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-code-controls and @hidden]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-email-code and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-verify-code and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//*[@data-resend-status]')->length);
         $this->assertSame(0, $xpath->query('//*[@data-verification-controls]//*[@data-code-status]')->length);
         $this->assertSame(1, $xpath->query('//form[@id="public-booking-form"]//*[@data-code-status]')->length);
         $submit = $xpath->query('//button[@data-slot-submit]')->item(0);

@@ -112,8 +112,11 @@
                             <div class="bh-public-verification__controls" data-verification-controls>
                                 <p>Para reservar, verifica tu correo con un código. Tu selección se conserva.</p>
                                 <button type="button" data-issue-code class="bh-public-button bh-public-button--secondary">Enviar código</button>
-                                <label>Código de 6 dígitos <input data-email-code placeholder="6 dígitos" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label>
-                                <button type="button" data-verify-code class="bh-public-button bh-public-button--secondary">Verificar correo</button>
+                                <div data-code-controls hidden>
+                                    <label>Código de 6 dígitos <input data-email-code placeholder="6 dígitos" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" disabled></label>
+                                    <button type="button" data-verify-code class="bh-public-button bh-public-button--secondary" disabled>Comprobar código</button>
+                                </div>
+                                <p data-resend-status aria-live="polite"></p>
                             </div>
                             <p data-code-status role="status" aria-live="polite"></p>
                             <noscript>Para verificar tu correo, activa JavaScript o inicia sesión con una cuenta de correo verificado.</noscript>
