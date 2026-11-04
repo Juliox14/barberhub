@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BarbershopLocationSearchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
@@ -29,6 +30,10 @@ Route::get('/', function () {
 Route::get('/barbershops/{barbershop:slug}/brand/{kind}', [TenantBrandingController::class, 'asset'])->name('tenant.branding.asset');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::post('/barbershop-location/search', BarbershopLocationSearchController::class)
+        ->middleware('throttle:20,1')
+        ->name('barbershop.location.search');
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware('platform.admin')->prefix('platform')->name('platform.')->group(function (): void {

@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'nominatim' => [
+        'enabled' => env('NOMINATIM_ENABLED', true),
+        'search_url' => env('NOMINATIM_SEARCH_URL', 'https://nominatim.openstreetmap.org/search'),
+        'user_agent' => env('NOMINATIM_USER_AGENT', 'BarberHub/1.0 (+'.env('APP_URL', 'http://localhost').')'),
+        'cache_store' => env('NOMINATIM_CACHE_STORE', 'database'),
+    ],
+
 ];
