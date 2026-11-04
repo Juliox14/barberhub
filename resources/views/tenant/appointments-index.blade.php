@@ -139,7 +139,7 @@
                 id="create-appointment"
                 title="Crear cita"
                 description="La duración y disponibilidad se validan según el servicio y los horarios configurados."
-                :open="old('form_context') === 'create-appointment'"
+                :open="old('form_context', request()->query('create') === 'appointment' ? 'create-appointment' : null) === 'create-appointment'"
             >
                 <x-appointment-create-form
                     :barbershop="$barbershop"
