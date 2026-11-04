@@ -14,6 +14,7 @@ use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
 use App\Http\Controllers\TenantBrandingController;
 use App\Http\Controllers\TenantBusinessHourController;
+use App\Http\Controllers\TenantCustomerController;
 use App\Http\Controllers\TenantCustomerInvitationController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
@@ -52,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/dashboard', TenantDashboardController::class)->name('tenant.dashboard');
         Route::get('/branding', [TenantBrandingController::class, 'edit'])->name('tenant.branding.edit');
         Route::put('/branding', [TenantBrandingController::class, 'update'])->name('tenant.branding.update');
+        Route::get('/customers', [TenantCustomerController::class, 'index'])->name('tenant.customers.index');
         Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('tenant.push-subscriptions.store');
         Route::delete('/push-subscriptions/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('tenant.push-subscriptions.destroy');
         Route::middleware(EnsureModuleAvailable::class.':members')->group(function (): void {

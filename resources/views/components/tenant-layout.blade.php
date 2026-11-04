@@ -84,10 +84,16 @@
                         Agenda
                     </x-ui.nav-link>
 
+                    @if ($canManageMembers)
+                        <x-ui.nav-link :href="route('tenant.customers.index', $barbershop)" :active="$activePage === 'customers'">
+                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Clientes
+                        </x-ui.nav-link>
+                    @endif
+
                     <div class="bh-sidebar__upcoming mt-6 border-t border-slate-800 pt-5">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
                         <div class="mt-2 space-y-1 text-sm text-slate-500">
-                            <span class="flex gap-3 px-3 py-2.5">Clientes</span>
                             <span class="flex gap-3 px-3 py-2.5">Inventario</span>
                             <span class="flex gap-3 px-3 py-2.5">Reportes</span>
                             <span class="flex gap-3 px-3 py-2.5">Configuración</span>

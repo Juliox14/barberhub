@@ -6,6 +6,8 @@ use App\Models\Barbershop;
 use App\Models\Customer;
 use App\Models\Membership;
 use App\Models\User;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -64,14 +66,23 @@ class PlatformMembersTest extends TestCase
             ->get('/platform/members')->assertForbidden();
     }
 
-    public function test_platform_navigation_has_members_instead_of_upcoming_modules(): void
+    public function test_platform_navigation_has_members_instead_of_upcoming_modules_and_includes_an_icon(): void
     {
-        $this->actingAs(User::factory()->create(['is_platform_admin' => true]))
-            ->get(route('platform.dashboard', absolute: false))
-            ->assertOk()
+        $response = $this->actingAs(User::factory()->create(['is_platform_admin' => true]))
+            ->get(route('platform.dashboard', absolute: false));
+
+        $response->assertOk()
             ->assertSee('/platform/members', false)
             ->assertDontSee('Próximamente')
             ->assertDontSee('Módulos aún no disponibles');
+
+        $document = new DOMDocument;
+        $document->loadHTML($response->getContent());
+        $xpath = new DOMXPath($document);
+        $memberLinks = $xpath->query('//a[@href="'.route('platform.members.index').'"]');
+
+        $this->assertSame(1, $memberLinks->length);
+        $this->assertSame(1, $xpath->query('.//svg', $memberLinks->item(0))->length);
     }
 
     public function test_empty_members_page_shows_empty_states(): void
