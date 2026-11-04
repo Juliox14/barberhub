@@ -5,7 +5,7 @@
                 <h1 class="text-2xl font-bold tracking-[-0.03em] text-white sm:text-3xl">Resumen del negocio</h1>
                 <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">{{ $barbershop->name }} · {{ $roleCopy }}</p>
             </div>
-            <button type="button" disabled class="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-500" title="Disponible cuando se implemente agenda">Nueva cita · Próximamente</button>
+            <a href="{{ route('tenant.appointments.index', ['barbershop' => $barbershop, 'create' => 'appointment']) }}" class="inline-flex min-h-11 w-fit shrink-0 items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]">Nueva cita +</a>
         </header>
 
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen de la barbería">

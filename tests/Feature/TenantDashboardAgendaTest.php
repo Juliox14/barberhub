@@ -78,6 +78,40 @@ class TenantDashboardAgendaTest extends TestCase
             ->assertDontSee('Ejemplo');
     }
 
+    public function test_dashboard_new_appointment_link_opens_the_existing_creation_form(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        $createUrl = route('tenant.appointments.index', ['barbershop' => $barbershop, 'create' => 'appointment']);
+
+        $this->actingAs($owner)->get(route('tenant.dashboard', $barbershop, false))
+            ->assertOk()
+            ->assertSee('href="'.$createUrl.'"', false)
+            ->assertSee('Nueva cita')
+            ->assertDontSee('Nueva cita · Próximamente');
+
+        $this->get($createUrl)
+            ->assertOk()
+            ->assertSee('isOpen: true', false)
+            ->assertSee('id="create-appointment-title"', false)
+            ->assertSee('action="'.route('tenant.appointments.store', $barbershop).'"', false)
+            ->assertSee('form="appointment-create"', false);
+    }
+
+    public function test_regular_agenda_visit_keeps_the_creation_form_closed(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+
+        $this->actingAs($owner)->get(route('tenant.appointments.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('id="create-appointment-title"', false)
+            ->assertSee('isOpen: false', false)
+            ->assertDontSee('isOpen: true', false);
+    }
+
     public function test_barber_dashboard_only_shows_their_own_appointments(): void
     {
         $this->travelTo(Carbon::parse('2026-10-05 12:00:00'));
