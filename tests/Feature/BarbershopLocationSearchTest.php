@@ -158,6 +158,18 @@ class BarbershopLocationSearchTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_location_form_explains_public_search_and_shows_openstreetmap_attribution(): void
+    {
+        $admin = User::factory()->create(['is_platform_admin' => true]);
+
+        $this->actingAs($admin)->get(route('platform.barbershops.create', absolute: false))
+            ->assertOk()
+            ->assertSee('La búsqueda explícita se envía a OpenStreetMap/Nominatim')
+            ->assertSee('No incluyas información confidencial ni datos de cuenta')
+            ->assertSee('https://www.openstreetmap.org/copyright', false)
+            ->assertSee('https://operations.osmfoundation.org/policies/nominatim/', false);
+    }
+
     public function test_global_lock_contention_returns_retryable_response_without_provider_request(): void
     {
         Http::preventStrayRequests();
