@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Barbershop;
 use App\Models\Membership;
+use App\Support\BarbershopLocation;
 use App\Support\TenantBranding;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,14 +29,15 @@ final class TenantBrandingController extends Controller
     public function update(Request $request, Barbershop $barbershop): RedirectResponse
     {
         $this->authorizeOwner($request, $barbershop);
+        BarbershopLocation::normalizeCountryCode($request);
 
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'brand_primary_color' => ['required', 'regex:/\A#[0-9A-Fa-f]{6}\z/'],
             'brand_accent_color' => ['required', 'regex:/\A#[0-9A-Fa-f]{6}\z/'],
             'brand_description' => ['nullable', 'string', 'max:1000'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'extensions:jpg,jpeg,png,webp', 'max:2048', 'dimensions:max_width=4096,max_height=4096'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120', 'dimensions:max_width=4096,max_height=4096'],
-        ], [
+        ], BarbershopLocation::rules()), [
             'brand_primary_color.required' => 'El color principal es obligatorio.',
             'brand_primary_color.regex' => 'El color principal debe usar el formato #RRGGBB.',
             'brand_accent_color.required' => 'El color de acento es obligatorio.',
@@ -46,6 +48,8 @@ final class TenantBrandingController extends Controller
         ]);
 
         $disk = Storage::disk('local');
+        $locationFields = BarbershopLocation::submittedFields($request, $validated);
+        BarbershopLocation::validateFinalCoordinatePair($locationFields, $barbershop);
         $newPaths = [];
         $oldPaths = [
             'logo' => $barbershop->brand_logo_path,
@@ -73,6 +77,7 @@ final class TenantBrandingController extends Controller
                 'brand_description' => $validated['brand_description'] ?? null,
                 'brand_logo_path' => $newPaths['logo'] ?? $barbershop->brand_logo_path,
                 'brand_cover_path' => $newPaths['cover'] ?? $barbershop->brand_cover_path,
+                ...$locationFields,
             ]);
         } catch (Throwable $exception) {
             foreach ($newPaths as $newPath) {

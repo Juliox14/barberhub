@@ -20,6 +20,8 @@
         </div>
     </section>
 
+    <x-barbershop-location :barbershop="$barbershop" />
+
     @if ($services->isEmpty())
         <section class="bh-public-panel"><h2>Aún no hay servicios para reservar</h2><p>Contacta a la barbería para consultar su disponibilidad.</p></section>
     @else

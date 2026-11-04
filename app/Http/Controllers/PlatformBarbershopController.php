@@ -6,6 +6,7 @@ use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\OwnerAccountInvitation;
+use App\Support\BarbershopLocation;
 use App\Support\LatinAmericanTimezones;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +41,8 @@ final class PlatformBarbershopController extends Controller
 
     public function store(Request $request, SecurityAuditLogger $auditLogger): RedirectResponse
     {
-        $validated = $request->validate([
+        BarbershopLocation::normalizeCountryCode($request);
+        $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required',
@@ -60,13 +62,17 @@ final class PlatformBarbershopController extends Controller
                     ? Rule::unique(User::class, 'email')
                     : Rule::exists(User::class, 'email'),
             ],
-        ], [
+        ], BarbershopLocation::rules()), [
             'slug.regex' => 'El slug solo puede usar minúsculas, números y guiones entre palabras.',
             'owner_email.exists' => 'El correo de la persona propietaria debe pertenecer a una cuenta existente.',
             'owner_email.unique' => 'Ya existe una cuenta con este correo. Selecciona la cuenta existente para asignarla.',
             'owner_name.required' => 'Indica el nombre de la persona propietaria.',
             'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
+
+        $locationFields = BarbershopLocation::submittedFields($request, $validated);
+        BarbershopLocation::validateFinalCoordinatePair($locationFields);
+        $validated = array_merge($validated, $locationFields);
 
         /** @var array{Barbershop, User} $createdEntities */
         $createdEntities = DB::transaction(function () use ($validated): array {
@@ -75,6 +81,7 @@ final class PlatformBarbershopController extends Controller
                 'slug' => $validated['slug'],
                 'timezone' => $validated['timezone'],
                 'status' => $validated['status'] ?? Barbershop::STATUS_ACTIVE,
+                ...array_intersect_key($validated, array_flip(['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'])),
             ]);
 
             if (($validated['owner_type'] ?? 'existing') === 'new') {
@@ -133,7 +140,8 @@ final class PlatformBarbershopController extends Controller
 
     public function update(Request $request, Barbershop $barbershop, SecurityAuditLogger $auditLogger): RedirectResponse
     {
-        $validated = $request->validate([
+        BarbershopLocation::normalizeCountryCode($request);
+        $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required',
@@ -144,10 +152,14 @@ final class PlatformBarbershopController extends Controller
             ],
             'timezone' => ['required', 'string', Rule::in(LatinAmericanTimezones::identifiers())],
             'status' => ['required', Rule::in([Barbershop::STATUS_ACTIVE, Barbershop::STATUS_INACTIVE])],
-        ], [
+        ], BarbershopLocation::rules()), [
             'slug.regex' => 'El slug solo puede usar minúsculas, números y guiones entre palabras.',
             'timezone.in' => 'La zona horaria debe pertenecer a Latinoamérica.',
         ]);
+
+        $locationFields = BarbershopLocation::submittedFields($request, $validated);
+        BarbershopLocation::validateFinalCoordinatePair($locationFields, $barbershop);
+        $validated = array_merge($validated, $locationFields);
 
         if ($barbershop->update($validated)) {
             $auditLogger->record('platform.barbershop.updated', $request->user(), $barbershop->id, $barbershop->id, [

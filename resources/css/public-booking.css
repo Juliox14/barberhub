@@ -74,6 +74,9 @@
 
 .bh-public-columns { display: grid; align-items: start; gap: 2rem; }
 .bh-public-panel { min-width: 0; background: #fff; border: 1px solid var(--bh-public-border); border-radius: 1.5rem; padding: clamp(1.25rem, 3vw, 1.75rem); box-shadow: 0 12px 34px rgb(30 48 34 / 5%); }
+.bh-public-location { margin-block: 1.5rem; }
+.bh-public-location address { margin-bottom: 1rem; font-style: normal; overflow-wrap: anywhere; }
+.bh-public-location__map { display: block; width: 100%; max-width: 100%; min-height: 18rem; border: 0; border-radius: 1rem; }
 .bh-public-form { display: grid; gap: .875rem; }
 .bh-public .bh-public-flow { min-width: 0; gap: 2.5rem; }
 .bh-public-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .75rem; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 1px solid var(--bh-public-border); }

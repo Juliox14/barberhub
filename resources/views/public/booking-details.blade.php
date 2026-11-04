@@ -8,3 +8,4 @@
     <div><dt>Correo</dt><dd>{{ $summary['email'] }}</dd></div>
     @if ($summary['phone'])<div><dt>Teléfono</dt><dd>{{ $summary['phone'] }}</dd></div>@endif
 </dl>
+<x-barbershop-location :barbershop="$barbershop" />

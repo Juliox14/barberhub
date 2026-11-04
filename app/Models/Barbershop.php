@@ -18,6 +18,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'brand_description',
     'brand_logo_path',
     'brand_cover_path',
+    'country_code',
+    'region',
+    'city',
+    'street_address',
+    'latitude',
+    'longitude',
 ])]
 class Barbershop extends Model
 {
