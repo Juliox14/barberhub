@@ -81,16 +81,21 @@
             <article class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
                 <header class="border-b border-slate-800 px-5 py-5 sm:px-6">
                     <h2 class="font-semibold text-white">Agenda de hoy</h2>
-                    <p class="mt-1 text-sm text-slate-400">La agenda se conectará cuando existan citas y disponibilidad.</p>
+                    <p class="mt-1 text-sm text-slate-400">Citas programadas para hoy en {{ $barbershop->timezone }}.</p>
                 </header>
                 <div class="divide-y divide-slate-800">
-                    @foreach ([['09:00', 'Primer servicio'], ['10:30', 'Corte de cabello'], ['12:00', 'Servicio programado']] as [$time, $service])
+                    @forelse ($todayAppointments as $appointment)
                         <div class="flex items-center gap-4 px-5 py-4 sm:px-6">
-                            <time class="font-semibold tabular-nums text-amber-200">{{ $time }}</time>
-                            <span class="text-sm text-slate-300">{{ $service }}</span>
-                            <span class="ml-auto rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-400">Ejemplo</span>
+                            <time datetime="{{ $appointment->starts_at->format('Y-m-d\TH:i:s') }}" class="font-semibold tabular-nums text-amber-200">{{ $appointment->starts_at->format('H:i') }}</time>
+                            <span class="text-sm text-slate-300">
+                                {{ $appointment->customer?->name ?? 'Cliente sin registrar' }}<br>
+                                {{ $appointment->service->name }}<br>
+                                {{ $appointment->barber->display_name }}
+                            </span>
                         </div>
-                    @endforeach
+                    @empty
+                        <p class="px-5 py-6 text-sm text-slate-400 sm:px-6">No hay citas programadas para hoy.</p>
+                    @endforelse
                 </div>
             </article>
             <article class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
