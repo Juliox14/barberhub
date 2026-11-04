@@ -16,6 +16,7 @@ use App\Support\ModuleContainment;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -132,6 +133,130 @@ class PublicBookingTest extends TestCase
             && $notice->managementUrl !== null
             && URL::hasValidSignature(Request::create($notice->managementUrl))
             && str_contains($notice->managementUrl, '/appointments/1/manage'));
+    }
+
+    public function test_three_distinct_verified_guest_bookings_reuse_one_customer(): void
+    {
+        Notification::fake();
+        [$shop, $service, $barber] = $this->context();
+        $shop->businessHours()->update(['closes_at' => '12:00']);
+        $barber->availabilities()->update(['ends_at' => '12:00']);
+
+        foreach (['10:00', '10:30', '11:00'] as $time) {
+            $this->verifyGuest($shop);
+            $payload = $this->payload($service, $barber);
+            $payload['slot'] = $barber->id.'|2026-10-05T'.$time;
+            $draft = $this->postJson(route('public.booking.summary', $shop), $payload)->assertOk()->json('draft_id');
+            $receipt = $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])
+                ->assertOk()->assertJsonPath('confirmed', true);
+            $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertExactJson($receipt->json());
+            $this->travel(5)->minutes();
+        }
+
+        $this->assertDatabaseCount('customers', 1);
+        $this->assertDatabaseCount('appointments', 3);
+        $this->assertSame(1, Appointment::query()->distinct()->count('customer_id'));
+        $this->assertDatabaseCount('appointment_events', 3);
+        $this->assertDatabaseCount('users', 1);
+        Notification::assertSentOnDemandTimes(PublicBookingConfirmed::class, 3);
+        $this->postJson(route('public.booking.summary', $shop), $payload)->assertForbidden();
+    }
+
+    public function test_guest_proof_and_shared_customer_do_not_grant_access_to_another_appointment(): void
+    {
+        Notification::fake();
+        [$shop, $service, $barber] = $this->context();
+        $customer = Customer::factory()->for($shop)->create(['name' => 'Invitado', 'email' => 'guest@example.com']);
+        $first = Appointment::factory()->for($shop)->for($service)->for($barber)->for($customer)->create();
+        $privateService = Service::factory()->for($shop)->create(['name' => 'Servicio privado de otra cita']);
+        $second = Appointment::factory()->for($shop)->for($privateService, 'service')->for($barber)->for($customer)->create();
+        $before = $second->fresh()->getAttributes();
+        $this->verifyGuest($shop);
+        $signedUrl = URL::signedRoute('public.booking.management', [$shop, $first]);
+        $signature = '?'.parse_url($signedUrl, PHP_URL_QUERY);
+
+        $this->get($signedUrl)->assertOk()->assertSee($service->name)->assertDontSee($privateService->name)
+            ->assertViewHas('appointment', fn (Appointment $appointment): bool => $appointment->id === $first->id);
+        $this->get(route('public.booking.management', [$shop, $second]))->assertForbidden();
+        $this->get(route('public.booking.management', [$shop, $second]).$signature)->assertForbidden();
+        $this->post(route('public.booking.management.cancel', [$shop, $second]).$signature)->assertForbidden();
+        $this->post(route('public.booking.management.reschedule', [$shop, $second]).$signature, [
+            'starts_at' => '2026-10-06T10:00',
+        ])->assertForbidden();
+        $this->get(route('tenant.appointments.index', $shop))->assertRedirect(route('login'));
+
+        $this->assertSame($before, $second->fresh()->getAttributes());
+        $this->assertDatabaseCount('customers', 1);
+        $this->assertDatabaseCount('appointments', 2);
+        $this->assertDatabaseCount('appointment_events', 0);
+    }
+
+    public function test_guest_reuses_only_the_unique_local_unlinked_contact_without_changing_it(): void
+    {
+        Notification::fake();
+        [$shop, $service, $barber] = $this->context();
+        $identity = ['name' => '  INVITADO   CENTRAL  ', 'email' => 'GUEST@EXAMPLE.COM'];
+        $existing = Customer::factory()->for($shop)->create($identity + ['phone' => '5551111111']);
+        $linked = Customer::factory()->for($shop)->for(User::factory())->create($identity);
+        $foreign = Customer::factory()->create($identity);
+        $accented = Customer::factory()->for($shop)->create(['name' => 'Invitádo Central', 'email' => 'guest@example.com']);
+        $before = $existing->fresh()->getAttributes();
+        $this->verifyGuest($shop);
+        $payload = $this->payload($service, $barber);
+        $payload['name'] = 'Invitado  Central';
+        $payload['email'] = 'Guest@Example.com';
+        $payload['phone'] = '5552222222';
+        $draft = $this->postJson(route('public.booking.summary', $shop), $payload)->assertOk()->json('draft_id');
+        $response = $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+
+        $this->assertDatabaseCount('customers', 4);
+        $this->assertSame($existing->id, Appointment::query()->sole()->customer_id);
+        $this->assertSame($before, $existing->fresh()->getAttributes());
+        $this->assertModelExists($linked);
+        $this->assertModelExists($foreign);
+        $this->assertModelExists($accented);
+        $this->assertDatabaseHas('appointment_events', ['customer_id' => $existing->id, 'actor_kind' => 'guest', 'actor_user_id' => null]);
+        $response->assertJsonMissingPath('customer_id')->assertJsonMissingPath('user_id');
+        $this->assertDatabaseCount('appointments', 1);
+    }
+
+    public function test_guest_never_reuses_a_linked_or_foreign_contact(): void
+    {
+        Notification::fake();
+        [$shop, $service, $barber] = $this->context();
+        $identity = ['name' => 'Invitado', 'email' => 'guest@example.com'];
+        $linked = Customer::factory()->for($shop)->for(User::factory())->create($identity);
+        $foreign = Customer::factory()->create($identity);
+        $this->verifyGuest($shop);
+        $draft = $this->postJson(route('public.booking.summary', $shop), $this->payload($service, $barber))->assertOk()->json('draft_id');
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+
+        $customer = Appointment::query()->sole()->customer;
+        $this->assertNotContains($customer->id, [$linked->id, $foreign->id]);
+        $this->assertNull($customer->user_id);
+        $this->assertSame($shop->id, $customer->barbershop_id);
+        $this->assertDatabaseCount('customers', 3);
+    }
+
+    public function test_ambiguous_guest_matches_are_not_merged_and_do_not_block_booking(): void
+    {
+        Notification::fake();
+        Log::spy();
+        [$shop, $service, $barber] = $this->context();
+        $duplicates = Customer::factory()->count(2)->for($shop)->create(['name' => 'Invitado', 'email' => 'guest@example.com']);
+        $before = $duplicates->map(fn (Customer $customer): array => $customer->fresh()->getAttributes())->all();
+        $this->verifyGuest($shop);
+        $draft = $this->postJson(route('public.booking.summary', $shop), $this->payload($service, $barber))->assertOk()->json('draft_id');
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+
+        $this->assertDatabaseCount('customers', 3);
+        $this->assertDatabaseCount('appointments', 1);
+        $this->assertNotContains(Appointment::query()->sole()->customer_id, $duplicates->modelKeys());
+        $this->assertSame($before, $duplicates->map(fn (Customer $customer): array => $customer->fresh()->getAttributes())->all());
+        Log::shouldHaveReceived('notice')->once()->with('guest_customer.ambiguous_match', [
+            'barbershop_id' => $shop->id,
+            'candidate_ids' => $duplicates->modelKeys(),
+        ]);
     }
 
     public function test_guest_must_verify_and_gets_a_new_contact_record_without_email_linking(): void

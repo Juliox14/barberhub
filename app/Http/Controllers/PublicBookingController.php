@@ -9,6 +9,7 @@ use App\Notifications\PublicBookingConfirmed;
 use App\Support\AppointmentHistory;
 use App\Support\AppointmentScheduler;
 use App\Support\GuestBookingVerification;
+use App\Support\GuestCustomerResolver;
 use App\Support\ModuleContainment;
 use App\Support\PublicBookingAvailability;
 use App\Support\PublicBookingManagement;
@@ -90,12 +91,12 @@ final class PublicBookingController extends Controller
         return $this->respond($request, $barbershop, 'public.booking-summary', ['draft_id' => $draftId, 'summary' => $summary]);
     }
 
-    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history): Response|JsonResponse|RedirectResponse
+    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history, GuestCustomerResolver $guestCustomers): Response|JsonResponse|RedirectResponse
     {
         $this->ensureAvailable($barbershop);
         $validated = $request->validate(['draft_id' => ['required', 'string', 'size:64', 'alpha_num:ascii']]);
         $key = $this->draftKey($request, $barbershop, $validated['draft_id']);
-        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification, $history): Response|JsonResponse|RedirectResponse {
+        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification, $history, $guestCustomers): Response|JsonResponse|RedirectResponse {
             $draft = Cache::get($key);
             abort_unless(is_array($draft), 404, 'El resumen venció. Selecciona nuevamente tu horario.');
             $account = $request->user()?->email_verified_at !== null ? $request->user() : null;
@@ -113,7 +114,7 @@ final class PublicBookingController extends Controller
                 throw ValidationException::withMessages(['slot' => 'Ese horario ya pasó. Selecciona otro.']);
             }
             try {
-                $appointment = DB::transaction(function () use ($barbershop, $draft, $summary, $account, $startsAt, $scheduler, $history): Appointment {
+                $appointment = DB::transaction(function () use ($barbershop, $draft, $summary, $account, $startsAt, $scheduler, $history, $guestCustomers): Appointment {
                     $barber = $barbershop->barbers()->where('active', true)->findOrFail($draft['barber_id']);
                     $service = $barbershop->services()->where('active', true)->findOrFail($draft['service_id']);
                     if ((string) $service->price !== (string) $summary['price'] || $service->duration_minutes !== $summary['duration']) {
@@ -121,7 +122,9 @@ final class PublicBookingController extends Controller
                     }
                     $customer = $account !== null
                         ? $barbershop->customers()->where('user_id', $account->id)->orderBy('id')->first()
-                        : null;
+                        : $guestCustomers->resolve($barbershop, [
+                            'name' => $summary['name'], 'email' => $summary['email'], 'phone' => $summary['phone'],
+                        ]);
                     $customer ??= Customer::create([
                         'barbershop_id' => $barbershop->id, 'user_id' => $account?->id,
                         'name' => $summary['name'], 'email' => $summary['email'], 'phone' => $summary['phone'],
