@@ -164,6 +164,39 @@
 .bh-public-mobile-bar .bh-public-button { flex-shrink: 0; font-size: .875rem; }
 .bh-public-summary { max-width: 44rem; margin: 2rem auto; }
 .bh-public-summary h1 { font-size: clamp(2rem, 4vw, 2.75rem); }
+.bh-public-management { padding: clamp(1.25rem, 4vw, 2.25rem); }
+.bh-public-management .bh-public-details { gap: 0; margin: 0 0 2rem; }
+.bh-public-management .bh-public-details > div { grid-template-columns: minmax(6.5rem, .7fr) minmax(0, 1.3fr); gap: .5rem 1rem; padding-block: .8rem; }
+.bh-public-management .bh-public-details > div:first-child { border-top: 1px solid var(--bh-public-border); }
+.bh-public-management__actions { display: grid; gap: 1.5rem; }
+.bh-public-management__reschedule { display: grid; gap: 1rem; }
+.bh-public-management__reschedule h2 { margin: 0; padding-bottom: .75rem; border-bottom: 1px solid var(--bh-public-border); font-size: 1.25rem; letter-spacing: -.02em; }
+.bh-public-management__reschedule form,
+.bh-public-management__footer form { display: grid; justify-items: start; gap: .625rem; }
+.bh-public-management__reschedule label { font-size: .75rem; font-weight: 600; }
+.bh-public-management__reschedule input,
+.bh-public-management__reschedule select { max-width: 100%; min-height: 3rem; }
+.bh-public-management__reschedule .bh-public-button { width: 100%; margin-top: .25rem; }
+.bh-public-management__footer { display: grid; gap: .75rem; padding-top: 1.25rem; border-top: 1px solid var(--bh-public-border); }
+.bh-public-management__footer > *,
+.bh-public-management__footer form,
+.bh-public-management__footer .bh-public-button { width: 100%; }
+.bh-public-management__cancel { border-color: #fecaca; background: #fff7f7; color: #991b1b; }
+.bh-public-management__cancel:hover { border-color: #fca5a5; background: #fef2f2; }
+.bh-public-management__notice { margin: 0 0 1.5rem !important; border-radius: .75rem; padding: .875rem 1rem; background: color-mix(in srgb, var(--bh-brand-primary) 8%, white); color: #27272a; font-size: .8125rem; }
+.bh-public-management__error { margin: 0 !important; color: #991b1b; font-size: .8125rem; }
+.bh-public-management__dialog { width: min(30rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); margin: auto; padding: clamp(1.25rem, 4vw, 2rem); border: 0; border-radius: 1rem; background: #fff; color: #141413; box-shadow: 0 24px 64px rgb(0 0 0 / 20%); overflow-y: auto; }
+.bh-public-management__dialog::backdrop { background: rgb(20 20 19 / 55%); }
+.bh-public-management__dialog p { color: #52525b; }
+.bh-public-management__dialog-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.bh-public-management__dialog-actions .bh-public-button { flex: 1 1 11rem; }
+.bh-public-management :is(a, button, input, select):focus-visible { outline: 3px solid #27272a; outline-offset: 3px; }
+@media (min-width: 600px) {
+    .bh-public-management__footer { grid-template-columns: 1fr 1fr; align-items: center; }
+}
+@media (max-width: 420px) {
+    .bh-public-management .bh-public-details > div { grid-template-columns: 1fr; gap: .125rem; }
+}
 .bh-public-error { margin-block: 1rem; border: 1px solid #b91c1c; border-radius: .5rem; padding: 1.25rem; background: #fef2f2; color: #991b1b; }
 .bh-public-error ul { margin: 0; padding-left: 1.25rem; list-style: disc; }
 .bh-public-details { display: grid; gap: 1rem; margin: 1.75rem 0; }

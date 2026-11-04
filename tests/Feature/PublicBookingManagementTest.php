@@ -425,6 +425,29 @@ class PublicBookingManagementTest extends TestCase
         $this->assertDatabaseCount('appointment_events', 0);
     }
 
+    public function test_cancellation_form_is_only_submitted_from_a_closed_confirmation_dialog(): void
+    {
+        [$shop, $appointment] = $this->appointmentContext();
+        $this->travelTo('2026-10-04 08:00:00 UTC');
+        $before = $appointment->fresh()->getAttributes();
+
+        $response = $this->get(PublicBookingManagement::url($shop, $appointment));
+
+        $response->assertSee('¿Cancelar tu cita?')->assertSee('Conservar cita')->assertSee('Sí, cancelar cita');
+        $document = new \DOMDocument;
+        $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//button[@type="button" and normalize-space(.)="Cancelar cita"]')->length);
+        $this->assertSame(1, $xpath->query('//dialog[not(@open) and @aria-labelledby="cancel-heading"]')->length);
+        $this->assertSame(1, $xpath->query('//dialog//button[@type="submit" and normalize-space(.)="Sí, cancelar cita"]')->length);
+        $this->assertSame(1, $xpath->query('//dialog//button[@type="button" and @autofocus and normalize-space(.)="Conservar cita"]')->length);
+        $form = $xpath->query('//dialog//form[@method="POST"]')->item(0);
+        $this->assertSame(URL::signedRoute('public.booking.management.cancel', [$shop, $appointment]), $form?->getAttribute('action'));
+        $this->assertSame(1, $xpath->query('//dialog//form//input[@name="_token"]')->length);
+        $this->assertSame($before, $appointment->fresh()->getAttributes());
+        $this->assertDatabaseCount('appointment_events', 0);
+    }
+
     public function test_customer_cancel_requires_signed_action_and_records_history(): void
     {
         [$shop, $appointment] = $this->appointmentContext();
