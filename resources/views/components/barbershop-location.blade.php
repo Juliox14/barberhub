@@ -12,7 +12,7 @@
         <h2 id="barbershop-location-heading">Dónde estamos</h2>
         @if ($hasAddress)
             <address>
-                {{ collect([$barbershop->street_address, $barbershop->city, $barbershop->region, $barbershop->country_code])->filter()->implode(', ') }}
+                {{ collect([$barbershop->street_address, $barbershop->city, $barbershop->region, \App\Support\CountryNames::name($barbershop->country_code)])->filter()->implode(', ') }}
             </address>
         @endif
         @if ($hasCoordinates)
