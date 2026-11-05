@@ -98,6 +98,11 @@
                     </div>
                 </section>
 
+                <section class="bh-branding-editor__panel space-y-5" aria-labelledby="barbershop-location-heading">
+                    <h2 id="barbershop-location-heading" class="font-semibold text-white">Ubicación</h2>
+                    <x-barbershop-location-fields :barbershop="$barbershop" />
+                </section>
+
                 <section class="bh-branding-editor__panel space-y-5" aria-labelledby="branding-assets-heading">
                     <div>
                         <h2 id="branding-assets-heading" class="font-semibold text-white">Imágenes</h2>
