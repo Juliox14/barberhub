@@ -21,10 +21,6 @@ if (document.querySelector('[data-public-booking]')) {
     import('./public-booking.js').then(({ initializePublicBooking }) => initializePublicBooking(document));
 }
 
-if (document.querySelector('[data-barbershop-location-search]')) {
-    import('./barbershop-location-search.js').then(({ initializeBarbershopLocationSearch }) => initializeBarbershopLocationSearch(document));
-}
-
 document.querySelectorAll('[data-session-monitor]').forEach((element) => {
     createSessionMonitor({
         window,
