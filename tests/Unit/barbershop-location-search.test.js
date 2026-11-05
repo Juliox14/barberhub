@@ -2,104 +2,219 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeBarbershopLocationSearch } from '../../resources/js/barbershop-location-search.js';
 
+const NAMES = ['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'];
+
 function element(properties = {}) {
     return {
-        children: [], listeners: {}, dataset: {}, value: '', hidden: false, disabled: false, textContent: '',
+        children: [], listeners: {}, dataset: {}, value: '', disabled: false, textContent: '',
         addEventListener(name, listener) { this.listeners[name] = listener; },
         append(...children) { this.children.push(...children); },
-        replaceChildren(...children) { this.children = children; },
         setAttribute(name, value) { this[name] = value; },
+        dispatchEvent(event) { this.dispatched.push(event.type); },
+        dispatched: [],
         ...properties,
     };
 }
 
-function createPage(fetchImplementation) {
-    const fields = Object.fromEntries(['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'].map((name) => [name, element({ name, value: `existing-${name}`, dispatches: [], dispatchEvent(event) { this.dispatches.push(event.type); } })]));
-    const search = element({ disabled: false });
-    const query = element({ value: 'Calle del Sol 42' });
-    const status = element();
-    const choices = element();
-    const confirm = element({ disabled: true });
-    const root = element({ dataset: { endpoint: '/barbershop-location/search', csrfToken: 'csrf', barbershopSlug: 'barberia' }, querySelector(selector) {
-        return ({ '[data-location-search-query]': query, '[data-location-search-button]': search, '[data-location-search-status]': status,
-            '[data-location-search-results]': choices, '[data-location-search-confirm]': confirm, ...Object.fromEntries(Object.entries(fields).map(([name, field]) => [`[name="${name}"]`, field])) })[selector] ?? null;
-    } });
-    const document = { querySelectorAll: (selector) => selector === '[data-barbershop-location-search]' ? [root] : [], createElement: (tagName) => element({ tagName }) };
-    initializeBarbershopLocationSearch(document, fetchImplementation);
-    return { fields, search, query, status, choices, confirm, root };
+function place(components = [
+    { types: ['country'], shortText: 'mx', longText: 'México' },
+    { types: ['administrative_area_level_1'], longText: 'Jalisco' },
+    { types: ['locality'], longText: 'Guadalajara' },
+    { types: ['route'], longText: 'Avenida Vallarta' },
+    { types: ['street_number'], longText: '123' },
+    { types: ['subpremise'], longText: '4B' },
+]) {
+    return { addressComponents: components, location: { get lat() { throw new Error('Google coordinates must not be read.'); }, get lng() { throw new Error('Google coordinates must not be read.'); } }, fetchFields: async (options) => { assert.deepEqual(options, { fields: ['addressComponents'] }); } };
 }
 
-const result = { label: 'Calle del Sol 42, Guadalajara', country_code: 'MX', region: 'Jalisco', city: 'Guadalajara', street_address: 'Calle del Sol 42', latitude: '20.1', longitude: '-103.2' };
+function setup({ key = 'browser-key', selected = place(), fetchFields, withMaps = true } = {}) {
+    let selectedPlace = selected;
+    const instances = [];
+    const maps = { importLibrary: async (name) => {
+        assert.equal(name, 'places');
+        return { PlaceAutocompleteElement: class {
+            constructor() { this.listeners = {}; instances.push(this); }
+            addEventListener(name, listener) { this.listeners[name] = listener; }
+            setAttribute(name, value) { this[name] = value; }
+            select() { this.listeners['gmp-select']({ placePrediction: { toPlace: () => selectedPlace } }); }
+            fail() { this.listeners['gmp-error']?.(); }
+        } };
+    } };
+    if (fetchFields) selected.fetchFields = fetchFields;
+    const fields = Object.fromEntries(NAMES.map((name) => [name, element({ name, value: `existing-${name}` })]));
+    const widgetContainer = element();
+    const status = element();
+    const root = element({ dataset: { apiKey: key }, querySelector(selector) {
+        return ({ '[data-location-search-widget]': widgetContainer, '[data-location-search-status]': status,
+            ...Object.fromEntries(Object.entries(fields).map(([name, field]) => [`[name="${name}"]`, field])) })[selector] ?? null;
+    } });
+    const timers = new Map();
+    let timerId = 0;
+    const window = {
+        ...(withMaps ? { google: { maps } } : {}),
+        setTimeout(callback, duration) { const id = ++timerId; timers.set(id, { callback, duration }); return id; },
+        clearTimeout(id) { timers.delete(id); },
+    };
+    const scripts = [];
+    const document = {
+        defaultView: window,
+        querySelectorAll: () => [root],
+        createElement: () => element({ src: '', async: false, onerror: null }),
+        head: { append(script) { scripts.push(script); } },
+    };
+    return {
+        fields, widgetContainer, status, instances, root, document, window, maps, scripts, timers,
+        setSelected(value) { selectedPlace = value; },
+        advanceTimers() { for (const timer of [...timers.values()]) { timer.callback(); } },
+    };
+}
 
-test('search requires an explicit click and only explicit confirmation updates editable location inputs', async () => {
-    let calls = 0;
-    let request;
-    const page = createPage(async (url, options) => {
-        calls++;
-        request = { url, options };
-        return { ok: true, json: async () => ({ results: [result] }) };
-    });
+const tick = () => new Promise((resolve) => setImmediate(resolve));
 
-    assert.equal(calls, 0);
-    await page.search.listeners.click({ preventDefault() {} });
-    assert.equal(calls, 1);
-    assert.equal(request.url, '/barbershop-location/search');
-    assert.equal(request.options.credentials, 'same-origin');
-    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf');
-    assert.deepEqual(JSON.parse(request.options.body), { q: 'Calle del Sol 42', barbershop_slug: 'barberia' });
+test('missing browser key leaves all manual fields untouched and skips SDK loading', async () => {
+    const page = setup({ key: '' });
+    await initializeBarbershopLocationSearch(page.document);
+    assert.equal(page.scripts.length, 0);
+    assert.equal(page.widgetContainer.children.length, 0);
     assert.equal(page.fields.city.value, 'existing-city');
-    assert.equal(page.choices.children.length, 1);
-    const confirmChoice = page.choices.children[0].children[0];
-    confirmChoice.listeners.click();
-    assert.equal(page.fields.city.value, 'existing-city');
-    await page.confirm.listeners.click({ preventDefault() {} });
+    assert.match(page.status.textContent, /administrador/i);
+});
+
+test('script loader uses an encoded runtime key and callback, then mounts the Places widget', async () => {
+    const page = setup({ withMaps: false, key: 'browser key&restricted' });
+    const loading = initializeBarbershopLocationSearch(page.document);
+    assert.equal(page.scripts.length, 1);
+    const script = page.scripts[0];
+    const url = new URL(script.src);
+    assert.equal(url.origin, 'https://maps.googleapis.com');
+    assert.equal(url.pathname, '/maps/api/js');
+    assert.equal(url.searchParams.get('key'), 'browser key&restricted');
+    assert.equal(url.searchParams.get('language'), 'es');
+    assert.equal(url.searchParams.get('loading'), 'async');
+    assert.equal(script.async, true);
+    const callbackName = url.searchParams.get('callback');
+    assert.equal(typeof page.window[callbackName], 'function');
+    page.window.google = { maps: page.maps };
+    page.window[callbackName]();
+    await loading;
+    assert.equal(page.widgetContainer.children.length, 1);
+    assert.equal(callbackName in page.window, false);
+});
+
+test('simultaneous eligible roots share one SDK script and each receive a widget', async () => {
+    const page = setup({ withMaps: false });
+    const second = setup({ withMaps: false });
+    page.document.querySelectorAll = () => [page.root, second.root];
+    const loading = initializeBarbershopLocationSearch(page.document);
+    assert.equal(page.scripts.length, 1);
+    const callbackName = new URL(page.scripts[0].src).searchParams.get('callback');
+    page.window.google = { maps: page.maps };
+    page.window[callbackName]();
+    await loading;
+    assert.equal(page.widgetContainer.children.length, 1);
+    assert.equal(second.widgetContainer.children.length, 1);
+});
+
+test('no eligible roots means no script or timer', async () => {
+    const page = setup({ withMaps: false });
+    page.document.querySelectorAll = () => [];
+    await initializeBarbershopLocationSearch(page.document);
+    assert.equal(page.scripts.length, 0);
+    assert.equal(page.timers.size, 0);
+});
+
+test('script network failure and SDK timeout clean up callback and preserve all manual fields', async () => {
+    const networkFailure = setup({ withMaps: false });
+    const networkLoading = initializeBarbershopLocationSearch(networkFailure.document);
+    const failedScript = networkFailure.scripts[0];
+    const failedCallback = new URL(failedScript.src).searchParams.get('callback');
+    failedScript.onerror();
+    await networkLoading;
+    assert.equal(failedScript.onerror, null);
+    assert.equal(failedCallback in networkFailure.window, false);
+    assert.match(networkFailure.status.textContent, /configuración/i);
+    assert.deepEqual(NAMES.map((name) => networkFailure.fields[name].value), NAMES.map((name) => `existing-${name}`));
+
+    const timeout = setup({ withMaps: false });
+    const timeoutLoading = initializeBarbershopLocationSearch(timeout.document);
+    const timedOutScript = timeout.scripts[0];
+    const timeoutCallback = new URL(timedOutScript.src).searchParams.get('callback');
+    timeout.advanceTimers();
+    await timeoutLoading;
+    assert.equal(timedOutScript.onerror, null);
+    assert.equal(timeoutCallback in timeout.window, false);
+    assert.match(timeout.status.textContent, /configuración/i);
+    assert.deepEqual(NAMES.map((name) => timeout.fields[name].value), NAMES.map((name) => `existing-${name}`));
+});
+
+test('Google selection requests only addressComponents, fills editable address fields and clears stale coordinates', async () => {
+    const page = setup();
+    await initializeBarbershopLocationSearch(page.document);
+    assert.equal(page.widgetContainer.children.length, 1);
+    page.instances[0].select();
+    await tick();
+    assert.equal(page.fields.country_code.value, 'MX');
+    assert.equal(page.fields.region.value, 'Jalisco');
     assert.equal(page.fields.city.value, 'Guadalajara');
-    assert.equal(page.fields.street_address.value, 'Calle del Sol 42');
-    assert.equal(page.fields.latitude.value, '20.1');
-    assert.deepEqual(page.fields.city.dispatches, ['input', 'change']);
+    assert.equal(page.fields.street_address.value, 'Avenida Vallarta 123 4B');
+    assert.equal(page.fields.latitude.value, '');
+    assert.equal(page.fields.longitude.value, '');
+    assert.deepEqual(page.fields.latitude.dispatched, ['input', 'change']);
+    assert.deepEqual(page.fields.city.dispatched, ['input', 'change']);
+    page.fields.city.value = 'Manual correction';
+    assert.equal(page.fields.city.value, 'Manual correction');
 });
 
-test('late results cannot replace current query and failures preserve existing field values', async () => {
-    const pending = [];
-    const page = createPage((url, options) => new Promise((resolve) => pending.push({ resolve, options })));
-    const first = page.search.listeners.click({ preventDefault() {} });
-    assert.equal(page.search.disabled, true);
-    await page.search.listeners.click({ preventDefault() {} });
-    assert.equal(pending.length, 1);
-    page.query.value = 'Avenida nueva 27';
-    page.query.listeners.input();
-    const second = page.search.listeners.click({ preventDefault() {} });
-    pending[0].resolve({ ok: true, json: async () => ({ results: [result] }) });
-    await first;
-    assert.equal(page.choices.children.length, 0);
-    pending[1].resolve({ ok: false, json: async () => ({ message: 'No disponible' }) });
-    await second;
-    assert.equal(page.fields.city.value, 'existing-city');
-    assert.match(page.status.textContent, /manual/i);
+test('selection does not read Google coordinates, and incomplete/invalid address details preserve every field', async () => {
+    let fetchMask;
+    const incomplete = { addressComponents: [], location: { lat: () => 1, lng: () => 2 }, fetchFields: async (options) => { fetchMask = options.fields; } };
+    const page = setup({ selected: incomplete });
+    await initializeBarbershopLocationSearch(page.document);
+    page.instances[0].select();
+    await tick();
+    assert.deepEqual(fetchMask, ['addressComponents']);
+    assert.deepEqual(NAMES.map((name) => page.fields[name].value), NAMES.map((name) => `existing-${name}`));
+    assert.match(page.status.textContent, /manualmente/i);
 });
 
-test('empty results and untrusted labels stay textual and leave manual fields unchanged', async () => {
-    const page = createPage(async () => ({ ok: true, json: async () => ({ results: [{ ...result, label: '<img src=x onerror=alert(1)>' }] }) }));
-    await page.search.listeners.click({ preventDefault() {} });
-    assert.equal(page.choices.children[0].children[0].textContent, '<img src=x onerror=alert(1)>');
-    assert.equal(page.fields.city.value, 'existing-city');
-    page.query.listeners.input();
-    const emptyPage = createPage(async () => ({ ok: true, json: async () => ({ results: [] }) }));
-    await emptyPage.search.listeners.click({ preventDefault() {} });
-    assert.match(emptyPage.status.textContent, /No se encontraron resultados/);
-    assert.equal(emptyPage.fields.city.value, 'existing-city');
+test('Google errors and details rejection preserve manually entered address and coordinates', async () => {
+    const page = setup({ fetchFields: async () => { throw new Error('denied'); } });
+    await initializeBarbershopLocationSearch(page.document);
+    page.instances[0].select();
+    await tick();
+    assert.deepEqual(NAMES.map((name) => page.fields[name].value), NAMES.map((name) => `existing-${name}`));
+    assert.match(page.status.textContent, /manualmente/i);
+    page.instances[0].fail();
+    assert.match(page.status.textContent, /configuración/i);
 });
 
-test('typing never triggers lookup and a new lookup clears old choices only', async () => {
-    let calls = 0;
-    const page = createPage(async () => { calls++; return { ok: true, json: async () => ({ results: [result] }) }; });
-    page.query.listeners?.input?.();
-    assert.equal(calls, 0);
-    await page.search.listeners.click({ preventDefault() {} });
-    assert.equal(page.choices.children.length, 1);
-    page.query.value = 'Otra búsqueda válida';
-    page.query.listeners.input();
-    await page.search.listeners.click({ preventDefault() {} });
-    assert.equal(page.fields.street_address.value, 'existing-street_address');
-    assert.equal(page.choices.children.length, 1);
+test('a newer selected suggestion prevents older pending details from overwriting it', async () => {
+    const resolvers = [];
+    const first = { ...place(), fetchFields: async (options) => { assert.deepEqual(options, { fields: ['addressComponents'] }); await new Promise((resolve) => resolvers.push(resolve)); } };
+    const second = { ...place([{ types: ['country'], shortText: 'CO' }, { types: ['route'], longText: 'Carrera 7' }]), fetchFields: async (options) => { assert.deepEqual(options, { fields: ['addressComponents'] }); await new Promise((resolve) => resolvers.push(resolve)); } };
+    const page = setup({ selected: first });
+    await initializeBarbershopLocationSearch(page.document);
+    page.instances[0].select();
+    page.setSelected(second);
+    page.instances[0].select();
+    resolvers[0]();
+    resolvers[1]();
+    await tick();
+    assert.equal(page.fields.country_code.value, 'CO');
+    assert.equal(page.fields.street_address.value, 'Carrera 7');
+});
+
+test('manual edits made while place details are pending prevent a late overwrite', async () => {
+    let resolveDetails;
+    const selected = { ...place(), fetchFields: async (options) => { assert.deepEqual(options, { fields: ['addressComponents'] }); await new Promise((resolve) => { resolveDetails = resolve; }); } };
+    const page = setup({ selected });
+    await initializeBarbershopLocationSearch(page.document);
+    page.instances[0].select();
+    page.fields.city.value = 'Entered by owner';
+    page.fields.city.listeners.input?.();
+    resolveDetails();
+    await tick();
+    assert.equal(page.fields.city.value, 'Entered by owner');
+    assert.equal(page.fields.latitude.value, 'existing-latitude');
+    assert.equal(page.fields.longitude.value, 'existing-longitude');
 });

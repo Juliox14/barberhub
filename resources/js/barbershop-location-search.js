@@ -1,145 +1,189 @@
-const LOCATION_FIELDS = ['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'];
-const MANUAL_FALLBACK = 'No fue posible realizar la búsqueda. Puedes completar la ubicación manualmente.';
+const SDK_URL = 'https://maps.googleapis.com/maps/api/js';
+const SDK_TIMEOUT_MS = 15000;
+const SDK_PROMISES = new WeakMap();
+let callbackSequence = 0;
+const FALLBACK = 'No se pudo cargar el autocompletado. Revisa la configuración de Google o completa la ubicación manualmente.';
+const MISSING_KEY = 'El autocompletado de Google no está configurado. Contacta al administrador o completa la ubicación manualmente.';
+const ADDRESS_FIELDS = ['country_code', 'region', 'city', 'street_address'];
+const LOCATION_FIELDS = [...ADDRESS_FIELDS, 'latitude', 'longitude'];
 
-export function initializeBarbershopLocationSearch(document, fetchImplementation = (...args) => fetch(...args)) {
-    document.querySelectorAll('[data-barbershop-location-search]').forEach((root) => {
-        const queryInput = root.querySelector('[data-location-search-query]');
-        const searchButton = root.querySelector('[data-location-search-button]');
-        const status = root.querySelector('[data-location-search-status]');
-        const resultsList = root.querySelector('[data-location-search-results]');
-        const confirmButton = root.querySelector('[data-location-search-confirm]');
-        let requestId = 0;
-        let selectedResult = null;
-        let selectedForQuery = '';
+function getMaps(window) {
+    return window.google?.maps;
+}
 
-        if (!queryInput || !searchButton || !status || !resultsList || !confirmButton) {
-            return;
+function loadGoogleMaps(document, window, apiKey) {
+    const existingMaps = getMaps(window);
+    if (existingMaps?.importLibrary) {
+        return Promise.resolve(existingMaps);
+    }
+    const existing = SDK_PROMISES.get(document);
+    if (existing) {
+        return existing;
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        let callbackName;
+        do {
+            callbackName = `__barbershopPlacesReady${++callbackSequence}`;
+        } while (callbackName in window);
+        const script = document.createElement('script');
+        const timeout = window.setTimeout(() => finish(new Error('Google Maps loading timed out.')), SDK_TIMEOUT_MS);
+        let settled = false;
+        const previousCallback = window[callbackName];
+
+        function cleanup() {
+            window.clearTimeout(timeout);
+            if (window[callbackName] === callback) {
+                if (previousCallback === undefined) {
+                    delete window[callbackName];
+                } else {
+                    window[callbackName] = previousCallback;
+                }
+            }
+            script.onerror = null;
         }
 
-        function clearResults() {
-            resultsList.replaceChildren();
-            selectedResult = null;
-            selectedForQuery = '';
-            confirmButton.disabled = true;
+        function finish(error) {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            cleanup();
+            const maps = getMaps(window);
+            if (error || !maps?.importLibrary) {
+                SDK_PROMISES.delete(document);
+                reject(error ?? new Error('Google Maps did not initialize.'));
+                return;
+            }
+            resolve(maps);
         }
 
-        queryInput.addEventListener('input', () => {
-            requestId++;
-            clearResults();
-            status.textContent = '';
-            searchButton.disabled = false;
-        });
+        function callback() {
+            finish();
+        }
 
-        searchButton.addEventListener('click', async (event) => {
-            event.preventDefault();
-            if (searchButton.disabled) {
-                return;
-            }
-            const query = queryInput.value.trim();
-
-            if (query.length < 4 || query.length > 255) {
-                clearResults();
-                status.textContent = 'Escribe una dirección comercial de entre 4 y 255 caracteres.';
-                return;
-            }
-
-            const currentRequestId = ++requestId;
-            clearResults();
-            searchButton.disabled = true;
-            status.textContent = 'Buscando…';
-
-            try {
-                const payload = { q: query };
-                if (root.dataset.barbershopSlug) {
-                    payload.barbershop_slug = root.dataset.barbershopSlug;
-                }
-                const response = await fetchImplementation(root.dataset.endpoint, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': root.dataset.csrfToken,
-                    },
-                    body: JSON.stringify(payload),
-                });
-                const data = await response.json();
-
-                if (currentRequestId !== requestId || queryInput.value.trim() !== query) {
-                    return;
-                }
-
-                if (!response.ok || !Array.isArray(data.results)) {
-                    status.textContent = MANUAL_FALLBACK;
-                    return;
-                }
-
-                if (data.results.length === 0) {
-                    status.textContent = 'No se encontraron resultados. Puedes completar la ubicación manualmente.';
-                    return;
-                }
-
-                for (const result of data.results.slice(0, 5)) {
-                    if (!result || typeof result.label !== 'string') {
-                        continue;
-                    }
-                    const item = document.createElement('li');
-                    const choice = document.createElement('button');
-                    choice.type = 'button';
-                    choice.textContent = result.label;
-                    choice.setAttribute('aria-pressed', 'false');
-                    choice.addEventListener('click', () => {
-                        if (currentRequestId !== requestId || queryInput.value.trim() !== query) {
-                            return;
-                        }
-                        selectedResult = result;
-                        selectedForQuery = query;
-                        Array.from(resultsList.children).forEach((child) => child.children[0].setAttribute('aria-pressed', 'false'));
-                        choice.setAttribute('aria-pressed', 'true');
-                        confirmButton.disabled = false;
-                        status.textContent = 'Resultado seleccionado. Confirma para copiarlo a los campos editables.';
-                    });
-                    item.append(choice);
-                    resultsList.append(item);
-                }
-
-                status.textContent = resultsList.children.length > 0
-                    ? 'Selecciona el resultado que corresponda y confirma la ubicación.'
-                    : MANUAL_FALLBACK;
-            } catch {
-                if (currentRequestId === requestId) {
-                    status.textContent = MANUAL_FALLBACK;
-                }
-            } finally {
-                if (currentRequestId === requestId) {
-                    searchButton.disabled = false;
-                }
-            }
-        });
-
-        confirmButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            const query = queryInput.value.trim();
-            if (!selectedResult || selectedForQuery !== query || !query) {
-                clearResults();
-                status.textContent = 'Vuelve a buscar y selecciona un resultado vigente antes de confirmar.';
-                return;
-            }
-
-            for (const name of LOCATION_FIELDS) {
-                const input = root.querySelector(`[name="${name}"]`);
-                if (!input) {
-                    continue;
-                }
-                input.value = typeof selectedResult[name] === 'string' ? selectedResult[name] : '';
-                const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
-                if (EventConstructor) {
-                    input.dispatchEvent(new EventConstructor('input', { bubbles: true }));
-                    input.dispatchEvent(new EventConstructor('change', { bubbles: true }));
-                }
-            }
-
-            status.textContent = 'Ubicación copiada a los campos. Revisa los datos y guarda para conservarlos.';
-        });
+        window[callbackName] = callback;
+        const parameters = new URLSearchParams({ key: apiKey, language: 'es', v: 'weekly', loading: 'async', callback: callbackName });
+        script.src = `${SDK_URL}?${parameters.toString()}`;
+        script.async = true;
+        script.onerror = () => finish(new Error('Google Maps script failed to load.'));
+        document.head.append(script);
     });
+    SDK_PROMISES.set(document, promise);
+    return promise;
+}
+
+function component(components, type) {
+    return components.find((item) => item.types?.includes(type));
+}
+
+function addressFrom(place) {
+    if (!Array.isArray(place.addressComponents) || place.addressComponents.length === 0) {
+        return null;
+    }
+    const country = component(place.addressComponents, 'country');
+    const city = component(place.addressComponents, 'locality')
+        ?? component(place.addressComponents, 'postal_town')
+        ?? component(place.addressComponents, 'administrative_area_level_2');
+    const street = [
+        component(place.addressComponents, 'route')?.longText,
+        component(place.addressComponents, 'street_number')?.longText,
+        component(place.addressComponents, 'subpremise')?.longText,
+    ].filter(Boolean).join(' ');
+    const address = {
+        country_code: country?.shortText?.toUpperCase() ?? '',
+        region: component(place.addressComponents, 'administrative_area_level_1')?.longText ?? '',
+        city: city?.longText ?? '',
+        street_address: street,
+    };
+    return Object.values(address).some(Boolean) ? address : null;
+}
+
+function initializeRoot(root, document, window) {
+    const container = root.querySelector('[data-location-search-widget]');
+    const status = root.querySelector('[data-location-search-status]');
+    const inputs = Object.fromEntries(LOCATION_FIELDS.map((name) => [name, root.querySelector(`[name="${name}"]`)]));
+    if (!container || !status || LOCATION_FIELDS.some((name) => !inputs[name])) {
+        return Promise.resolve();
+    }
+
+    const apiKey = root.dataset.apiKey;
+    if (!apiKey) {
+        status.textContent = MISSING_KEY;
+        return Promise.resolve();
+    }
+
+    let selection = 0;
+    let manualEdit = 0;
+    let applying = false;
+    for (const input of Object.values(inputs)) {
+        input.addEventListener('input', () => { if (!applying) { manualEdit++; } });
+        input.addEventListener('change', () => { if (!applying) { manualEdit++; } });
+    }
+
+    return loadGoogleMaps(document, window, apiKey)
+        .then(async (maps) => {
+            const { PlaceAutocompleteElement } = await maps.importLibrary('places');
+            const widget = new PlaceAutocompleteElement();
+            widget.setAttribute('aria-label', 'Buscar dirección');
+            widget.setAttribute('placeholder', 'Escribe una dirección');
+            widget.addEventListener('gmp-error', () => { status.textContent = FALLBACK; });
+            widget.addEventListener('gmp-select', async ({ placePrediction }) => {
+                const currentSelection = ++selection;
+                const editAtSelection = manualEdit;
+                status.textContent = 'Cargando los datos de la dirección seleccionada…';
+                try {
+                    const selectedPlace = placePrediction.toPlace();
+                    await selectedPlace.fetchFields({ fields: ['addressComponents'] });
+                    if (currentSelection !== selection) {
+                        return;
+                    }
+                    if (editAtSelection !== manualEdit) {
+                        status.textContent = 'No se aplicó el resultado porque editaste los campos manualmente. Puedes continuar con tus cambios.';
+                        return;
+                    }
+                    const address = addressFrom(selectedPlace);
+                    if (!address) {
+                        status.textContent = 'No fue posible obtener los componentes de la dirección. Puedes completarla manualmente.';
+                        return;
+                    }
+                    applying = true;
+                    try {
+                        for (const name of ADDRESS_FIELDS) {
+                            inputs[name].value = address[name];
+                            const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
+                            if (EventConstructor) {
+                                inputs[name].dispatchEvent(new EventConstructor('input', { bubbles: true }));
+                                inputs[name].dispatchEvent(new EventConstructor('change', { bubbles: true }));
+                            }
+                        }
+                        for (const name of ['latitude', 'longitude']) {
+                            inputs[name].value = '';
+                            const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
+                            if (EventConstructor) {
+                                inputs[name].dispatchEvent(new EventConstructor('input', { bubbles: true }));
+                                inputs[name].dispatchEvent(new EventConstructor('change', { bubbles: true }));
+                            }
+                        }
+                    } finally {
+                        applying = false;
+                    }
+                    status.textContent = 'Dirección completada. Revisa y edita los datos; introduce coordenadas manuales válidas y guarda para conservarlos.';
+                } catch {
+                    if (currentSelection === selection) {
+                        status.textContent = FALLBACK;
+                    }
+                }
+            });
+            container.append(widget);
+        })
+        .catch(() => { status.textContent = FALLBACK; });
+}
+
+export function initializeBarbershopLocationSearch(document) {
+    const window = document.defaultView ?? globalThis.window;
+    if (!window) {
+        return Promise.resolve();
+    }
+    return Promise.all(Array.from(document.querySelectorAll('[data-barbershop-location-search]'), (root) => initializeRoot(root, document, window)));
 }

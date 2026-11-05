@@ -1,13 +1,11 @@
 @php($location = $barbershop ?? null)
-<section class="sm:col-span-2 space-y-4" aria-labelledby="location-heading" data-barbershop-location-search data-endpoint="{{ route('barbershop.location.search', absolute: false) }}" data-csrf-token="{{ csrf_token() }}" data-barbershop-slug="{{ $location?->slug ?? '' }}">
-    <div><h3 id="location-heading" class="text-sm font-semibold">Ubicación (opcional)</h3><p class="mt-1 text-xs leading-5 text-slate-500">Escribe el código de país de dos letras (ISO 3166-1, por ejemplo MX o CO), estado o provincia, ciudad y dirección. Para el mapa, abre Google Maps, mantén pulsado o haz clic derecho sobre el punto y copia las coordenadas decimales. No se usa API key ni hay cargos.</p></div>
+<section class="sm:col-span-2 space-y-4" aria-labelledby="location-heading" data-barbershop-location-search data-api-key="{{ config('services.google_maps.api_key') }}">
+    <div><h3 id="location-heading" class="text-sm font-semibold">Ubicación (opcional)</h3><p class="mt-1 text-xs leading-5 text-slate-500">Completa el país, estado o provincia, ciudad y dirección. Puedes elegir una sugerencia de Google y revisar o editar los campos antes de guardar. Las coordenadas son manuales: introdúcelas desde una fuente propia que permita conservarlas; al cambiar la dirección se borran las coordenadas anteriores para evitar mostrar un mapa de otra ubicación.</p></div>
     <div class="space-y-3 rounded-lg border border-slate-700 p-4">
-        <div><label for="location-search-query" class="block text-sm font-medium">Buscar dirección comercial</label><p class="mt-1 text-xs leading-5 text-slate-500">La búsqueda explícita se envía a OpenStreetMap/Nominatim. No incluyas información confidencial ni datos de cuenta. Revisa y confirma un resultado antes de completar los campos; también puedes escribirlos manualmente.</p><input id="location-search-query" type="search" maxlength="255" data-location-search-query class="mt-2 block w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white" autocomplete="off"></div>
-        <button type="button" data-location-search-button class="rounded-lg border border-slate-500 px-3 py-2 text-sm font-medium">Buscar</button>
+        <label for="location-search-widget" class="block text-sm font-medium">Buscar dirección comercial</label>
+        <div id="location-search-widget" data-location-search-widget></div>
         <p data-location-search-status role="status" aria-live="polite" class="text-sm text-slate-300"></p>
-        <ul data-location-search-results class="space-y-2" aria-label="Resultados de búsqueda"></ul>
-        <button type="button" data-location-search-confirm disabled class="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50">Confirmar ubicación seleccionada</button>
-        <p class="text-xs text-slate-500">Datos de búsqueda © <a class="underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">colaboradores de OpenStreetMap</a>. Uso sujeto a la <a class="underline" href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener noreferrer">política de Nominatim</a>.</p>
+        <p class="text-xs text-slate-500">Las sugerencias incluyen la atribución de Google. Puedes completar los campos manualmente si el autocompletado no está disponible.</p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
         @foreach ([['country_code', 'País (código de dos letras)'], ['region', 'Estado o provincia'], ['city', 'Ciudad o localidad'], ['street_address', 'Dirección']] as [$field, $label])
