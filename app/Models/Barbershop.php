@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'street_address',
     'latitude',
     'longitude',
+    'google_maps_embed_url',
 ])]
 class Barbershop extends Model
 {

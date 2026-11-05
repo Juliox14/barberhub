@@ -19,6 +19,15 @@ final class BarbershopLocation
             'street_address' => ['nullable', 'string', 'max:1000'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'decimal:0,7', 'required_with:longitude'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'decimal:0,7', 'required_with:latitude'],
+            'google_maps_embed_url' => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (filled($value) && GoogleMapsEmbed::canonicalUrl($value) === null) {
+                        $fail(GoogleMapsEmbed::VALIDATION_MESSAGE);
+                    }
+                },
+            ],
         ];
     }
 
@@ -27,11 +36,13 @@ final class BarbershopLocation
      */
     public static function submittedFields(Request $request, array $validated): array
     {
-        $fields = ['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'];
+        $fields = ['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude', 'google_maps_embed_url'];
         $submitted = [];
         foreach ($fields as $field) {
             if ($request->exists($field)) {
-                $submitted[$field] = $validated[$field] ?? null;
+                $submitted[$field] = $field === 'google_maps_embed_url'
+                    ? GoogleMapsEmbed::canonicalUrl($validated[$field] ?? null)
+                    : ($validated[$field] ?? null);
             }
         }
 

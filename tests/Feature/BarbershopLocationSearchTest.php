@@ -11,7 +11,7 @@ class BarbershopLocationSearchTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_platform_form_uses_manual_address_fields_and_google_maps_link(): void
+    public function test_platform_form_uses_manual_address_fields_and_google_maps_embed_instructions(): void
     {
         $admin = User::factory()->create(['is_platform_admin' => true]);
 
@@ -24,6 +24,7 @@ class BarbershopLocationSearchTest extends TestCase
             ->assertSee('name="street_address"', false)
             ->assertSee('name="latitude"', false)
             ->assertSee('name="longitude"', false)
+            ->assertSee('name="google_maps_embed_url"', false)
             ->assertSee('Abrir Google Maps')
             ->assertDontSee('data-api-key=')
             ->assertDontSee('location-search-widget')

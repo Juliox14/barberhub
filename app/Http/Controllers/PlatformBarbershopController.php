@@ -81,7 +81,7 @@ final class PlatformBarbershopController extends Controller
                 'slug' => $validated['slug'],
                 'timezone' => $validated['timezone'],
                 'status' => $validated['status'] ?? Barbershop::STATUS_ACTIVE,
-                ...array_intersect_key($validated, array_flip(['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude'])),
+                ...array_intersect_key($validated, array_flip(['country_code', 'region', 'city', 'street_address', 'latitude', 'longitude', 'google_maps_embed_url'])),
             ]);
 
             if (($validated['owner_type'] ?? 'existing') === 'new') {
