@@ -29,11 +29,11 @@
                 <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
                     <thead class="bg-slate-900 text-slate-400">
                         <tr>
-                            <th scope="col" class="px-5 py-4">Nombre</th>
-                            <th scope="col" class="px-5 py-4">Correo</th>
-                            <th scope="col" class="px-5 py-4">Barbería</th>
-                            <th scope="col" class="px-5 py-4">Rol</th>
-                            <th scope="col" class="px-5 py-4">Estado</th>
+                            <x-sortable-heading column="name" label="Nombre" :sort="$teamSort['sort']" :direction="$teamSort['direction']" sort-parameter="team_sort" direction-parameter="team_direction" page-parameter="team_page" />
+                            <x-sortable-heading column="email" label="Correo" :sort="$teamSort['sort']" :direction="$teamSort['direction']" sort-parameter="team_sort" direction-parameter="team_direction" page-parameter="team_page" />
+                            <x-sortable-heading column="barbershop" label="Barbería" :sort="$teamSort['sort']" :direction="$teamSort['direction']" sort-parameter="team_sort" direction-parameter="team_direction" page-parameter="team_page" />
+                            <x-sortable-heading column="role" label="Rol" :sort="$teamSort['sort']" :direction="$teamSort['direction']" sort-parameter="team_sort" direction-parameter="team_direction" page-parameter="team_page" />
+                            <x-sortable-heading column="status" label="Estado" :sort="$teamSort['sort']" :direction="$teamSort['direction']" sort-parameter="team_sort" direction-parameter="team_direction" page-parameter="team_page" />
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800 text-slate-300">
@@ -65,11 +65,11 @@
                 <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
                     <thead class="bg-slate-900 text-slate-400">
                         <tr>
-                            <th scope="col" class="px-5 py-4">Nombre</th>
-                            <th scope="col" class="px-5 py-4">Correo</th>
-                            <th scope="col" class="px-5 py-4">Teléfono</th>
-                            <th scope="col" class="px-5 py-4">Barbería</th>
-                            <th scope="col" class="px-5 py-4">Cuenta</th>
+                            <x-sortable-heading column="name" label="Nombre" :sort="$customerSort['sort']" :direction="$customerSort['direction']" sort-parameter="customers_sort" direction-parameter="customers_direction" page-parameter="customers_page" />
+                            <x-sortable-heading column="email" label="Correo" :sort="$customerSort['sort']" :direction="$customerSort['direction']" sort-parameter="customers_sort" direction-parameter="customers_direction" page-parameter="customers_page" />
+                            <x-sortable-heading column="phone" label="Teléfono" :sort="$customerSort['sort']" :direction="$customerSort['direction']" sort-parameter="customers_sort" direction-parameter="customers_direction" page-parameter="customers_page" />
+                            <x-sortable-heading column="barbershop" label="Barbería" :sort="$customerSort['sort']" :direction="$customerSort['direction']" sort-parameter="customers_sort" direction-parameter="customers_direction" page-parameter="customers_page" />
+                            <x-sortable-heading column="account" label="Cuenta" :sort="$customerSort['sort']" :direction="$customerSort['direction']" sort-parameter="customers_sort" direction-parameter="customers_direction" page-parameter="customers_page" />
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800 text-slate-300">
