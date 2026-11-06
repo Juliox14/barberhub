@@ -20,6 +20,7 @@ use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
 use App\Http\Controllers\TenantReportController;
 use App\Http\Controllers\TenantOperationalReportController;
+use App\Http\Controllers\TenantBusinessReportController;
 use App\Http\Controllers\TenantSelectorController;
 use App\Http\Controllers\TenantServiceController;
 use App\Http\Middleware\EnsureModuleAvailable;
@@ -81,6 +82,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::get('/reports/summary', [TenantReportController::class, 'summary'])->name('tenant.reports.summary');
             Route::get('/reports/evolution', [TenantOperationalReportController::class, 'evolution'])->name('tenant.reports.evolution');
             Route::get('/reports/demand', [TenantOperationalReportController::class, 'demand'])->name('tenant.reports.demand');
+            Route::get('/reports/services', [TenantBusinessReportController::class, 'services'])->name('tenant.reports.services');
+            Route::get('/reports/barbers', [TenantBusinessReportController::class, 'barbers'])->name('tenant.reports.barbers');
+            Route::get('/reports/customers', [TenantBusinessReportController::class, 'customers'])->name('tenant.reports.customers');
             Route::post('/appointments', [TenantAppointmentController::class, 'store'])->name('tenant.appointments.store');
             Route::put('/appointments/{appointment}/reschedule', [TenantAppointmentController::class, 'reschedule'])->name('tenant.appointments.reschedule');
             Route::post('/appointments/{appointment}/cancel', [TenantAppointmentController::class, 'cancel'])->name('tenant.appointments.cancel');
