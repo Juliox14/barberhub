@@ -235,6 +235,85 @@ class TenantBusinessHourManagementTest extends TestCase
         ]);
     }
 
+    public function test_update_rejects_weekday_changes_without_mutating_the_business_hour(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        $businessHour = BusinessHour::factory()->for($barbershop)->create([
+            'weekday' => BusinessHour::WEEKDAY_MONDAY,
+            'opens_at' => '09:00',
+            'closes_at' => '18:00',
+            'closed' => false,
+        ]);
+
+        $this->actingAs($owner)
+            ->from(route('tenant.business-hours.index', $barbershop, false))
+            ->put(route('tenant.business-hours.update', [$barbershop, $businessHour], false), [
+                'weekday' => BusinessHour::WEEKDAY_TUESDAY,
+                'opens_at' => '10:00',
+                'closes_at' => '19:00',
+                'closed' => false,
+            ])
+            ->assertRedirect(route('tenant.business-hours.index', $barbershop, false))
+            ->assertSessionHasErrors('weekday');
+
+        $this->assertDatabaseHas('business_hours', [
+            'id' => $businessHour->id,
+            'weekday' => BusinessHour::WEEKDAY_MONDAY,
+            'opens_at' => '09:00',
+            'closes_at' => '18:00',
+            'closed' => false,
+        ]);
+    }
+
+    public function test_update_allows_omitted_weekday_and_index_shows_complete_week_in_monday_first_order(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        foreach ([0, 1, 2, 3, 4, 5, 6] as $weekday) {
+            BusinessHour::factory()->for($barbershop)->create(['weekday' => $weekday, 'closed' => true]);
+        }
+        $businessHour = $barbershop->businessHours()->where('weekday', BusinessHour::WEEKDAY_MONDAY)->firstOrFail();
+
+        $this->actingAs($owner)
+            ->put(route('tenant.business-hours.update', [$barbershop, $businessHour], false), [
+                'closed' => true,
+            ])
+            ->assertRedirect(route('tenant.business-hours.index', $barbershop, false));
+
+        $this->assertDatabaseHas('business_hours', [
+            'id' => $businessHour->id,
+            'weekday' => BusinessHour::WEEKDAY_MONDAY,
+            'opens_at' => null,
+            'closes_at' => null,
+            'closed' => true,
+        ]);
+
+        $this->actingAs($owner)
+            ->put(route('tenant.business-hours.update', [$barbershop, $businessHour], false), [
+                'opens_at' => '10:00',
+                'closes_at' => '16:00',
+                'closed' => false,
+            ])
+            ->assertRedirect(route('tenant.business-hours.index', $barbershop, false));
+
+        $this->assertDatabaseHas('business_hours', [
+            'id' => $businessHour->id,
+            'weekday' => BusinessHour::WEEKDAY_MONDAY,
+            'opens_at' => '10:00',
+            'closes_at' => '16:00',
+            'closed' => false,
+        ]);
+
+        $this->get(route('tenant.business-hours.index', $barbershop, false))
+            ->assertOk()
+            ->assertDontSee('Agregar horario')
+            ->assertDontSee('name="weekday"', false)
+            ->assertSeeInOrder(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
+    }
+
     public function test_owner_can_update_business_hour_between_closed_and_open_states(): void
     {
         $barbershop = Barbershop::factory()->create();

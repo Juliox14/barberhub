@@ -94,6 +94,20 @@ class PlatformBarbershopManagementTest extends TestCase
             'role' => Membership::ROLE_OWNER,
             'status' => Membership::STATUS_ACTIVE,
         ]);
+        $this->assertDatabaseCount('business_hours', 7);
+        $this->assertSame(
+            [0, 1, 2, 3, 4, 5, 6],
+            $barbershop->businessHours()->orderBy('weekday')->pluck('weekday')->all(),
+        );
+        foreach ([0, 1, 2, 3, 4, 5, 6] as $weekday) {
+            $this->assertDatabaseHas('business_hours', [
+                'barbershop_id' => $barbershop->id,
+                'weekday' => $weekday,
+                'opens_at' => null,
+                'closes_at' => null,
+                'closed' => true,
+            ]);
+        }
     }
 
     public function test_creation_validates_unique_slug(): void

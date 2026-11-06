@@ -34,8 +34,11 @@ final class TenantBusinessHourController extends Controller
         $businessHoursQuery = $barbershop->businessHours()->getQuery();
         if ($sortState['requested']) {
             TableSort::apply($businessHoursQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
-        } else {
+        } elseif ($request->query->has('sort') || $request->query->has('direction')) {
             $businessHoursQuery->orderBy('weekday')->orderBy('business_hours.id');
+        } else {
+            $businessHoursQuery->orderByRaw('CASE weekday WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 4 WHEN 5 THEN 5 WHEN 6 THEN 6 WHEN 0 THEN 7 END')
+                ->orderBy('business_hours.id');
         }
         $businessHours = $businessHoursQuery->get();
 
@@ -79,7 +82,6 @@ final class TenantBusinessHourController extends Controller
         $closed = (bool) $validated['closed'];
 
         $businessHour->update([
-            'weekday' => $validated['weekday'],
             'opens_at' => $closed ? null : $validated['opens_at'],
             'closes_at' => $closed ? null : $validated['closes_at'],
             'closed' => $closed,
@@ -117,15 +119,20 @@ final class TenantBusinessHourController extends Controller
         $closed = request()->boolean('closed');
 
         return [
-            'weekday' => [
-                'required',
-                'integer',
-                'min:'.BusinessHour::WEEKDAY_SUNDAY,
-                'max:'.BusinessHour::WEEKDAY_SATURDAY,
-                Rule::unique(BusinessHour::class, 'weekday')
-                    ->where(fn ($query) => $query->where('barbershop_id', $barbershop->id))
-                    ->ignore($businessHour),
-            ],
+            'weekday' => $businessHour === null
+                ? [
+                    'required',
+                    'integer',
+                    'min:'.BusinessHour::WEEKDAY_SUNDAY,
+                    'max:'.BusinessHour::WEEKDAY_SATURDAY,
+                    Rule::unique(BusinessHour::class, 'weekday')
+                        ->where(fn ($query) => $query->where('barbershop_id', $barbershop->id)),
+                ]
+                : [
+                    'sometimes',
+                    'integer',
+                    Rule::in([$businessHour->weekday]),
+                ],
             'closed' => [$businessHour === null ? 'sometimes' : 'required', 'boolean'],
             'opens_at' => [$closed ? 'nullable' : 'required', 'date_format:H:i', 'before:closes_at'],
             'closes_at' => [$closed ? 'nullable' : 'required', 'date_format:H:i'],

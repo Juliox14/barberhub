@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barbershop;
+use App\Models\BusinessHour;
 use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\OwnerAccountInvitation;
@@ -138,6 +139,16 @@ final class PlatformBarbershopController extends Controller
                     'status' => Membership::STATUS_ACTIVE,
                 ],
             );
+
+            $barbershop->businessHours()->createMany(array_map(
+                static fn (int $weekday): array => [
+                    'weekday' => $weekday,
+                    'opens_at' => null,
+                    'closes_at' => null,
+                    'closed' => true,
+                ],
+                range(BusinessHour::WEEKDAY_SUNDAY, BusinessHour::WEEKDAY_SATURDAY),
+            ));
 
             return [$barbershop, $owner];
         });

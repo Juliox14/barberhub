@@ -5,14 +5,16 @@
                 <h1 class="text-2xl font-bold tracking-[-0.03em] text-white sm:text-3xl">Horarios de {{ $barbershop->name }}</h1>
                 <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Define la base semanal de apertura. Excepciones, descansos y horarios por barbero se conectarán después.</p>
             </div>
-            <button
-                type="button"
-                class="inline-flex min-h-11 w-fit items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-[#17130b] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                data-slide-over-trigger
-                x-on:click="$dispatch('form-slide-over-open', { id: 'create-business-hour' })"
-            >
-                Agregar horario
-            </button>
+            @if ($businessHours->count() < 7)
+                <button
+                    type="button"
+                    class="inline-flex min-h-11 w-fit items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-[#17130b] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                    data-slide-over-trigger
+                    x-on:click="$dispatch('form-slide-over-open', { id: 'create-business-hour' })"
+                >
+                    Agregar horario
+                </button>
+            @endif
         </header>
 
         <section class="overflow-hidden rounded-xl border border-slate-800 bg-[#111820]" aria-labelledby="business-hours-heading">
@@ -63,12 +65,8 @@
                                 <input type="hidden" name="form_context" value="business-hour-{{ $businessHour->id }}">
 
                                 <div>
-                                    <label for="weekday-{{ $businessHour->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Día</label>
-                                    <select id="weekday-{{ $businessHour->id }}" name="weekday" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                        @foreach ($weekdayLabels as $weekday => $label)
-                                            <option value="{{ $weekday }}" @selected((int) (old('form_context') === 'business-hour-'.$businessHour->id ? old('weekday', $businessHour->weekday) : $businessHour->weekday) === (int) $weekday)>{{ $label }}</option>
-                                        @endforeach
-                                    </select>
+                                    <p class="mb-2 block text-sm font-semibold text-slate-200">Día</p>
+                                    <p class="block min-h-11 rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2.5 text-sm text-slate-100">{{ $weekdayLabels[$businessHour->weekday] }}</p>
                                 </div>
                                 <div>
                                     <label for="opens_at-{{ $businessHour->id }}" class="mb-2 block text-sm font-semibold text-slate-200">Abre</label>
@@ -102,6 +100,7 @@
             @endif
         </section>
 
+        @if ($businessHours->count() < 7)
         <x-form-slide-over
             id="create-business-hour"
             title="Crear horario semanal"
@@ -141,5 +140,6 @@
                 <button type="submit" form="business-hour-create" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-5 py-2.5 text-sm font-semibold text-[#17130b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Guardar horario</button>
             </x-slot:footer>
         </x-form-slide-over>
+        @endif
     </div>
 </x-tenant-layout>
