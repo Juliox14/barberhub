@@ -31,35 +31,40 @@
         }
         .copy { width: min(100%, 440px); text-align: center; }
         .code {
-            display: block;
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0.5rem;
             color: #f5f5f5;
-            font-size: clamp(1.8rem, 7vw, 4rem);
-            font-weight: 750;
-            letter-spacing: 0.14em;
+            font-size: clamp(4rem, 9vw, 6rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
             line-height: 1;
-            white-space: nowrap;
         }
+        .code span { color: #f1c96b; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.12em; }
         h1 {
-            margin: 18px 0 0;
+            margin: 24px 0 0;
             color: #f5f5f5;
-            font-size: clamp(1.15rem, 3vw, 1.5rem);
+            font-size: clamp(1.4rem, 3vw, 2rem);
             font-weight: 700;
-            letter-spacing: 0.035em;
+            letter-spacing: -0.02em;
             line-height: 1.25;
-            text-transform: uppercase;
+            text-wrap: balance;
         }
-        p { margin: 12px auto 0; color: #a6a6a6; font-size: 0.875rem; line-height: 1.65; }
+        p { max-width: 38ch; margin: 16px auto 0; color: #c7c7c7; font-size: 1rem; line-height: 1.65; }
+        .guidance { margin-top: 10px; color: #a6a6a6; font-size: 0.875rem; }
         .action {
             display: inline-flex;
-            min-height: 38px;
+            min-height: 44px;
             align-items: center;
             justify-content: center;
-            margin-top: 22px;
-            padding: 0 16px;
-            border: 1px solid #76613a;
+            margin-top: 32px;
+            padding: 0 24px;
+            border: 1px solid #f1c96b;
             border-radius: 999px;
             color: #f5f5f5;
-            font-size: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
             text-decoration: none;
             transition: border-color 160ms ease-out, color 160ms ease-out;
         }
@@ -100,10 +105,10 @@
 <body>
     <main class="error" id="main-content">
         <section class="copy" aria-labelledby="error-title">
-            <span class="code" aria-hidden="true">{{ $code }}-error</span>
+            <span class="code" aria-hidden="true">{{ $code }}<span>-error</span></span>
             <h1 id="error-title">{{ $title }}</h1>
             <p>{{ $message }}</p>
-            <p>{{ $guidance }}</p>
+            <p class="guidance">{{ $guidance }}</p>
             <a class="action" href="{{ $homeUrl }}">{{ __('errors.home') }}</a>
         </section>
         <div class="illustration">
