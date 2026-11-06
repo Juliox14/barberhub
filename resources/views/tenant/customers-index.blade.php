@@ -13,9 +13,9 @@
 
             @if ($customers->isNotEmpty())
                 <div class="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 sm:grid">
-                    <span>Nombre</span>
-                    <span>Correo electrónico</span>
-                    <span>Teléfono</span>
+                    <x-sortable-grid-heading column="name" label="Nombre" :sort="$sortState['sort']" :direction="$sortState['direction']" page-parameter="customers_page" />
+                    <x-sortable-grid-heading column="email" label="Correo electrónico" :sort="$sortState['sort']" :direction="$sortState['direction']" page-parameter="customers_page" />
+                    <x-sortable-grid-heading column="phone" label="Teléfono" :sort="$sortState['sort']" :direction="$sortState['direction']" page-parameter="customers_page" />
                 </div>
                 <div class="divide-y divide-slate-800">
                     @foreach ($customers as $customer)

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,15 +23,20 @@ final class TenantCustomerController extends Controller
             403,
         );
 
-        $customers = $barbershop->customers()
-            ->orderBy('name')
-            ->orderBy('id')
-            ->paginate(15, ['*'], 'customers_page')
-            ->withQueryString();
+        $sortColumns = [
+            'name' => 'customers.name',
+            'email' => 'customers.email',
+            'phone' => 'customers.phone',
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'name');
+        $customerQuery = $barbershop->customers()->getQuery();
+        TableSort::apply($customerQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        $customers = $customerQuery->paginate(15, ['*'], 'customers_page')->withQueryString();
 
         return view('tenant.customers-index', [
             'barbershop' => $barbershop,
             'customers' => $customers,
+            'sortState' => $sortState,
             'roleLabel' => TenantDashboard::roleLabel($membership),
             'canManageMembers' => true,
         ]);
