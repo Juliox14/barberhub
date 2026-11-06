@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendAppointmentPush;
 use App\Models\Appointment;
 use App\Models\Barber;
 use App\Models\BarberAvailability;
@@ -18,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -133,6 +135,52 @@ class PublicBookingTest extends TestCase
             && $notice->managementUrl !== null
             && URL::hasValidSignature(Request::create($notice->managementUrl))
             && str_contains($notice->managementUrl, '/appointments/1/manage'));
+    }
+
+    public function test_guest_booking_queues_one_assigned_push_for_the_barber_after_confirmation(): void
+    {
+        Notification::fake();
+        Queue::fake([SendAppointmentPush::class]);
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+        [$shop, $service, $barber] = $this->context();
+        $barberUser = User::factory()->create();
+        $barber->update(['user_id' => $barberUser->id]);
+        $this->verifyGuest($shop);
+        $draft = $this->postJson(route('public.booking.summary', $shop), $this->payload($service, $barber))->assertOk()->json('draft_id');
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+        $appointment = Appointment::query()->sole();
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+
+        Queue::assertPushedTimes(SendAppointmentPush::class, 1);
+        Queue::assertPushed(SendAppointmentPush::class, fn (SendAppointmentPush $job): bool => $job->appointmentId === $appointment->id
+            && $job->recipientUserId === $barberUser->id
+            && $job->actorUserId === null
+            && $job->event === 'assigned');
+    }
+
+    public function test_signed_in_customer_booking_queues_one_assigned_push_for_the_barber(): void
+    {
+        Notification::fake();
+        Queue::fake([SendAppointmentPush::class]);
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
+        [$shop, $service, $barber] = $this->context();
+        $barberUser = User::factory()->create();
+        $barber->update(['user_id' => $barberUser->id]);
+        $customerUser = User::factory()->create();
+        $this->actingAs($customerUser);
+        $summary = $this->postJson(route('public.booking.summary', $shop), $this->payload($service, $barber))->assertOk();
+        $cookie = $summary->getCookie(config('session.cookie'));
+        $this->withCredentials()->withCookie($cookie->getName(), $cookie->getValue());
+        $draft = $summary->json('draft_id');
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+        $appointment = Appointment::query()->sole();
+        $this->postJson(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk();
+
+        Queue::assertPushedTimes(SendAppointmentPush::class, 1);
+        Queue::assertPushed(SendAppointmentPush::class, fn (SendAppointmentPush $job): bool => $job->appointmentId === $appointment->id
+            && $job->recipientUserId === $barberUser->id
+            && $job->actorUserId === $customerUser->id
+            && $job->event === 'assigned');
     }
 
     public function test_three_distinct_verified_guest_bookings_reuse_one_customer(): void
@@ -309,7 +357,11 @@ class PublicBookingTest extends TestCase
     public function test_lost_slot_rolls_back_contact_and_preserves_proof_for_a_new_summary(): void
     {
         Notification::fake();
+        Queue::fake([SendAppointmentPush::class]);
+        config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
         [$shop, $service, $barber] = $this->context();
+        $barberUser = User::factory()->create();
+        $barber->update(['user_id' => $barberUser->id]);
         $this->verifyGuest($shop);
         $payload = $this->payload($service, $barber);
         $draft = $this->postJson(route('public.booking.summary', $shop), $payload)->assertOk()->json('draft_id');
@@ -318,6 +370,7 @@ class PublicBookingTest extends TestCase
         $this->assertDatabaseCount('customers', 0);
         $this->assertDatabaseCount('appointments', 1);
         Notification::assertSentOnDemandTimes(PublicBookingConfirmed::class, 0);
+        Queue::assertNotPushed(SendAppointmentPush::class);
         $payload['slot'] = $barber->id.'|2026-10-05T10:30';
         $newDraft = $this->postJson(route('public.booking.summary', $shop), $payload)->assertOk()->json('draft_id');
         $this->postJson(route('public.booking.store', $shop), ['draft_id' => $newDraft])->assertOk();

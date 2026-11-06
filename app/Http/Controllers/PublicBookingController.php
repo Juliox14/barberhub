@@ -7,6 +7,7 @@ use App\Models\Barbershop;
 use App\Models\Customer;
 use App\Notifications\PublicBookingConfirmed;
 use App\Support\AppointmentHistory;
+use App\Support\AppointmentPushDispatcher;
 use App\Support\AppointmentScheduler;
 use App\Support\GuestBookingVerification;
 use App\Support\GuestCustomerResolver;
@@ -91,12 +92,12 @@ final class PublicBookingController extends Controller
         return $this->respond($request, $barbershop, 'public.booking-summary', ['draft_id' => $draftId, 'summary' => $summary]);
     }
 
-    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history, GuestCustomerResolver $guestCustomers): Response|JsonResponse|RedirectResponse
+    public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history, GuestCustomerResolver $guestCustomers, AppointmentPushDispatcher $pushDispatcher): Response|JsonResponse|RedirectResponse
     {
         $this->ensureAvailable($barbershop);
         $validated = $request->validate(['draft_id' => ['required', 'string', 'size:64', 'alpha_num:ascii']]);
         $key = $this->draftKey($request, $barbershop, $validated['draft_id']);
-        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification, $history, $guestCustomers): Response|JsonResponse|RedirectResponse {
+        $response = Cache::lock($key.':lock', 30)->get(function () use ($key, $request, $barbershop, $scheduler, $verification, $history, $guestCustomers, $pushDispatcher): Response|JsonResponse|RedirectResponse {
             $draft = Cache::get($key);
             abort_unless(is_array($draft), 404, 'El resumen venció. Selecciona nuevamente tu horario.');
             $account = $request->user()?->email_verified_at !== null ? $request->user() : null;
@@ -158,6 +159,7 @@ final class PublicBookingController extends Controller
             $receipt = ['confirmed' => true, 'appointment_id' => $appointment->id, 'summary' => $summary, 'email_sent' => false];
             $draft['receipt'] = $receipt;
             Cache::put($key, $draft, 600);
+            $pushDispatcher->dispatch($appointment, $account, 'assigned');
             $verification->consume($request, $barbershop, $summary['email']);
             try {
                 Notification::route('mail', $summary['email'])->notify(new PublicBookingConfirmed(
