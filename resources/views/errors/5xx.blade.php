@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => __('errors.generic.server_code'), 'title' => __('errors.generic.server_title'), 'message' => __('errors.generic.server_message'), 'guidance' => __('errors.generic.server_guidance')])
