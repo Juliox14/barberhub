@@ -223,6 +223,8 @@ class BarberPushNotificationTest extends TestCase
 
     public function test_own_actions_and_completed_or_no_show_transitions_do_not_queue_push(): void
     {
+        $this->travelTo('2026-10-06 12:00:00 America/Mexico_City');
+
         [$barbershop, , $barber, $service, $appointment] = $this->appointmentContext();
         $barberUser = $barber->user;
         Queue::fake();

@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 final class TenantAppointmentController extends Controller
@@ -227,11 +228,14 @@ final class TenantAppointmentController extends Controller
     {
         $appointment = $this->authorizeAppointmentAction($request, $barbershop, $appointment);
 
-        DB::transaction(function () use ($appointment, $status, $history, $request): void {
+        DB::transaction(function () use ($appointment, $barbershop, $status, $history, $request): void {
             Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
             $lockedAppointment = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
 
             abort_unless($lockedAppointment->status === Appointment::STATUS_SCHEDULED, 404);
+            if (in_array($status, [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW], true) && ! $lockedAppointment->hasStarted($barbershop->timezone)) {
+                throw ValidationException::withMessages(['starts_at' => 'La asistencia solo se puede confirmar después de la hora de inicio de la cita.']);
+            }
             $before = $lockedAppointment->getRawOriginal('starts_at');
             $lockedAppointment->update(['status' => $status]);
             $history->record($lockedAppointment, $status, 'staff', $request->user(), $before, $before, Appointment::STATUS_SCHEDULED, $status);

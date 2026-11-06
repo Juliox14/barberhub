@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -57,5 +58,12 @@ class Appointment extends Model
     public function events(): HasMany
     {
         return $this->hasMany(AppointmentEvent::class);
+    }
+
+    public function hasStarted(string $timezone): bool
+    {
+        $startsAt = Carbon::parse($this->getRawOriginal('starts_at'), 'UTC')->shiftTimezone($timezone);
+
+        return $startsAt->lessThan(now($timezone));
     }
 }

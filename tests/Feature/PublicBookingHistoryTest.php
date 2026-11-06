@@ -19,6 +19,8 @@ class PublicBookingHistoryTest extends TestCase
 
     public function test_staff_create_reschedule_cancel_complete_and_no_show_record_actor_history(): void
     {
+        $this->travelTo('2026-10-07 12:00:00 America/Mexico_City');
+
         $shop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
         $owner = User::factory()->create();
         Membership::factory()->for($owner)->for($shop)->create(['role' => Membership::ROLE_OWNER]);

@@ -59,14 +59,16 @@
                                     @csrf
                                     <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-rose-700 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Cancelar cita</button>
                                 </form>
-                                <form method="POST" action="{{ route('tenant.appointments.complete', [$barbershop, $appointment]) }}">
-                                    @csrf
-                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Completar</button>
-                                </form>
-                                <form method="POST" action="{{ route('tenant.appointments.no-show', [$barbershop, $appointment]) }}">
-                                    @csrf
-                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">No asistió</button>
-                                </form>
+                                @if ($appointment->hasStarted($barbershop->timezone))
+                                    <form method="POST" action="{{ route('tenant.appointments.complete', [$barbershop, $appointment]) }}">
+                                        @csrf
+                                        <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Completar</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('tenant.appointments.no-show', [$barbershop, $appointment]) }}">
+                                        @csrf
+                                        <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">No asistió</button>
+                                    </form>
+                                @endif
                             </div>
                         </article>
                         <x-form-slide-over

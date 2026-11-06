@@ -43,6 +43,8 @@ class BarberAppointmentLifecycleTest extends TestCase
 
     public function test_barber_can_cancel_complete_and_mark_own_appointment_no_show(): void
     {
+        $this->travelTo('2026-10-06 12:00:00 America/Mexico_City');
+
         foreach ([
             ['cancel', Appointment::STATUS_CANCELLED],
             ['complete', Appointment::STATUS_COMPLETED],
@@ -65,6 +67,8 @@ class BarberAppointmentLifecycleTest extends TestCase
 
     public function test_owner_admin_and_platform_admin_can_manage_tenant_appointments(): void
     {
+        $this->travelTo('2026-10-06 12:00:00 America/Mexico_City');
+
         foreach ([Membership::ROLE_OWNER, Membership::ROLE_ADMIN, 'platform-admin'] as $role) {
             [$barbershop, , , , $appointment] = $this->appointmentContext();
             $user = User::factory()->create(['is_platform_admin' => $role === 'platform-admin']);
