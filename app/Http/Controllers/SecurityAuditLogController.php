@@ -127,7 +127,7 @@ final class SecurityAuditLogController extends Controller
 
         return view('platform.security-audit-logs', [
             ...$data,
-            'auditPollEndpoint' => route('platform.security-audit-logs.index', $request->query(), false),
+            'auditPollEndpoint' => route('platform.security-audit-logs.index', array_merge($request->query(), ['page' => $request->query('page', 1)]), false),
         ]);
     }
 
