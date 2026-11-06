@@ -30,9 +30,9 @@
 
             @if ($memberships->isNotEmpty())
                 <div class="hidden grid-cols-[minmax(0,1.5fr)_minmax(9rem,0.65fr)_minmax(9rem,0.75fr)_auto] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-                    <span>Miembro</span>
-                    <span>Rol</span>
-                    <span>Acceso</span>
+                    <x-sortable-grid-heading column="name" label="Miembro" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="role" label="Rol" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="status" label="Acceso" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     <span class="text-right">Acciones</span>
                 </div>
                 <div class="divide-y divide-slate-800">

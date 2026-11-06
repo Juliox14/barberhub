@@ -8,6 +8,7 @@ use App\Models\Barbershop;
 use App\Models\BusinessHour;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,22 @@ final class TenantBarberAvailabilityController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $availabilitySortColumns = [
+            'weekday' => 'barber_availabilities.weekday',
+            'starts_at' => 'barber_availabilities.starts_at',
+            'ends_at' => 'barber_availabilities.ends_at',
+            'status' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE WHEN barber_availabilities.active = 1 THEN 'Activa' ELSE 'Inactiva' END {$direction}");
+            },
+        ];
+        $sortState = TableSort::state($request, $availabilitySortColumns, 'weekday');
         $barbers = $barbershop->barbers()
-            ->with(['user', 'availabilities' => function ($query): void {
-                $query->orderBy('weekday');
+            ->with(['user', 'availabilities' => function ($query) use ($availabilitySortColumns, $sortState): void {
+                if ($sortState['requested']) {
+                    TableSort::apply($query->getQuery(), $availabilitySortColumns, $sortState['sort'], $sortState['direction']);
+                } else {
+                    $query->orderBy('weekday')->orderBy('barber_availabilities.id');
+                }
             }])
             ->join('users', 'users.id', '=', 'barbers.user_id')
             ->orderBy('barbers.active', 'desc')
@@ -42,6 +56,7 @@ final class TenantBarberAvailabilityController extends Controller
         return view('tenant.barber-availability-index', [
             'barbershop' => $barbershop,
             'barbers' => $barbers,
+            'sortState' => $sortState,
             'activeBarbers' => $barbers->where('active', true)->values(),
             'openBusinessHours' => $openBusinessHours,
             'weekdayLabels' => BusinessHour::weekdayLabels(),

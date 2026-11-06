@@ -28,11 +28,11 @@
 
             @if ($services->isNotEmpty())
                 <div class="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_8rem_8rem_8rem_auto] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 xl:grid">
-                    <span>Servicio</span>
-                    <span>Descripción</span>
-                    <span>Precio</span>
-                    <span>Duración</span>
-                    <span>Estado</span>
+                    <x-sortable-grid-heading column="name" label="Servicio" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="description" label="Descripción" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="price" label="Precio" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="duration" label="Duración" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     <span class="text-right">Acciones</span>
                 </div>
                 <div class="divide-y divide-slate-800">

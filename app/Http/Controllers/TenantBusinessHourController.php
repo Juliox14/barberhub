@@ -6,6 +6,7 @@ use App\Models\Barbershop;
 use App\Models\BusinessHour;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,13 +22,27 @@ final class TenantBusinessHourController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $businessHours = $barbershop->businessHours()
-            ->orderBy('weekday')
-            ->get();
+        $sortColumns = [
+            'weekday' => 'business_hours.weekday',
+            'opens_at' => 'business_hours.opens_at',
+            'closes_at' => 'business_hours.closes_at',
+            'status' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE WHEN business_hours.closed = 1 THEN 'Cerrado' ELSE 'Abierto' END {$direction}");
+            },
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'weekday');
+        $businessHoursQuery = $barbershop->businessHours()->getQuery();
+        if ($sortState['requested']) {
+            TableSort::apply($businessHoursQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        } else {
+            $businessHoursQuery->orderBy('weekday')->orderBy('business_hours.id');
+        }
+        $businessHours = $businessHoursQuery->get();
 
         return view('tenant.business-hours-index', [
             'barbershop' => $barbershop,
             'businessHours' => $businessHours,
+            'sortState' => $sortState,
             'weekdayLabels' => BusinessHour::weekdayLabels(),
             'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),
             'canManageMembers' => true,

@@ -38,10 +38,10 @@
                             </header>
                             @if ($barber->availabilities->isNotEmpty())
                                 <div class="hidden grid-cols-[minmax(0,1fr)_8rem_8rem_8rem_auto] gap-4 border-b border-slate-800 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-                                    <span>Día</span>
-                                    <span>Inicia</span>
-                                    <span>Termina</span>
-                                    <span>Estado</span>
+                                    <x-sortable-grid-heading column="weekday" label="Día" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                                    <x-sortable-grid-heading column="starts_at" label="Inicia" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                                    <x-sortable-grid-heading column="ends_at" label="Termina" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                                    <x-sortable-grid-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                                     <span class="text-right">Acciones</span>
                                 </div>
                                 <div class="divide-y divide-slate-800">

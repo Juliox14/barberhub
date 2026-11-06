@@ -23,9 +23,9 @@
             </header>
             @if ($barbers->isNotEmpty())
                 <div class="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_auto] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-                    <span>Miembro</span>
-                    <span>Nombre para agenda</span>
-                    <span>Estado</span>
+                    <x-sortable-grid-heading column="member" label="Miembro" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="display_name" label="Nombre para agenda" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     <span class="text-right">Acciones</span>
                 </div>
                 <div class="divide-y divide-slate-800">

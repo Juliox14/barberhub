@@ -28,10 +28,10 @@
 
             @if ($businessHours->isNotEmpty())
                 <div class="hidden grid-cols-[minmax(0,1fr)_9rem_9rem_9rem_auto] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-                    <span>Día</span>
-                    <span>Abre</span>
-                    <span>Cierra</span>
-                    <span>Estado</span>
+                    <x-sortable-grid-heading column="weekday" label="Día" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="opens_at" label="Abre" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="closes_at" label="Cierra" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <x-sortable-grid-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     <span class="text-right">Acciones</span>
                 </div>
                 <div class="divide-y divide-slate-800">

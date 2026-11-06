@@ -6,6 +6,7 @@ use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
 use App\Support\SecurityAuditLogger;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,16 +24,31 @@ final class TenantMembershipController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $memberships = $barbershop->memberships()
+        $sortColumns = [
+            'name' => 'users.name',
+            'role' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE memberships.role WHEN 'owner' THEN 'Propietario' WHEN 'admin' THEN 'Administrador' WHEN 'barber' THEN 'Barbero' ELSE memberships.role END {$direction}");
+            },
+            'status' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE memberships.status WHEN 'active' THEN 'Activo' ELSE 'Inactivo' END {$direction}");
+            },
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'name');
+        $membershipsQuery = $barbershop->memberships()->getQuery()
             ->with('user')
             ->join('users', 'users.id', '=', 'memberships.user_id')
-            ->orderBy('users.name')
-            ->select('memberships.*')
-            ->get();
+            ->select('memberships.*');
+        if ($sortState['requested']) {
+            TableSort::apply($membershipsQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        } else {
+            $membershipsQuery->orderBy('users.name')->orderBy('memberships.id');
+        }
+        $memberships = $membershipsQuery->get();
 
         return view('tenant.members-index', [
             'barbershop' => $barbershop,
             'memberships' => $memberships,
+            'sortState' => $sortState,
             'roleLabels' => $this->roleLabels(),
             'statusLabels' => $this->statusLabels(),
             'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),

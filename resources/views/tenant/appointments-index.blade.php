@@ -39,10 +39,10 @@
             </header>
             @if ($appointments->isNotEmpty())
                 <div class="hidden grid-cols-[7rem_minmax(0,1fr)_minmax(10rem,0.8fr)_minmax(9rem,0.7fr)] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
-                    <span>Hora</span>
-                    <span>Cliente y servicio</span>
-                    <span>Barbero</span>
-                    <span>Horario</span>
+                    <x-sortable-grid-heading column="time" label="Hora" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <span class="inline-flex items-center gap-3"><x-sortable-grid-heading column="customer" label="Cliente" :sort="$sortState['sort']" :direction="$sortState['direction']" /><x-sortable-grid-heading column="service" label="Servicio" :sort="$sortState['sort']" :direction="$sortState['direction']" /></span>
+                    <x-sortable-grid-heading column="barber" label="Barbero" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                    <span class="text-right">Acciones</span>
                 </div>
                 <div class="divide-y divide-slate-800">
                     @foreach ($appointments as $appointment)

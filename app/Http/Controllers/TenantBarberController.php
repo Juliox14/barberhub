@@ -7,6 +7,7 @@ use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\BarberAccountInvitation;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -27,13 +28,24 @@ final class TenantBarberController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $barbers = $barbershop->barbers()
+        $sortColumns = [
+            'member' => 'users.name',
+            'display_name' => 'barbers.display_name',
+            'status' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE WHEN barbers.active = 1 THEN 'Activo' ELSE 'Inactivo' END {$direction}");
+            },
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'status', 'desc');
+        $barbersQuery = $barbershop->barbers()->getQuery()
             ->with('user')
             ->join('users', 'users.id', '=', 'barbers.user_id')
-            ->orderBy('barbers.active', 'desc')
-            ->orderBy('barbers.display_name')
-            ->select('barbers.*')
-            ->get();
+            ->select('barbers.*');
+        if ($sortState['requested']) {
+            TableSort::apply($barbersQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        } else {
+            $barbersQuery->orderBy('barbers.active', 'desc')->orderBy('barbers.display_name')->orderBy('barbers.id');
+        }
+        $barbers = $barbersQuery->get();
 
         $eligibleMemberships = $barbershop->memberships()
             ->with('user')
@@ -50,6 +62,7 @@ final class TenantBarberController extends Controller
         return view('tenant.barbers-index', [
             'barbershop' => $barbershop,
             'barbers' => $barbers,
+            'sortState' => $sortState,
             'eligibleMemberships' => $eligibleMemberships,
             'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),
             'canManageMembers' => true,

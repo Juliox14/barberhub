@@ -6,6 +6,7 @@ use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,14 +22,28 @@ final class TenantServiceController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $services = $barbershop->services()
-            ->orderBy('active', 'desc')
-            ->orderBy('name')
-            ->get();
+        $sortColumns = [
+            'name' => 'services.name',
+            'description' => 'services.description',
+            'price' => 'services.price',
+            'duration' => 'services.duration_minutes',
+            'status' => static function ($query, string $direction): void {
+                $query->orderByRaw("CASE WHEN services.active = 1 THEN 'Activo' ELSE 'Inactivo' END {$direction}");
+            },
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'status', 'desc');
+        $servicesQuery = $barbershop->services()->getQuery();
+        if ($sortState['requested']) {
+            TableSort::apply($servicesQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        } else {
+            $servicesQuery->orderBy('active', 'desc')->orderBy('name')->orderBy('services.id');
+        }
+        $services = $servicesQuery->get();
 
         return view('tenant.services-index', [
             'barbershop' => $barbershop,
             'services' => $services,
+            'sortState' => $sortState,
             'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),
             'canManageMembers' => true,
         ]);

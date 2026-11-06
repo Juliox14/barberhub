@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\AppointmentHistory;
 use App\Support\AppointmentPushDispatcher;
 use App\Support\AppointmentScheduler;
+use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -48,17 +49,35 @@ final class TenantAppointmentController extends Controller
         ]);
         $date = $validated['date'] ?? now($barbershop->timezone)->toDateString();
 
-        $appointments = $barbershop->appointments()
+        $sortColumns = [
+            'time' => 'appointments.starts_at',
+            'customer' => static function ($query, string $direction): void {
+                $query->orderBy(Customer::query()->select('name')->whereColumn('customers.id', 'appointments.customer_id'), $direction);
+            },
+            'service' => static function ($query, string $direction): void {
+                $query->orderBy(Service::query()->select('name')->whereColumn('services.id', 'appointments.service_id'), $direction);
+            },
+            'barber' => static function ($query, string $direction): void {
+                $query->orderBy(Barber::query()->select('display_name')->whereColumn('barbers.id', 'appointments.barber_id'), $direction);
+            },
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'time');
+        $appointmentsQuery = $barbershop->appointments()->getQuery()
             ->with(['barber', 'service', 'customer'])
             ->where('status', Appointment::STATUS_SCHEDULED)
             ->whereDate('starts_at', $date)
-            ->when($barber !== null, fn ($query) => $query->where('barber_id', $barber->id))
-            ->orderBy('starts_at')
-            ->get();
+            ->when($barber !== null, fn ($query) => $query->where('barber_id', $barber->id));
+        if ($sortState['requested']) {
+            TableSort::apply($appointmentsQuery, $sortColumns, $sortState['sort'], $sortState['direction']);
+        } else {
+            $appointmentsQuery->orderBy('starts_at')->orderBy('appointments.id');
+        }
+        $appointments = $appointmentsQuery->get();
 
         return view('tenant.appointments-index', [
             'barbershop' => $barbershop,
             'appointments' => $appointments,
+            'sortState' => $sortState,
             'date' => $date,
             'barbers' => $canManageAppointments ? $barbershop->barbers()->where('active', true)->orderBy('display_name')->get() : collect(),
             'services' => $canCreateAppointments ? $barbershop->services()->where('active', true)->orderBy('name')->get() : collect(),
