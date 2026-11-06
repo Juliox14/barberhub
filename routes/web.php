@@ -18,6 +18,7 @@ use App\Http\Controllers\TenantCustomerController;
 use App\Http\Controllers\TenantCustomerInvitationController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantMembershipController;
+use App\Http\Controllers\TenantReportController;
 use App\Http\Controllers\TenantSelectorController;
 use App\Http\Controllers\TenantServiceController;
 use App\Http\Middleware\EnsureModuleAvailable;
@@ -76,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::middleware(EnsureModuleAvailable::class.':appointments')->group(function (): void {
             Route::post('/customers/{customer}/invitations', [TenantCustomerInvitationController::class, 'store'])->name('tenant.customer-invitations.store');
             Route::get('/appointments', [TenantAppointmentController::class, 'index'])->name('tenant.appointments.index');
+            Route::get('/reports/summary', [TenantReportController::class, 'summary'])->name('tenant.reports.summary');
             Route::post('/appointments', [TenantAppointmentController::class, 'store'])->name('tenant.appointments.store');
             Route::put('/appointments/{appointment}/reschedule', [TenantAppointmentController::class, 'reschedule'])->name('tenant.appointments.reschedule');
             Route::post('/appointments/{appointment}/cancel', [TenantAppointmentController::class, 'cancel'])->name('tenant.appointments.cancel');

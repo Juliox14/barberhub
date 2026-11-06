@@ -91,11 +91,24 @@
                         </x-ui.nav-link>
                     @endif
 
+                    @if ($canManageMembers)
+                        <details data-report-navigation="desktop mobile" class="group mt-6 border-t border-slate-800 pt-5" @if ($activePage === 'reports') open @endif>
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden">
+                                <span>Reportes</span>
+                                <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
+                            </summary>
+                            <div class="mt-1 space-y-1 pl-2">
+                                <x-ui.nav-link :href="route('tenant.reports.summary', $barbershop)" :active="$activePage === 'reports'">
+                                    Resumen de citas
+                                </x-ui.nav-link>
+                            </div>
+                        </details>
+                    @endif
+
                     <div class="bh-sidebar__upcoming mt-6 border-t border-slate-800 pt-5">
                         <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
                         <div class="mt-2 space-y-1 text-sm text-slate-500">
                             <span class="flex gap-3 px-3 py-2.5">Inventario</span>
-                            <span class="flex gap-3 px-3 py-2.5">Reportes</span>
                             <span class="flex gap-3 px-3 py-2.5">Configuración</span>
                         </div>
                     </div>
