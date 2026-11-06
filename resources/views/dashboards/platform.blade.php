@@ -107,11 +107,14 @@
                 <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
                     <thead class="bg-[#0c1116] text-xs uppercase tracking-[0.08em] text-slate-500">
                         <tr>
-                            <th class="px-5 py-4 font-semibold sm:px-6">Barbería</th>
-                            <th class="px-5 py-4 font-semibold">Estado</th>
-                            <th class="px-5 py-4 font-semibold">Zona horaria</th>
-                            <th class="px-5 py-4 text-right font-semibold">Miembros</th>
-                            <th class="px-5 py-4 font-semibold sm:px-6">Registro</th>
+                            <x-sortable-heading column="name" label="Barbería" :sort="$sortState['sort']" :direction="$sortState['direction']" class="sm:px-6" />
+                            <x-sortable-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="timezone" label="Zona horaria" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="country" label="País" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="region" label="Estado/Región" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="city" label="Ciudad" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="members" label="Miembros" :sort="$sortState['sort']" :direction="$sortState['direction']" class="text-right" />
+                            <x-sortable-heading column="created_at" label="Registro" :sort="$sortState['sort']" :direction="$sortState['direction']" class="sm:px-6" />
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800">
@@ -122,10 +125,13 @@
                             </td>
                             <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300' }}"><span class="h-1.5 w-1.5 rounded-full {{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'bg-emerald-400' : 'bg-rose-400' }}"></span>{{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'Activa' : 'Inactiva' }}</span></td>
                             <td class="px-5 py-4 text-slate-300">{{ $barbershop->timezone }}</td>
+                            <td class="px-5 py-4 text-slate-300">{{ \App\Support\CountryNames::name($barbershop->country_code) ?? '—' }}</td>
+                            <td class="px-5 py-4 text-slate-300">{{ $barbershop->region ?: '—' }}</td>
+                            <td class="px-5 py-4 text-slate-300">{{ $barbershop->city ?: '—' }}</td>
                             <td class="px-5 py-4 text-right font-medium text-slate-200">{{ $barbershop->memberships_count }}</td>
                             <td class="px-5 py-4 text-slate-400 sm:px-6">{{ $barbershop->created_at->format('d/m/Y') }}</td>
                         </tr>@empty<tr>
-                            <td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400 sm:px-6">Todavía no hay barberías registradas.</td>
+                            <td colspan="8" class="px-5 py-12 text-center text-sm text-slate-400 sm:px-6">Todavía no hay barberías registradas.</td>
                         </tr>@endforelse
                     </tbody>
                 </table>

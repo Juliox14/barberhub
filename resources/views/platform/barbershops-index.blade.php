@@ -24,10 +24,14 @@
                 <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
                     <thead class="bg-[#0c1116] text-xs uppercase tracking-[0.08em] text-slate-500">
                         <tr>
-                            <th class="px-5 py-4 font-semibold sm:px-6">Barbería</th>
-                            <th class="px-5 py-4 font-semibold">Slug</th>
-                            <th class="px-5 py-4 font-semibold">Zona horaria</th>
-                            <th class="px-5 py-4 font-semibold">Estado</th>
+                            <x-sortable-heading column="name" label="Barbería" :sort="$sortState['sort']" :direction="$sortState['direction']" class="sm:px-6" />
+                            <x-sortable-heading column="slug" label="Slug" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="country" label="País" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="region" label="Estado/Región" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="city" label="Ciudad" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="timezone" label="Zona horaria" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="status" label="Estado" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                            <x-sortable-heading column="created_at" label="Registro" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                             <th class="px-5 py-4 text-right font-semibold">Miembros</th>
                             <th class="px-5 py-4 text-right font-semibold sm:px-6">Acciones</th>
                         </tr>
@@ -35,10 +39,14 @@
                     <tbody class="divide-y divide-slate-800">
                         @forelse ($barbershops as $barbershop)
                             <tr class="transition hover:bg-slate-800/40">
-                                <td class="px-5 py-4 sm:px-6"><p class="font-semibold text-slate-100">{{ $barbershop->name }}</p><p class="mt-0.5 text-xs text-slate-500">Registrada el {{ $barbershop->created_at->format('d/m/Y') }}</p></td>
+                                <td class="px-5 py-4 sm:px-6"><p class="font-semibold text-slate-100">{{ $barbershop->name }}</p></td>
                                 <td class="px-5 py-4 font-mono text-xs text-slate-400">{{ $barbershop->slug }}</td>
+                                <td class="px-5 py-4 text-slate-300">{{ \App\Support\CountryNames::name($barbershop->country_code) ?? '—' }}</td>
+                                <td class="px-5 py-4 text-slate-300">{{ $barbershop->region ?: '—' }}</td>
+                                <td class="px-5 py-4 text-slate-300">{{ $barbershop->city ?: '—' }}</td>
                                 <td class="px-5 py-4 text-slate-300">{{ $barbershop->timezone }}</td>
                                 <td class="px-5 py-4"><span @class(['inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', 'bg-emerald-400/10 text-emerald-300' => $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE, 'bg-rose-400/10 text-rose-300' => $barbershop->status !== \App\Models\Barbershop::STATUS_ACTIVE])><span @class(['h-1.5 w-1.5 rounded-full', 'bg-emerald-400' => $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE, 'bg-rose-400' => $barbershop->status !== \App\Models\Barbershop::STATUS_ACTIVE])></span>{{ $barbershop->status === \App\Models\Barbershop::STATUS_ACTIVE ? 'Activa' : 'Inactiva' }}</span></td>
+                                <td class="px-5 py-4 text-slate-400">{{ $barbershop->created_at->format('d/m/Y') }}</td>
                                 <td class="px-5 py-4 text-right font-medium text-slate-200"><a href="{{ route('platform.members.index', ['barbershop' => $barbershop->slug]) }}" class="text-amber-200 underline underline-offset-4 hover:text-amber-100" aria-label="Ver miembros de {{ $barbershop->name }}">Ver miembros</a></td>
                                 <td class="px-5 py-4 sm:px-6">
                                     <div class="flex items-center justify-end gap-2">
@@ -52,7 +60,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-5 py-14 text-center text-sm text-slate-400 sm:px-6">Todavía no hay barberías registradas. Crea la primera para comenzar.</td></tr>
+                            <tr><td colspan="10" class="px-5 py-14 text-center text-sm text-slate-400 sm:px-6">Todavía no hay barberías registradas. Crea la primera para comenzar.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

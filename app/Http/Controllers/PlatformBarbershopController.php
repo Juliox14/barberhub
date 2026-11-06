@@ -7,8 +7,11 @@ use App\Models\Membership;
 use App\Models\User;
 use App\Notifications\OwnerAccountInvitation;
 use App\Support\BarbershopLocation;
+use App\Support\CountryNames;
 use App\Support\LatinAmericanTimezones;
 use App\Support\SecurityAuditLogger;
+use App\Support\TableSort;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,15 +23,43 @@ use Illuminate\View\View;
 
 final class PlatformBarbershopController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $barbershops = Barbershop::query()
-            ->withCount('memberships')
-            ->latest()
-            ->paginate(10);
+        $sortColumns = [
+            'name' => 'barbershops.name',
+            'slug' => 'barbershops.slug',
+            'country' => static function (Builder $query, string $direction): void {
+                $cases = [];
+                $bindings = [];
+                foreach (CountryNames::all() as $code => $name) {
+                    $cases[] = 'WHEN ? THEN ?';
+                    $bindings[] = $code;
+                    $bindings[] = $name;
+                }
+                $query->orderByRaw(
+                    'CASE UPPER(barbershops.country_code) '.implode(' ', $cases)." ELSE COALESCE(barbershops.country_code, '—') END ".$direction,
+                    $bindings,
+                );
+            },
+            'region' => static function (Builder $query, string $direction): void {
+                $query->orderByRaw("COALESCE(barbershops.region, '—') {$direction}");
+            },
+            'city' => static function (Builder $query, string $direction): void {
+                $query->orderByRaw("COALESCE(barbershops.city, '—') {$direction}");
+            },
+            'timezone' => 'barbershops.timezone',
+            'status' => 'barbershops.status',
+            'created_at' => 'barbershops.created_at',
+        ];
+        $sortState = TableSort::state($request, $sortColumns, 'created_at', 'desc');
+        $query = Barbershop::query()->withCount('memberships')->latest();
+        if ($sortState['requested']) {
+            TableSort::apply($query, $sortColumns, $sortState['sort'], $sortState['direction']);
+        }
 
         return view('platform.barbershops-index', [
-            'barbershops' => $barbershops,
+            'barbershops' => $query->paginate(10)->withQueryString(),
+            'sortState' => $sortState,
         ]);
     }
 
