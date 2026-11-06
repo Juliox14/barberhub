@@ -98,9 +98,18 @@
                                 <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
                             </summary>
                             <div class="mt-1 space-y-1 pl-2">
-                                <x-ui.nav-link :href="route('tenant.reports.summary', $barbershop)" :active="$activePage === 'reports'">
-                                    Resumen de citas
-                                </x-ui.nav-link>
+                                @foreach ([
+                                    'summary' => 'Resumen de citas',
+                                    'evolution' => 'Evolución de atenciones',
+                                    'demand' => 'Demanda por día y horario',
+                                    'services' => 'Servicios más realizados',
+                                    'barbers' => 'Actividad por barbero',
+                                    'customers' => 'Clientes nuevos y recurrentes',
+                                ] as $report => $reportLabel)
+                                    <x-ui.nav-link :href="route('tenant.reports.'.$report, $barbershop)" :active="request()->routeIs('tenant.reports.'.$report)">
+                                        {{ $reportLabel }}
+                                    </x-ui.nav-link>
+                                @endforeach
                             </div>
                         </details>
                     @endif

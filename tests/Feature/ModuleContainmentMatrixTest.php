@@ -31,7 +31,21 @@ class ModuleContainmentMatrixTest extends TestCase
             'members' => ['members.index' => 'GET', 'members.store' => 'POST', 'members.update' => 'PUT', 'members.destroy' => 'DELETE'],
             'barbers' => ['barbers.index' => 'GET', 'barbers.store' => 'POST', 'barbers.invitations.store' => 'POST', 'barbers.update' => 'PUT'],
             'services' => ['services.index' => 'GET', 'services.store' => 'POST', 'services.update' => 'PUT'],
-            'appointments' => ['appointments.index' => 'GET', 'appointments.store' => 'POST', 'appointments.reschedule' => 'PUT', 'appointments.cancel' => 'POST', 'appointments.complete' => 'POST', 'appointments.no-show' => 'POST', 'customer-invitations.store' => 'POST'],
+            'appointments' => [
+                'appointments.index' => 'GET',
+                'appointments.store' => 'POST',
+                'appointments.reschedule' => 'PUT',
+                'appointments.cancel' => 'POST',
+                'appointments.complete' => 'POST',
+                'appointments.no-show' => 'POST',
+                'customer-invitations.store' => 'POST',
+                'reports.summary' => 'GET',
+                'reports.evolution' => 'GET',
+                'reports.demand' => 'GET',
+                'reports.services' => 'GET',
+                'reports.barbers' => 'GET',
+                'reports.customers' => 'GET',
+            ],
             'business-hours' => ['business-hours.index' => 'GET', 'business-hours.store' => 'POST', 'business-hours.update' => 'PUT'],
             'barber-availability' => ['barber-availability.index' => 'GET', 'barber-availability.store' => 'POST', 'barber-availability.update' => 'PUT'],
         ];
@@ -118,7 +132,7 @@ class ModuleContainmentMatrixTest extends TestCase
         sort($expected);
         sort($actual);
 
-        $this->assertCount(30, $actual);
+        $this->assertCount(42, $actual);
         $this->assertSame($expected, $actual);
     }
 
