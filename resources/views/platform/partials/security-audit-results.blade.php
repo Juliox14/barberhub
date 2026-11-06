@@ -11,12 +11,14 @@
             <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
                 <thead class="bg-[#0c1116] text-xs uppercase tracking-[0.08em] text-slate-500">
                     <tr>
-                        <th class="px-5 py-4 font-semibold sm:px-6">Fecha</th>
-                        <th class="px-5 py-4 font-semibold">Evento</th>
-                        <th class="px-5 py-4 font-semibold">Actor</th>
-                        <th class="px-5 py-4 font-semibold">Sujeto</th>
-                        <th class="px-5 py-4 font-semibold">Barbería del evento</th>
-                        <th class="px-5 py-4 font-semibold">Detalles y origen</th>
+                        <x-sortable-heading column="created_at" label="Fecha" :sort="$sortState['sort']" :direction="$sortState['direction']" class="sm:px-6" />
+                        <x-sortable-heading column="event" label="Evento" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="actor" label="Actor" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="subject" label="Sujeto" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="barbershop" label="Barbería del evento" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="metadata" label="Detalles" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="ip_address" label="IP" :sort="$sortState['sort']" :direction="$sortState['direction']" />
+                        <x-sortable-heading column="user_agent" label="Navegador" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800">
@@ -67,12 +69,12 @@
                                 @if ($auditLog->metadata !== [])
                                     <pre class="whitespace-pre-wrap break-words font-mono">{{ json_encode($auditLog->metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
                                 @endif
-                                <p class="mt-2 break-all">IP: {{ $auditLog->ip_address ?? '—' }}</p>
-                                <p class="mt-1 break-words">Navegador: {{ $auditLog->user_agent ?? '—' }}</p>
                             </td>
+                            <td class="max-w-xs break-all px-5 py-4 text-xs text-slate-400">{{ $auditLog->ip_address ?? '—' }}</td>
+                            <td class="max-w-xs break-words px-5 py-4 text-xs text-slate-400">{{ $auditLog->user_agent ?? '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-5 py-14 text-center text-sm text-slate-400 sm:px-6">Todavía no hay eventos de seguridad registrados.</td></tr>
+                        <tr><td colspan="8" class="px-5 py-14 text-center text-sm text-slate-400 sm:px-6">Todavía no hay eventos de seguridad registrados.</td></tr>
                     @endforelse
                 </tbody>
             </table>

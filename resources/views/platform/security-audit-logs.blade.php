@@ -5,7 +5,7 @@
             <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Historial de accesos y cambios administrativos relevantes de la plataforma.</p>
         </header>
 
-        <div data-audit-poller data-endpoint="{{ route('platform.security-audit-logs.index', ['page' => $auditLogs->currentPage()], false) }}">
+        <div data-audit-poller data-endpoint="{{ $auditPollEndpoint }}">
             <div data-audit-results>
                 @include('platform.partials.security-audit-results')
             </div>
