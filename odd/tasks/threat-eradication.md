@@ -22,9 +22,9 @@ Approved recommendation details (accepted by the user; preserve these outcomes):
 
 ## Tasks
 - T1 | S3,S4,S6,S7,S8,S9 | delegated auth writer (parallel independent unit/context backstop) | done | commit: bfe0540 | Risk: item 2 (credentials/session guards).
-- T2 | S2,S3,S5,S6,S7,S9 | delegated recovery writer (parallel independent unit/context backstop) | done | commit: pending (T4 delivery) | Risk: item 1 (restore stored data), item 2 (tenant permissions), item 4 (scheduling concurrency).
+- T2 | S2,S3,S5,S6,S7,S9 | delegated recovery writer (parallel independent unit/context backstop) | done | commit: 3181927 | Risk: item 1 (restore stored data), item 2 (tenant permissions), item 4 (scheduling concurrency).
 - T3 | S1,S2,S3,S6,S9 | delegated evidence writer (context backstop; disjoint test file alongside T2) | done | commit: bfe0540 | Risk: item 2 (type validation fix integrated into T1).
-- T4 | S1-S9 | independent verifier + parent seam checks | in_progress | commit: pending | Risk: item 2 (verify security outcomes).
+- T4 | S1-S9 | independent verifier + parent seam checks | done (unchanged baseline failures disclosed) | commit: 3181927 (verified final source candidate) | Risk: item 2 (verify security outcomes).
 
 ## Log
 ### L1 — Original request (verbatim)
@@ -101,4 +101,9 @@ Preexisting skipped test identified:GuestBookingConcurrencyTest::test_concurrent
 Targeted independent recheck and parent spot check:8 tests/72 assertions each, exit0; previous timezone blocker resolved. Non-UTC and near-midnight preview/history/back links/redirect agree with persisted restored time. No unrelated re-review performed. Final build job-6 exit0. Recovery implementation T2 verified. Final integration job-5 exit1:639 tests/632 passed/6 failed/1 skipped/5608 assertions. Programmatic comparison with BEFORE baseline confirms identical six failing test identities; no new failing test. Skip remains PostgreSQL-only guest concurrency test. All new/updated feature tests pass. Build/Pint/diff-check passed. No screenshot/browser/pentest or PostgreSQL concurrency proof claimed.
 
 ### L15 — Recovery slice size
-Recovery slice staged:759 authored changed lines (751 additions/8 deletions), including373 restoration-test lines. One cohesive recovery behavior with authorization, read-only preview, tenant/event/stale-state guards, transaction validation, CSRF/containment and audit. Retain these checks rather than splitting schema/UI/tests into unusable partial deliveries or code-golfing to400. feature-branch-chain review slices remain selected, no publication authorized. Final tracking-only closure will record actual commit and final status.
+Recovery slice staged:759 authored changed lines (751 additions/8 deletions), including373 restoration-test lines. One cohesive recovery behavior with authorization, read-only preview, tenant/event/stale-state guards, transaction validation, CSRF/containment and audit. Retain these checks rather than splitting schema/UI/tests into unusable partial deliveries or code-golfing to400. feature-branch-chain review slices remain selected, no publication authorized. Final tracking-only closure records actual commit and final status.
+
+### L16 — Final delivery state
+Recovery committed3181927:762 authored diff lines (754 additions/8 deletions;3 more tracking lines than staged forecast). Slice2=bfe0540..3181927. Running behavior slices1269 authored lines; preserve two cohesive units rather than splitting tests away from behavior. Tracking-only final closure is outside those behavior slices.
+T1/T3 source slice bfe0540; T2 final source slice3181927; final suite ran those source bytes before commit (later changes tracking only). All requested implementation tasks complete with assigned tests/independent verification and disclosed baseline limitations. Full suite remains NOT GREEN because six pre-existing failures are intentionally preserved; no new failures versus baseline. No source or migration dependency changes remain. No migrations/dependency changes introduced; no push/PR/merge/deploy performed. Pre-existing untracked paths preserved.
+Next human action: review local commits and use functional tests/recovery UI as academic evidence; decide separately if six unrelated baseline failures should be fixed, or if real PostgreSQL concurrency/browser screenshots are desired. Do not represent this as exhaustive security certification.
