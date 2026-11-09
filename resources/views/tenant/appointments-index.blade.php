@@ -70,6 +70,24 @@
                                     </form>
                                 @endif
                             </div>
+                            @if ($canManageAppointments)
+                                @php($recoverableEvents = $appointment->events->filter(fn ($event) => in_array($event->event_kind, ['rescheduled', 'cancelled', 'completed', 'no_show', 'restored'], true) && $event->before_starts_at !== null && $event->after_starts_at !== null && in_array($event->before_status, [\App\Models\Appointment::STATUS_SCHEDULED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_COMPLETED, \App\Models\Appointment::STATUS_NO_SHOW], true) && $event->getRawOriginal('after_starts_at') === $appointment->getRawOriginal('starts_at') && $event->after_status === $appointment->status))
+                                @if ($recoverableEvents->isNotEmpty())
+                                    <details class="text-sm lg:col-span-4">
+                                        <summary class="cursor-pointer text-amber-200 underline underline-offset-4">Historial recuperable</summary>
+                                        <p class="mt-2 text-slate-400">Solo se pueden recuperar fecha y estado registrados. El barbero, servicio y cliente no están guardados en este historial.</p>
+                                        <ul class="mt-3 space-y-2">
+                                            @foreach ($recoverableEvents as $historyEvent)
+                                                <li>
+                                                    <a class="text-slate-200 underline underline-offset-4 hover:text-amber-200" href="{{ route('tenant.appointments.restore.show', [$barbershop, $appointment, 'event' => $historyEvent->id]) }}">
+                                                        {{ $historyEvent->label() }}: {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }} → {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('after_starts_at'))->format('d/m/Y H:i') }}
+                                                    </a>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </details>
+                                @endif
+                            @endif
                         </article>
                         <x-form-slide-over
                             id="reschedule-appointment-{{ $appointment->id }}"
@@ -102,6 +120,30 @@
                 </div>
             @endif
         </section>
+
+        @if ($restorableAppointments->isNotEmpty())
+            <section class="space-y-4" aria-labelledby="closed-appointment-history-heading">
+                <header>
+                    <h2 id="closed-appointment-history-heading" class="text-lg font-semibold text-white">Historial de citas finalizadas</h2>
+                    <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Las fechas y estados almacenados pueden restaurarse si el historial coincide con el valor actual.</p>
+                </header>
+                <div class="divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
+                    @foreach ($restorableAppointments as $historicalAppointment)
+                        @php($recoverableEvents = $historicalAppointment->events->filter(fn ($event) => in_array($event->event_kind, ['rescheduled', 'cancelled', 'completed', 'no_show', 'restored'], true) && $event->before_starts_at !== null && $event->after_starts_at !== null && in_array($event->before_status, [\App\Models\Appointment::STATUS_SCHEDULED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_COMPLETED, \App\Models\Appointment::STATUS_NO_SHOW], true) && $event->getRawOriginal('after_starts_at') === $historicalAppointment->getRawOriginal('starts_at') && $event->after_status === $historicalAppointment->status)))
+                        @if ($recoverableEvents->isNotEmpty())
+                            <article class="space-y-3 px-5 py-4 sm:px-6">
+                                <h3 class="font-semibold text-slate-100">{{ $historicalAppointment->customer?->name ?? 'Cliente sin registrar' }} · {{ \Illuminate\Support\Carbon::parse($historicalAppointment->getRawOriginal('starts_at'))->format('d/m/Y H:i') }} · {{ $historicalAppointment->status }}</h3>
+                                <ul class="space-y-2">
+                                    @foreach ($recoverableEvents as $historyEvent)
+                                        <li><a class="text-sm text-amber-200 underline underline-offset-4" href="{{ route('tenant.appointments.restore.show', [$barbershop, $historicalAppointment, 'event' => $historyEvent->id]) }}">{{ $historyEvent->label() }} · recuperar valor anterior ({{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }})</a></li>
+                                    @endforeach
+                                </ul>
+                            </article>
+                        @endif
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
         @if ($invitableCustomers->isNotEmpty())
             <section class="space-y-4" aria-labelledby="customer-invitations-heading">

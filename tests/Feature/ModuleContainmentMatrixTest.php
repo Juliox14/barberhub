@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\Membership;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\AppointmentHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,8 @@ class ModuleContainmentMatrixTest extends TestCase
             'appointments' => [
                 'appointments.index' => 'GET',
                 'appointments.store' => 'POST',
+                'appointments.restore.show' => 'GET',
+                'appointments.restore' => 'POST',
                 'appointments.reschedule' => 'PUT',
                 'appointments.cancel' => 'POST',
                 'appointments.complete' => 'POST',
@@ -132,7 +135,7 @@ class ModuleContainmentMatrixTest extends TestCase
         sort($expected);
         sort($actual);
 
-        $this->assertCount(42, $actual);
+        $this->assertCount(45, $actual);
         $this->assertSame($expected, $actual);
     }
 
@@ -169,6 +172,8 @@ class ModuleContainmentMatrixTest extends TestCase
         $barber = Barber::factory()->for($shop)->create();
         $service = Service::factory()->for($shop)->create();
         $customer = Customer::factory()->for($shop)->create();
+        $appointment = Appointment::factory()->for($shop)->for($barber)->for($service)->for($customer)->create();
+        $startsAt = $appointment->getRawOriginal('starts_at');
 
         return [
             'barbershop' => $shop,
@@ -176,7 +181,17 @@ class ModuleContainmentMatrixTest extends TestCase
             'barber' => $barber,
             'service' => $service,
             'customer' => $customer,
-            'appointment' => Appointment::factory()->for($shop)->for($barber)->for($service)->for($customer)->create(),
+            'appointment' => $appointment,
+            'appointmentEvent' => app(AppointmentHistory::class)->record(
+                $appointment,
+                'rescheduled',
+                'staff',
+                null,
+                $startsAt,
+                $startsAt,
+                Appointment::STATUS_SCHEDULED,
+                Appointment::STATUS_SCHEDULED,
+            ),
             'businessHour' => BusinessHour::factory()->for($shop)->create(),
             'barberAvailability' => BarberAvailability::factory()->for($barber)->create(),
         ];
@@ -187,8 +202,13 @@ class ModuleContainmentMatrixTest extends TestCase
     {
         $route = app('router')->getRoutes()->getByName($name);
         $parameters = array_intersect_key($fixtures, array_flip($route->parameterNames()));
+        $url = route($name, $parameters, false);
 
-        return route($name, $parameters, false);
+        if ($name === 'tenant.appointments.restore.show') {
+            $url .= '?event='.$fixtures['appointmentEvent']->getKey();
+        }
+
+        return $url;
     }
 
     private function normalRequest(string $name, string $method, string $url): int
@@ -217,7 +237,7 @@ class ModuleContainmentMatrixTest extends TestCase
     private function protectedState(): array
     {
         $state = [];
-        foreach (['users', 'barbershops', 'memberships', 'barbers', 'services', 'customers', 'appointments', 'business_hours', 'barber_availabilities', 'customer_invitations', 'push_subscriptions', 'password_reset_tokens', 'module_containments', 'security_audit_logs', 'security_alerts', 'jobs'] as $table) {
+        foreach (['users', 'barbershops', 'memberships', 'barbers', 'services', 'customers', 'appointments', 'appointment_events', 'business_hours', 'barber_availabilities', 'customer_invitations', 'push_subscriptions', 'password_reset_tokens', 'module_containments', 'security_audit_logs', 'security_alerts', 'jobs'] as $table) {
             $key = $table === 'password_reset_tokens' ? 'email' : 'id';
             $state[$table] = DB::table($table)->orderBy($key)->get()->map(fn (object $row): array => (array) $row)->all();
         }

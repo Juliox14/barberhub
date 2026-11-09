@@ -86,6 +86,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::get('/reports/barbers', [TenantBusinessReportController::class, 'barbers'])->name('tenant.reports.barbers');
             Route::get('/reports/customers', [TenantBusinessReportController::class, 'customers'])->name('tenant.reports.customers');
             Route::post('/appointments', [TenantAppointmentController::class, 'store'])->name('tenant.appointments.store');
+            Route::get('/appointments/{appointment}/restore', [TenantAppointmentController::class, 'restorePreview'])->name('tenant.appointments.restore.show');
+            Route::post('/appointments/{appointment}/restore', [TenantAppointmentController::class, 'restore'])->name('tenant.appointments.restore');
             Route::put('/appointments/{appointment}/reschedule', [TenantAppointmentController::class, 'reschedule'])->name('tenant.appointments.reschedule');
             Route::post('/appointments/{appointment}/cancel', [TenantAppointmentController::class, 'cancel'])->name('tenant.appointments.cancel');
             Route::post('/appointments/{appointment}/complete', [TenantAppointmentController::class, 'complete'])->name('tenant.appointments.complete');

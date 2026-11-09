@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AppointmentRestorationRequest;
 use App\Models\Appointment;
 use App\Models\Barber;
 use App\Models\Barbershop;
@@ -11,7 +12,9 @@ use App\Models\Service;
 use App\Models\User;
 use App\Support\AppointmentHistory;
 use App\Support\AppointmentPushDispatcher;
+use App\Support\AppointmentRestoration;
 use App\Support\AppointmentScheduler;
+use App\Support\SecurityAuditLogger;
 use App\Support\TableSort;
 use App\Support\TenantDashboard;
 use Carbon\Carbon;
@@ -64,7 +67,7 @@ final class TenantAppointmentController extends Controller
         ];
         $sortState = TableSort::state($request, $sortColumns, 'time');
         $appointmentsQuery = $barbershop->appointments()->getQuery()
-            ->with(['barber', 'service', 'customer'])
+            ->with(['barber', 'service', 'customer', 'events'])
             ->where('status', Appointment::STATUS_SCHEDULED)
             ->whereDate('starts_at', $date)
             ->when($barber !== null, fn ($query) => $query->where('barber_id', $barber->id));
@@ -74,10 +77,19 @@ final class TenantAppointmentController extends Controller
             $appointmentsQuery->orderBy('starts_at')->orderBy('appointments.id');
         }
         $appointments = $appointmentsQuery->get();
+        $restorableAppointments = $canManageAppointments
+            ? $barbershop->appointments()
+                ->with(['barber', 'service', 'customer', 'events'])
+                ->where('status', '!=', Appointment::STATUS_SCHEDULED)
+                ->whereDate('starts_at', $date)
+                ->orderBy('starts_at')
+                ->get()
+            : collect();
 
         return view('tenant.appointments-index', [
             'barbershop' => $barbershop,
             'appointments' => $appointments,
+            'restorableAppointments' => $restorableAppointments,
             'sortState' => $sortState,
             'date' => $date,
             'barbers' => $canManageAppointments ? $barbershop->barbers()->where('active', true)->orderBy('display_name')->get() : collect(),
@@ -209,6 +221,41 @@ final class TenantAppointmentController extends Controller
             ->with('status', 'Cita reprogramada correctamente.');
     }
 
+    public function restorePreview(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentRestoration $restoration): View
+    {
+        [$appointment, $user] = $this->authorizeAppointmentRestoration($request, $barbershop, $appointment);
+        $validated = $request->validate(['event' => ['required', 'integer', 'min:1']]);
+        $event = $restoration->findRecoverableEvent($appointment, (int) $validated['event']);
+        abort_unless(
+            $appointment->getRawOriginal('starts_at') === $event->getRawOriginal('after_starts_at')
+                && $appointment->status === $event->after_status,
+            404,
+        );
+
+        return view('tenant.appointments-restore', [
+            'barbershop' => $barbershop,
+            'appointment' => $appointment->load(['barber', 'service', 'customer']),
+            'event' => $event,
+            'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($user, $barbershop)),
+            'canManageMembers' => true,
+        ]);
+    }
+
+    public function restore(AppointmentRestorationRequest $request, Barbershop $barbershop, Appointment $appointment, AppointmentRestoration $restoration, AppointmentScheduler $scheduler, AppointmentHistory $history, SecurityAuditLogger $auditLogger): RedirectResponse
+    {
+        [$appointment, $user] = $this->authorizeAppointmentRestoration($request, $barbershop, $appointment);
+        $validated = $request->validated();
+        $event = $restoration->findRecoverableEvent($appointment, (int) $validated['event_id']);
+        $restored = $restoration->restore($barbershop, $appointment, $event, $validated, $user, $scheduler, $history, $auditLogger);
+
+        return redirect()
+            ->route('tenant.appointments.index', [
+                'barbershop' => $barbershop,
+                'date' => substr($restored->getRawOriginal('starts_at'), 0, 10),
+            ])
+            ->with('status', 'La cita se recuperó desde el historial.');
+    }
+
     public function cancel(Request $request, Barbershop $barbershop, Appointment $appointment, AppointmentPushDispatcher $pushDispatcher, AppointmentHistory $history): RedirectResponse
     {
         return $this->transition($request, $barbershop, $appointment, Appointment::STATUS_CANCELLED, 'Cita cancelada.', $pushDispatcher, $history);
@@ -250,6 +297,20 @@ final class TenantAppointmentController extends Controller
         return redirect()
             ->route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => $appointment->starts_at->toDateString()])
             ->with('status', $message);
+    }
+
+    /** @return array{0: Appointment, 1: User} */
+    private function authorizeAppointmentRestoration(Request $request, Barbershop $barbershop, Appointment $appointment): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $appointment = $barbershop->appointments()->whereKey($appointment->id)->firstOrFail();
+        $membership = TenantDashboard::membershipFor($user, $barbershop);
+        $canRestore = $user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true);
+        abort_unless($canRestore, 403);
+
+        return [$appointment, $user];
     }
 
     private function authorizeAppointmentAction(Request $request, Barbershop $barbershop, Appointment $appointment): Appointment

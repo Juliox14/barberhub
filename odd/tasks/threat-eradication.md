@@ -21,9 +21,9 @@ Approved recommendation details (accepted by the user; preserve these outcomes):
 - Evidence: public-interface positive/negative functional tests and repository code; do not fabricate screenshots or pentest claims.
 
 ## Tasks
-- T1 | S3,S4,S6,S7,S8,S9 | delegated auth writer (parallel independent unit/context backstop) | done | commit: pending (T4 delivery) | Risk: item 2 (credentials/session guards).
-- T2 | S2,S3,S5,S6,S7,S9 | delegated recovery writer (parallel independent unit/context backstop) | in_progress | commit: pending | Risk: item 1 (restore stored data), item 2 (tenant permissions), item 4 (scheduling concurrency).
-- T3 | S1,S2,S3,S6,S9 | delegated evidence writer (context backstop; disjoint test file alongside T2) | done | commit: pending (T4 delivery) | Risk: item 2 (type validation fix integrated into T1).
+- T1 | S3,S4,S6,S7,S8,S9 | delegated auth writer (parallel independent unit/context backstop) | done | commit: bfe0540 | Risk: item 2 (credentials/session guards).
+- T2 | S2,S3,S5,S6,S7,S9 | delegated recovery writer (parallel independent unit/context backstop) | done | commit: pending (T4 delivery) | Risk: item 1 (restore stored data), item 2 (tenant permissions), item 4 (scheduling concurrency).
+- T3 | S1,S2,S3,S6,S9 | delegated evidence writer (context backstop; disjoint test file alongside T2) | done | commit: bfe0540 | Risk: item 2 (type validation fix integrated into T1).
 - T4 | S1-S9 | independent verifier + parent seam checks | in_progress | commit: pending | Risk: item 2 (verify security outcomes).
 
 ## Log
@@ -89,3 +89,16 @@ Recovery verifier:required suite90 passed/1 skipped but BLOCKER: recovery Blade 
 
 ### L11 — Credentials closure
 Same-blocker PasswordPolicyTest expectation correction GREEN:40 tests/255 assertions, repeated by parent exit0. Initiating browser guest, owner cleared/version advanced, password no longer expired, fresh login works. T1 implementation and assigned independent verification complete; no source change after verification except type validation already included in verifier copy. Delivery groups T1+T3 into one cohesive credentials/input slice so the malformed-input regression stays with its production fix. T2 remains its own high-risk slice; final tracking closure separately. No push/PR/merge.
+
+### L12 — Local slice boundary
+Credentials/input slice committed bfe0540:507 authored changed lines (478 additions/29 deletions), including91 tracking lines and151 input-evidence lines. Coherent behavior/tests retained; no code compression or missing tests to hit400. Selected feature-branch-chain remains delivery strategy; review slice1 =8794751..bfe0540, recovery slice2 starts at bfe0540. No PR branch publication/creation performed.
+
+### L13 — Recovery timezone correction
+Corrected expectations first:2 tests RED (10:00/11:00 displayed04:00/05:00 and near-midnight date shifted to previous day). New recovery UI/history links/redirect now format stored shop-local wall-clock timestamps consistently with scheduler, without changing global casts. Targeted GREEN2 tests27 assertions; required set92 total91passed1skipped1500 assertions. Pint and diff-check passed after correction. Targeted independent recheck mw8ut2bc-d-oajg pending; no new sweep. Final suite job-5 and build job-6 pending.
+Preexisting skipped test identified:GuestBookingConcurrencyTest::test_concurrent_guest_confirmations_wait_and_share_one_customer requires PostgreSQL scratch schemas; SQLite :memory: skips it. No real PostgreSQL concurrency proof claimed; no dependency/DB provisioning authorized.
+
+### L14 — Recovery verification closure
+Targeted independent recheck and parent spot check:8 tests/72 assertions each, exit0; previous timezone blocker resolved. Non-UTC and near-midnight preview/history/back links/redirect agree with persisted restored time. No unrelated re-review performed. Final build job-6 exit0. Recovery implementation T2 verified. Final integration job-5 exit1:639 tests/632 passed/6 failed/1 skipped/5608 assertions. Programmatic comparison with BEFORE baseline confirms identical six failing test identities; no new failing test. Skip remains PostgreSQL-only guest concurrency test. All new/updated feature tests pass. Build/Pint/diff-check passed. No screenshot/browser/pentest or PostgreSQL concurrency proof claimed.
+
+### L15 — Recovery slice size
+Recovery slice staged:759 authored changed lines (751 additions/8 deletions), including373 restoration-test lines. One cohesive recovery behavior with authorization, read-only preview, tenant/event/stale-state guards, transaction validation, CSRF/containment and audit. Retain these checks rather than splitting schema/UI/tests into unusable partial deliveries or code-golfing to400. feature-branch-chain review slices remain selected, no publication authorized. Final tracking-only closure will record actual commit and final status.

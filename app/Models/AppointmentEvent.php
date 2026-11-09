@@ -39,4 +39,17 @@ class AppointmentEvent extends Model
     {
         return $this->belongsTo(User::class, 'actor_user_id');
     }
+
+    public function label(): string
+    {
+        return match ($this->event_kind) {
+            'created' => 'Cita creada',
+            'rescheduled' => 'Horario modificado',
+            'cancelled' => 'Cita cancelada',
+            'completed' => 'Cita completada',
+            'no_show' => 'Cita marcada como no asistió',
+            'restored' => 'Cita recuperada desde el historial',
+            default => 'Cambio de cita',
+        };
+    }
 }
