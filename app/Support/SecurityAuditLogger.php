@@ -28,6 +28,7 @@ final class SecurityAuditLogger
         'two_factor.recovery_used' => [],
         'security.account_locked' => ['expires_at' => 40],
         'security.session_revoked' => ['reason' => 500],
+        'appointment.restored' => ['appointment_id' => 20, 'source_event_id' => 20, 'reason' => 500],
         'platform.barbershop.module_suspended' => ['reason' => 500, 'module' => 64, 'expires_at' => 40],
         'platform.barbershop.module_released' => ['reason' => 500, 'module' => 64],
         'platform.barbershop.created' => ['name' => 255, 'slug' => 255, 'status' => 32, 'timezone' => 100],

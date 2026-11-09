@@ -62,6 +62,32 @@ class SecurityAuditLogTest extends TestCase
         $this->assertDatabaseHas('security_audit_logs', ['event' => 'logout', 'actor_id' => $user->id, 'subject_id' => $user->id]);
     }
 
+    public function test_appointment_restoration_event_accepts_its_shared_metadata_contract(): void
+    {
+        $user = User::factory()->create();
+        $barbershop = Barbershop::factory()->create();
+
+        app(SecurityAuditLogger::class)->record(
+            'appointment.restored',
+            actor: $user,
+            subject: $user,
+            barbershopId: $barbershop->id,
+            metadata: [
+                'appointment_id' => (string) $user->id,
+                'source_event_id' => '42',
+                'reason' => 'Restored after review.',
+            ],
+        );
+
+        $this->assertDatabaseHas('security_audit_logs', [
+            'event' => 'appointment.restored',
+            'actor_id' => $user->id,
+            'subject_id' => $user->id,
+            'barbershop_id' => $barbershop->id,
+            'metadata' => '{"appointment_id":"'.$user->id.'","source_event_id":"42","reason":"Restored after review."}',
+        ]);
+    }
+
     public function test_event_specific_allow_list_rejects_unexpected_secret_metadata(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -130,7 +156,7 @@ class SecurityAuditLogTest extends TestCase
             'current_password' => 'password',
             'password' => 'ReplacementSecret123!',
             'password_confirmation' => 'ReplacementSecret123!',
-        ])->assertRedirect('/profile');
+        ])->assertRedirect(route('login'));
         $this->assertDatabaseHas('security_audit_logs', [
             'event' => 'password.updated',
             'actor_id' => $user->id,

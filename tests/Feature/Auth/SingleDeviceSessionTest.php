@@ -34,6 +34,7 @@ class SingleDeviceSessionTest extends TestCase
     {
         $user = $this->tenantUser();
         $oldSessionId = $this->loginAndGetSessionId($user);
+        $oldOwnerToken = $user->fresh()->active_session_id;
 
         $conflict = $this->freshBrowser()->post('/login', $this->credentials($user));
         $conflict->assertOk();
@@ -50,7 +51,12 @@ class SingleDeviceSessionTest extends TestCase
         $newSessionId = $this->sessionIdFrom($transfer);
 
         Auth::forgetGuards();
-        $this->browser($oldSessionId)->get('/profile')->assertRedirect('/login');
+        $this->competingBrowser(Str::random(40), $user, $oldOwnerToken)->assertRedirect('/login');
+        $this->assertDatabaseHas('security_audit_logs', [
+            'event' => 'security.session_revoked',
+            'subject_id' => $user->id,
+            'metadata' => '{"reason":"displaced_owner_token"}',
+        ]);
         Auth::forgetGuards();
         $this->browser($newSessionId)->get('/profile')->assertOk();
     }
@@ -281,6 +287,49 @@ class SingleDeviceSessionTest extends TestCase
 
         $this->freshBrowser()->withCookie($this->rememberCookieName(), $oldRememberCookie->getValue())->get('/profile')->assertRedirect('/login');
         $this->freshBrowser()->withCookie($this->rememberCookieName(), $newRememberCookie->getValue())->get('/profile')->assertOk();
+    }
+
+    public function test_password_change_invalidates_old_browser_and_remember_cookie(): void
+    {
+        $user = $this->tenantUser();
+        $login = $this->login($user, remember: true);
+        $sessionId = $this->sessionIdFrom($login);
+        $rememberCookie = $login->getCookie($this->rememberCookieName());
+        $sessionVersion = (int) $user->fresh()->security_session_version;
+
+        $this->browser($sessionId)->put('/password', [
+            'current_password' => 'password',
+            'password' => 'ReplacementPassword123!',
+            'password_confirmation' => 'ReplacementPassword123!',
+        ])->assertRedirect(route('login'));
+
+        $this->assertSame($sessionVersion + 1, (int) $user->fresh()->security_session_version);
+        Auth::forgetGuards();
+        $this->browser($sessionId)->get('/profile')->assertRedirect('/login');
+        $this->freshBrowser()
+            ->withCookie($this->rememberCookieName(), $rememberCookie->getValue())
+            ->get('/profile')
+            ->assertRedirect('/login');
+    }
+
+    public function test_failed_login_and_changed_ip_do_not_revoke_the_active_owner(): void
+    {
+        $user = $this->tenantUser();
+        $sessionId = $this->loginAndGetSessionId($user);
+
+        $this->freshBrowser()->from('/login')->post('/login', [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ])->assertRedirect('/login');
+        Auth::forgetGuards();
+        $this->browser($sessionId)->withServerVariables(['REMOTE_ADDR' => '198.51.100.42'])
+            ->get('/profile')
+            ->assertOk();
+
+        $this->assertDatabaseMissing('security_audit_logs', [
+            'event' => 'security.session_revoked',
+            'subject_id' => $user->id,
+        ]);
     }
 
     public function test_cancelling_conflict_preserves_the_old_remember_cookie(): void

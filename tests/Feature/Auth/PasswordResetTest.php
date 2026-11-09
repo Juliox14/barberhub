@@ -55,7 +55,14 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        $user->forceFill([
+            'active_session_id' => 'previous-owner-token',
+            'active_session_at' => now(),
+            'security_session_version' => 8,
+        ])->save();
+        $previousRememberToken = $user->getRememberToken();
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user, $previousRememberToken) {
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
@@ -66,6 +73,12 @@ class PasswordResetTest extends TestCase
             $response
                 ->assertSessionHasNoErrors()
                 ->assertRedirect(route('login'));
+
+            $updatedUser = $user->fresh();
+            $this->assertNull($updatedUser->active_session_id);
+            $this->assertNull($updatedUser->active_session_at);
+            $this->assertSame(9, (int) $updatedUser->security_session_version);
+            $this->assertNotSame($previousRememberToken, $updatedUser->getRememberToken());
 
             return true;
         });

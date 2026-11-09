@@ -140,14 +140,35 @@ class TwoFactorLoginTest extends TestCase
         $this->actingAs($inactive)->get('/profile')->assertOk();
     }
 
-    public function test_expired_password_has_a_renewal_path_even_after_mandatory_grace(): void
+    public function test_expired_password_renewal_ends_the_session_and_fresh_login_can_complete_required_factor_enrollment(): void
     {
         $user = $this->account();
         $user->forceFill(['password_changed_at' => now()->subDays(90), 'two_factor_enrollment_started_at' => now()->subDays(14)])->save();
         $this->actingAs($user)->get('/platform/dashboard')->assertRedirect(route('password.renew'));
         $this->get(route('password.renew'))->assertOk();
-        $this->put('/password', ['current_password' => 'password', 'password' => 'Replacement123!', 'password_confirmation' => 'Replacement123!'])->assertSessionHasNoErrors();
+
+        $this->put('/password', [
+            'current_password' => 'password',
+            'password' => 'Replacement123!',
+            'password_confirmation' => 'Replacement123!',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+
+        $this->assertGuest();
+        $this->get('/platform/dashboard')->assertRedirect('/login');
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'Replacement123!',
+        ])->assertRedirect('/platform/dashboard');
+        $this->assertAuthenticatedAs($user);
         $this->get('/platform/dashboard')->assertRedirect('/two-factor/settings');
+
+        $this->post('/two-factor/begin', ['current_password' => 'Replacement123!'])->assertOk();
+        $pendingSecret = $user->fresh()->two_factor_pending_secret;
+        $this->post('/two-factor/confirm', [
+            'code' => app(Google2FA::class)->getCurrentOtp($pendingSecret),
+        ])->assertOk();
+
+        $this->get('/platform/dashboard')->assertOk();
     }
 
     public function test_session_poll_reports_two_factor_requirement_without_business_data(): void

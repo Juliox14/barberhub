@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SecurityAuditLogger;
 use App\Support\SingleDeviceSession;
 use Closure;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class EnsureSingleDeviceSession
 {
-    public function __construct(private SingleDeviceSession $sessions) {}
+    public function __construct(private SingleDeviceSession $sessions, private SecurityAuditLogger $auditLogger) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -47,6 +48,15 @@ final class EnsureSingleDeviceSession
         }
 
         if (! $ownsSession) {
+            if (is_string($ownerToken)) {
+                $this->auditLogger->record(
+                    'security.session_revoked',
+                    subject: $user,
+                    metadata: ['reason' => 'displaced_owner_token'],
+                    request: $request,
+                );
+            }
+
             Auth::guard('web')->logoutCurrentDevice();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

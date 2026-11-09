@@ -73,12 +73,13 @@ class PasswordPolicyTest extends TestCase
             ->assertOk();
     }
 
-    public function test_expired_password_can_be_renewed_without_ending_the_session(): void
+    public function test_expired_password_renewal_revokes_session_before_fresh_login(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['is_platform_admin' => true]);
         $user->forceFill(['password_changed_at' => now()->subDays(90)])->saveQuietly();
         $ownerToken = str_repeat('a', 64);
         app(SingleDeviceSession::class)->claimAfterCredentials($user, $ownerToken);
+        $sessionVersion = (int) $user->fresh()->security_session_version;
 
         $response = $this->withSession([
             app('auth')->guard('web')->getName() => $user->getAuthIdentifier(),
@@ -91,10 +92,23 @@ class PasswordPolicyTest extends TestCase
                 'password_confirmation' => 'RenewedPassword123!',
             ]);
 
-        $response->assertSessionHasNoErrors()->assertRedirect(route('password.renew'));
+        $response->assertSessionHasNoErrors()->assertRedirect(route('login'));
+        $this->assertGuest();
+        $updatedUser = $user->fresh();
+        $this->assertNull($updatedUser->active_session_id);
+        $this->assertNull($updatedUser->active_session_at);
+        $this->assertSame($sessionVersion + 1, (int) $updatedUser->security_session_version);
+        $this->assertFalse(PasswordPolicy::expired($updatedUser));
+        $this->assertTrue(Hash::check('RenewedPassword123!', $updatedUser->password));
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'RenewedPassword123!',
+        ])->assertRedirect(route('platform.dashboard'));
+
         $this->assertAuthenticatedAs($user);
-        $this->assertFalse(PasswordPolicy::expired($user->fresh()));
-        $this->assertNotNull($user->fresh()->active_session_id);
+        $this->assertNotSame($ownerToken, $user->fresh()->active_session_id);
+        $this->assertSame($sessionVersion + 1, (int) $user->fresh()->security_session_version);
     }
 
     public function test_missing_password_timestamp_fails_closed(): void
