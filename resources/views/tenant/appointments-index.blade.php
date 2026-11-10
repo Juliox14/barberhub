@@ -38,7 +38,7 @@
                 </span>
             </header>
             @if ($appointments->isNotEmpty())
-                <div class="hidden grid-cols-[7rem_minmax(0,1fr)_minmax(10rem,0.8fr)_minmax(9rem,0.7fr)] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
+                <div class="hidden grid-cols-[7rem_minmax(0,1fr)_minmax(8rem,0.7fr)_16rem] gap-4 border-b border-slate-800 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:grid">
                     <x-sortable-grid-heading column="time" label="Hora" :sort="$sortState['sort']" :direction="$sortState['direction']" />
                     <span class="inline-flex items-center gap-3"><x-sortable-grid-heading column="customer" label="Cliente" :sort="$sortState['sort']" :direction="$sortState['direction']" /><x-sortable-grid-heading column="service" label="Servicio" :sort="$sortState['sort']" :direction="$sortState['direction']" /></span>
                     <x-sortable-grid-heading column="barber" label="Barbero" :sort="$sortState['sort']" :direction="$sortState['direction']" />
@@ -46,29 +46,31 @@
                 </div>
                 <div class="divide-y divide-slate-800">
                     @foreach ($appointments as $appointment)
-                        <article class="grid gap-3 px-5 py-5 sm:px-6 lg:grid-cols-[7rem_minmax(0,1fr)_minmax(10rem,0.8fr)_minmax(9rem,0.7fr)] lg:items-center">
+                        <article class="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-[7rem_minmax(0,1fr)_minmax(8rem,0.7fr)_16rem] lg:items-center">
                             <time datetime="{{ $appointment->starts_at->format('Y-m-d\\TH:i:s') }}" class="text-lg font-semibold tabular-nums text-amber-200">{{ $appointment->starts_at->format('H:i') }}</time>
                             <div class="min-w-0">
                                 <h3 class="truncate font-semibold text-slate-100">{{ $appointment->customer?->name ?? 'Cliente sin registrar' }}</h3>
                                 <p class="mt-1 text-sm text-slate-400">{{ $appointment->service->name }}</p>
                             </div>
                             <p class="text-sm text-slate-300">{{ $appointment->barber->display_name }}</p>
-                            <div class="flex flex-wrap gap-2 lg:justify-end">
-                                <button type="button" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" data-slide-over-trigger x-on:click="$dispatch('form-slide-over-open', { id: 'reschedule-appointment-{{ $appointment->id }}' })">Reprogramar</button>
-                                <form method="POST" action="{{ route('tenant.appointments.cancel', [$barbershop, $appointment]) }}" onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.')">
-                                    @csrf
-                                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-rose-700 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Cancelar cita</button>
-                                </form>
+                            <div role="group" aria-label="Acciones de la cita" class="grid grid-cols-2 gap-2 border-t border-slate-800 pt-4 lg:border-0 lg:pt-0">
                                 @if ($appointment->hasStarted($barbershop->timezone))
                                     <form method="POST" action="{{ route('tenant.appointments.complete', [$barbershop, $appointment]) }}">
                                         @csrf
-                                        <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-[#17130b] hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Completar</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('tenant.appointments.no-show', [$barbershop, $appointment]) }}">
-                                        @csrf
-                                        <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">No asistió</button>
+                                        <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-amber-300 px-3 py-2 text-sm font-bold text-[#17130b] transition-colors hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]">Completar</button>
                                     </form>
                                 @endif
+                                <button type="button" class="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]" data-slide-over-trigger x-on:click="$dispatch('form-slide-over-open', { id: 'reschedule-appointment-{{ $appointment->id }}' })">Reprogramar</button>
+                                @if ($appointment->hasStarted($barbershop->timezone))
+                                    <form method="POST" action="{{ route('tenant.appointments.no-show', [$barbershop, $appointment]) }}">
+                                        @csrf
+                                        <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]">No asistió</button>
+                                    </form>
+                                @endif
+                                <form method="POST" action="{{ route('tenant.appointments.cancel', [$barbershop, $appointment]) }}" onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.')">
+                                    @csrf
+                                    <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-rose-300 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111820]">Cancelar cita</button>
+                                </form>
                             </div>
                             @if ($canManageAppointments)
                                 @php($recoverableEvents = $appointment->events->filter(fn ($event) => in_array($event->event_kind, ['rescheduled', 'cancelled', 'completed', 'no_show', 'restored'], true) && $event->before_starts_at !== null && $event->after_starts_at !== null && in_array($event->before_status, [\App\Models\Appointment::STATUS_SCHEDULED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_COMPLETED, \App\Models\Appointment::STATUS_NO_SHOW], true) && $event->getRawOriginal('after_starts_at') === $appointment->getRawOriginal('starts_at') && $event->after_status === $appointment->status))
@@ -183,39 +185,6 @@
                                 </ul>
                             </article>
                         @endif
-                    @endforeach
-                </div>
-            </section>
-        @endif
-
-        @if ($invitableCustomers->isNotEmpty())
-            <section class="space-y-4" aria-labelledby="customer-invitations-heading">
-                <header>
-                    <h2 id="customer-invitations-heading" class="text-lg font-semibold text-white">Vincular historial de clientes</h2>
-                    <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Crea un enlace personal de un solo uso. El cliente deberá iniciar sesión o registrarse y confirmar la vinculación.</p>
-                </header>
-                @if (session('invitation_url'))
-                    <div class="rounded-lg border border-amber-300/40 bg-amber-300/10 p-4 text-sm text-amber-100" role="status">
-                        <p class="font-semibold">Enlace personal listo para compartir</p>
-                        <a href="{{ session('invitation_url') }}" class="mt-2 block break-all underline underline-offset-4">{{ url(session('invitation_url')) }}</a>
-                    </div>
-                @endif
-                <div class="divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-800 bg-[#111820]">
-                    @foreach ($invitableCustomers as $customer)
-                        <form method="POST" action="{{ route('tenant.customer-invitations.store', [$barbershop, $customer]) }}" class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-                            @csrf
-                            <div class="min-w-0">
-                                <p class="font-semibold text-slate-100">{{ $customer->name }}</p>
-                                <p class="mt-1 text-sm text-slate-400">{{ $customer->email ?: 'Sin correo guardado' }}</p>
-                            </div>
-                            <div class="flex flex-col gap-2 sm:min-w-80 sm:flex-row sm:items-end">
-                                <div class="min-w-0 flex-1">
-                                    <label for="invitation-email-{{ $customer->id }}" class="mb-1.5 block text-xs font-medium text-slate-300">Correo de su cuenta</label>
-                                    <input id="invitation-email-{{ $customer->id }}" name="email" type="email" value="{{ $customer->email }}" required autocomplete="email" class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
-                                </div>
-                                <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Crear enlace para el cliente</button>
-                            </div>
-                        </form>
                     @endforeach
                 </div>
             </section>

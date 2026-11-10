@@ -10,8 +10,13 @@ use App\Models\CustomerInvitation;
 use App\Models\Membership;
 use App\Models\Service;
 use App\Models\User;
+use App\Notifications\CustomerHistoryInvitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class CustomerInvitationTest extends TestCase
@@ -21,6 +26,7 @@ class CustomerInvitationTest extends TestCase
     public function test_owner_can_issue_a_personal_invitation_without_changing_customer_or_appointment_history(): void
     {
         $this->freezeTime();
+        Notification::fake();
         [$barbershop, $owner] = $this->ownerContext();
         $customer = Customer::factory()->for($barbershop)->create(['email' => 'client@example.com']);
         $appointment = $this->appointmentFor($barbershop, $customer);
@@ -29,9 +35,10 @@ class CustomerInvitationTest extends TestCase
             'email' => 'client@example.com',
         ]);
 
-        $response->assertRedirect(route('tenant.appointments.index', $barbershop, false));
+        $response->assertRedirect(route('tenant.customers.index', $barbershop, false));
         $response->assertSessionHas('invitation_url');
-        $response->assertSessionHas('status', 'Enlace personal creado. Compártelo con client@example.com antes de 48 horas.');
+        $response->assertSessionHas('invitation_customer_id', $customer->id);
+        $response->assertSessionHas('status', 'Invitación enviada a client@example.com. El enlace vence en 48 horas.');
         $customer->refresh();
         $this->assertNull($customer->user_id);
         $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'customer_id' => $customer->id]);
@@ -40,6 +47,20 @@ class CustomerInvitationTest extends TestCase
         $this->assertSame(now()->addHours(48)->toDateTimeString(), $invitation->expires_at->toDateTimeString());
         $invitationUrl = $response->getSession()->get('invitation_url');
         $this->assertSame(hash('sha256', basename($invitationUrl)), $invitation->token_hash);
+        Notification::assertSentOnDemand(CustomerHistoryInvitation::class, function ($notification, $channels, $notifiable) use ($invitationUrl, $barbershop): bool {
+            $mail = $notification->toMail($notifiable);
+
+            return $notifiable->routes['mail'] === 'client@example.com'
+                && $channels === ['mail']
+                && $mail->actionUrl === $invitationUrl
+                && str_contains($mail->subject, $barbershop->name)
+                && str_contains(implode(' ', $mail->introLines), '48 horas');
+        });
+        Notification::assertSentOnDemandTimes(CustomerHistoryInvitation::class, 1);
+        $this->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee($invitationUrl)
+            ->assertSee('Copiar enlace');
     }
 
     public function test_barber_can_issue_only_for_a_customer_in_their_own_appointment_history(): void
@@ -89,7 +110,7 @@ class CustomerInvitationTest extends TestCase
 
         $this->actingAs($administrator)
             ->post($this->issueUrl($barbershop, $customer), ['email' => 'admin-invite@example.com'])
-            ->assertRedirect(route('tenant.appointments.index', $barbershop, false));
+            ->assertRedirect(route('tenant.customers.index', $barbershop, false));
 
         $this->assertDatabaseHas('customer_invitations', [
             'barbershop_id' => $barbershop->id,
@@ -366,11 +387,9 @@ class CustomerInvitationTest extends TestCase
     {
         [$barbershop, $owner] = $this->ownerContext();
         $originalUser = User::factory()->create(['email' => 'original@example.com']);
-        $customer = Customer::factory()->for($barbershop)->create([
-            'user_id' => $originalUser->id,
-            'email' => 'target@example.com',
-        ]);
+        $customer = Customer::factory()->for($barbershop)->create(['email' => 'target@example.com']);
         $invitationUrl = $this->issueInvitation($owner, $barbershop, $customer);
+        $customer->update(['user_id' => $originalUser->id]);
         $targetUser = User::factory()->create(['email' => 'target@example.com']);
         $before = $customer->fresh()->getAttributes();
 
@@ -449,16 +468,109 @@ class CustomerInvitationTest extends TestCase
         $this->assertSame(2, $existingUser->fresh()->customers()->count());
     }
 
-    public function test_invitation_form_is_available_in_the_spanish_appointment_agenda(): void
+    public function test_invitations_move_from_agenda_to_unregistered_customers_in_the_directory(): void
     {
         [$barbershop, $owner] = $this->ownerContext();
-        $customer = Customer::factory()->for($barbershop)->create(['email' => 'client@example.com']);
+        $customer = Customer::factory()->for($barbershop)->create(['email' => null]);
+        $registered = Customer::factory()->for($barbershop)->for(User::factory())->create();
 
         $this->actingAs($owner)
             ->get(route('tenant.appointments.index', $barbershop, false))
             ->assertOk()
-            ->assertSee('Crear enlace para el cliente')
-            ->assertSee($this->issueUrl($barbershop, $customer), false);
+            ->assertDontSee('Vincular historial de clientes')
+            ->assertDontSee($this->issueUrl($barbershop, $customer), false);
+
+        $this->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Registrado')
+            ->assertSee('Sin registrar')
+            ->assertSee('class="absolute inset-0 bg-black/65"', false)
+            ->assertDontSee('bg-gray-500 opacity-75', false)
+            ->assertSee('Invitar')
+            ->assertSee('invitation-email-'.$customer->id, false)
+            ->assertSee($this->issueUrl($barbershop, $customer), false)
+            ->assertDontSee($this->issueUrl($barbershop, $registered), false);
+    }
+
+    public function test_standard_modals_keep_their_existing_backdrop_when_no_override_is_requested(): void
+    {
+        $html = Blade::render('<x-modal name="account-dialog"><p>Account dialog</p></x-modal>');
+
+        $this->assertStringContainsString('class="absolute inset-0 bg-gray-500 opacity-75"', $html);
+        $this->assertStringNotContainsString('bg-black/65', $html);
+    }
+
+    public function test_invitation_keeps_the_directory_page_and_sort_so_the_result_modal_remains_visible(): void
+    {
+        Notification::fake();
+        [$barbershop, $owner] = $this->ownerContext();
+        Customer::factory()->count(15)->for($barbershop)->create(['name' => 'Ana']);
+        $customer = Customer::factory()->for($barbershop)->create(['name' => 'Zoe']);
+        $query = '?customers_page=2&sort=name&direction=asc';
+
+        $this->actingAs($owner)->followingRedirects()
+            ->post($this->issueUrl($barbershop, $customer).$query, ['email' => 'zoe@example.com'])
+            ->assertOk()
+            ->assertViewHas('customers', fn ($customers): bool => $customers->currentPage() === 2)
+            ->assertSee('Invitación enviada a zoe@example.com.')
+            ->assertSee('invitation-url-'.$customer->id, false)
+            ->assertSee('show: true', false);
+
+        Notification::assertSentOnDemandTimes(CustomerHistoryInvitation::class, 1);
+    }
+
+    public function test_invalid_invitation_reopens_the_customer_modal_without_issuing_or_sending(): void
+    {
+        Notification::fake();
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create();
+        $before = $customer->fresh()->getAttributes();
+        $directoryUrl = route('tenant.customers.index', $barbershop, false);
+
+        $this->actingAs($owner)->from($directoryUrl)->followingRedirects()
+            ->post($this->issueUrl($barbershop, $customer), ['email' => 'not-an-email'])
+            ->assertOk()
+            ->assertSee('El campo correo electrónico debe ser una dirección de correo válida.')
+            ->assertSee('value="not-an-email"', false)
+            ->assertSee('show: true', false);
+        $this->assertDatabaseCount('customer_invitations', 0);
+        $this->assertSame($before, $customer->fresh()->getAttributes());
+        Notification::assertNothingSent();
+    }
+
+    public function test_mail_transport_failure_still_displays_the_link_without_claiming_delivery(): void
+    {
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->create(['email' => 'client@example.com']);
+        Mail::shouldReceive('mailer')->once()->with(null)->andThrow(new TransportException('Mail transport unavailable'));
+
+        $response = $this->actingAs($owner)->post($this->issueUrl($barbershop, $customer), ['email' => $customer->email]);
+
+        $response->assertRedirect(route('tenant.customers.index', $barbershop, false))
+            ->assertSessionHas('status', 'No se pudo enviar el correo. Puedes copiar el enlace y compartirlo con client@example.com.');
+        $invitationUrl = $response->getSession()->get('invitation_url');
+        $this->get(route('tenant.customers.index', $barbershop, false))->assertOk()
+            ->assertSee($invitationUrl)
+            ->assertSee('Copiar enlace')
+            ->assertDontSee('Invitación enviada');
+        $this->assertDatabaseCount('customer_invitations', 1);
+        $this->assertNull($customer->fresh()->user_id);
+    }
+
+    public function test_registered_customers_cannot_be_invited_again(): void
+    {
+        Notification::fake();
+        [$barbershop, $owner] = $this->ownerContext();
+        $customer = Customer::factory()->for($barbershop)->for(User::factory())->create();
+        $before = $customer->fresh()->getAttributes();
+
+        $this->actingAs($owner)
+            ->post($this->issueUrl($barbershop, $customer), ['email' => 'other@example.com'])
+            ->assertConflict();
+
+        $this->assertDatabaseCount('customer_invitations', 0);
+        $this->assertSame($before, $customer->fresh()->getAttributes());
+        Notification::assertNothingSent();
     }
 
     private function issueInvitation(User $issuer, Barbershop $barbershop, Customer $customer): string
@@ -467,7 +579,7 @@ class CustomerInvitationTest extends TestCase
             'email' => $customer->email,
         ]);
 
-        $response->assertRedirect(route('tenant.appointments.index', $barbershop, false));
+        $response->assertRedirect(route('tenant.customers.index', $barbershop, false));
 
         return (string) $response->getSession()->get('invitation_url');
     }
