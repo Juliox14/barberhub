@@ -10,8 +10,8 @@ Implementation constraints: preserve already-existing historical records and rec
 
 ## Tasks
 - T1 | S1 | delegated writer (context backstop), independent verifier required for shared helper item3 | blocked | commit: pending | blocker: independent verifier returned unavailable without executing; functional writer tests pass; differential partial (public reschedule/history match, public create not established).
-- T2 | S2 | delegated UI worker (context backstop; disjoint views) | done (render/build checked, no browser) | commit: pending | Risk: none if only presentation.
-- T3 | S1-S2 | parent integration/readback and bookkeeping | done (T1 proof stop disclosed) | commit: pending | follow T1 proof stop; no bypass of unavailable verifier.
+- T2 | S2 | delegated UI worker (context backstop; disjoint views) | done (render/build checked, no browser) | commit: 2d38a78 | Risk: none if only presentation.
+- T3 | S1-S2 | parent integration/readback and bookkeeping | done (T1 proof stop disclosed) | commit: 2d38a78 (verified presentation candidate) | follow T1 proof stop; no bypass of unavailable verifier.
 
 ## Log
 ### L1 — Original request (verbatim)
@@ -46,3 +46,6 @@ Initial UI queue rejected overlap on existing TenantAppointmentRestorationTest (
 
 ### L7 — Closure checks
 Final integration job-4 exit1:646 tests639passed6failed1skipped5665assertions. Programmatic comparison confirms exact same six failing identities as baseline639total632passed6failed1skipped; no new failing test. Not a fully green suite. Skip remains PostgreSQL-only guest concurrency. Parent repeated final26/200 render/compatibility tests, Pint--dirty/diffcheck/detector[] all exit0. T1 remains blocked for missing independent proof and incomplete public-create differential; no retry/substitution. UI changes staged separately from temporal source/fixture changes to avoid treating T1 as delivered. No source commit/publishing for T1. No push/PR/deploy.
+
+### L8 — Local presentation delivery and bounded stop
+Presentation unit committed2d38a78 (279 authored diff lines,254 additions25 deletions). Only two UI views/status partial, rendering tests and this tracking document included. Scheduling/restoration temporal source and fixture patches remain UNCOMMITTED, preserved in working tree; not reverted or published. T1 stays blocked: independent verifier did not execute; differential public-create case inconclusive. Requires explicit human disposition of missing proof before treating temporal correction as finished. No further verifier/differential run or replacement permitted automatically. T2 and T3 completed with precise limits; no browser screenshots/viewport validation claimed. Untracked guide/captures/Http/storage preserved.
