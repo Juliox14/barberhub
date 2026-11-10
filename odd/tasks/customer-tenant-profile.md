@@ -1,0 +1,24 @@
+# Customer profile per barbershop
+Objective: tenant-scoped customer profile matching /book and references/image.png. Branch: feat/customer-tenant-profile.
+Delivery: feature-branch-chain (local work units only; no push/PR). Baseline: 48c5f1bac36f3ddd184a8d3a12fbd8260425b554. Tests: php artisan test --compact; vendor/bin/pint --dirty --format agent; npm run build.
+
+## Specs
+S1. "quiero que crees la página de perfil de cliente siguiendo el mismo estilo del apartado /book"; "Te dejé una captura de inspiración en references para el diseño". Check: responsive profile follows references/image.png and existing booking visual language.
+S2. "donde quiero que se vea el historial de cortes, el numero de visitas del cliente, desde cuando es miembro". Check: customer-local completed history, completed visit count and Customer.created_at membership date.
+S3. "puede actualizar sus preferencias"; selected "Barbero, servicio y notas". Check: validate and persist preferred barber/service and notes per customer/barbershop.
+S4. "puede activar notificaciones periodicas por ejemplo cada mes para que le recuerde reservar su cita y cortarse el cabello (en caso que descargue el pwa)"; selected "Desde el último corte (recomendado)" with explanation "El plazo se reinicia al completar una visita; si todavía no tiene visitas, desde la activación." Check: opt-in PWA reminders, explicit browser permission, recurring schedule using last completed visit or activation, disable and tenant-specific targeting.
+S5. "tiene que seguir los colores y lo de la marca del tenant al que está registrado la ruta podría ser /barbershops/profile/{tenant} o algo así por si en algun momento hacemos que el cliente pueda estar registrado en varias barberías y tenga historiales y preferencias distintas por cada una." Check: /barbershops/{barbershop:slug}/profile, authenticated verified Customer.user_id ownership, tenant branding and isolation.
+
+## Tasks
+T1 | S1,S5 | delegated | done | Design direction and existing-system extraction, reference screenshot; manifest, self-containment and token checks passed | commit: pending
+T2 | S1,S2,S3,S5 | delegated | in_progress | Profile route, scoped ownership, history, preferences, responsive branded UI and regression tests | Risk: item 2 (customer authorization) | commit: pending
+T3 | S4,S5 | delegated | pending | Customer PWA opt-in and recurring tenant-specific reminders, scheduler and tests | Risk: item 2 (push authorization), item 4 (duplicate delivery) | commit: pending
+T4 | S1-S5 | independent verify plus parent checks | pending | Full functional suite, build, tenant/security verification and review-mode routing | commit: pending
+
+## Log
+L1. User request: Hola, quiero que crees la página de perfil de cliente siguiendo el mismo estilo del apartado /book, donde quiero que se vea el historial de cortes, el numero de visitas del cliente, desde cuando es miembro, puede actualizar sus preferencias, y puede activar notificaciones periodicas por ejemplo cada mes para que le recuerde reservar su cita y cortarse el cabello (en caso que descargue el pwa), tiene que seguir los colores y lo de la marca del tenant al que está registrado la ruta podría ser /barbershops/profile/{tenant} o algo así por si en algun momento hacemos que el cliente pueda estar registrado en varias barberías y tenga historiales y preferencias distintas por cada una.
+L2. User: Te dejé una captura de inspiración en references para el diseño
+L3. User selected: Desde el último corte (recomendado); Barbero, servicio y notas.
+L4. User selected delivery strategy feature-branch-chain. Forecast 900-1400 authored changed lines; local reviewable behavior units; publishing not authorized. Existing untracked app/Http/Controllers/Http/, captures/, storage/ must be preserved. .ai/rules does not exist. Customer already scoped by barbershop_id and user_id; CustomerPreference JSON exists. Push currently restricted to barbers, no reminder scheduler. Production environment scheduling/queue and VAPID configuration will require disclosure, no deployment authorized.
+L6. T1 complete: design/customer-profile/01-client-profile.html is the sole chosen artboard (no alternatives), plus design/system.md and system.html extracted from production. Structural checks passed; no browser proof yet. Canvas opened, automatic browser launch unavailable (xdg-open missing). Handoff to production started. RDD mode off (clone_local); no native review will start.
+L5. Architecture assumption: reuse verified account and Customer ownership rather than staff Membership; membership date is Customer.created_at; visits count completed appointments. No dependency changes. UI language follows existing Spanish project conventions.

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BarberHub · sistema visual extraído</title>
+<style>
+:root {
+  --bh-brand-primary:#496C35; --bh-brand-primary-ink:#FFFFFF;
+  --bh-brand-accent:#B8885A; --bh-brand-accent-ink:#000000;
+  --bh-brand-surface:#F8F7F4; --bh-public-border:#E5E4DF;
+  --bh-public-muted:#6B7280; --bh-public-ink:#141413;
+  --bh-public-secondary:#52525B; --bh-customer-ink:#1F2937;
+  --bh-customer-description:#374151; --bh-cover-fallback:#E7E5DF;
+  --bh-cover-empty:#EAE8E2; --bh-white:#FFFFFF; --bh-focus:#27272A;
+  --bh-font:ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bh-brand-surface);color:var(--bh-public-ink);font:16px/1.5 var(--bh-font)}
+main{width:min(100% - 40px,1440px);margin:auto;padding:56px 0 80px}header{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:40px}h1{font-size:40px;line-height:1.1;letter-spacing:-.035em;margin:0}h2{font-size:22px;margin:0 0 18px}h3{font-size:16px;margin:0}p{margin:0;color:var(--bh-public-muted)}
+section{margin-top:40px}.intro{display:grid;gap:8px}.intro p{max-width:60ch}.color-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.swatch{overflow:hidden;border:1px solid var(--bh-public-border);border-radius:12px;background:var(--bh-white)}.sample{height:68px;background:var(--sample)}.swatch div:last-child{padding:12px}.swatch code{display:block;color:var(--bh-public-muted);font:12px/1.5 var(--bh-font)}
+.type-sample{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:baseline;border-top:1px solid var(--bh-public-border);padding:18px 0}.type-sample strong{color:var(--bh-public-muted);font-size:13px}.type-large{font-size:32px;font-weight:700;letter-spacing:-.03em}.type-body{font-size:16px}.type-small{font-size:12px;color:var(--bh-public-muted)}
+.scale{display:flex;align-items:end;flex-wrap:wrap;gap:12px}.step{display:grid;justify-items:center;gap:8px;color:var(--bh-public-muted);font-size:12px}.block{width:var(--w);height:24px;background:var(--bh-brand-primary);border-radius:4px}
+.radius-grid,.shadow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}.radius,.shadow{min-height:90px;display:grid;place-items:center;border:1px solid var(--bh-public-border);background:var(--bh-white);font-size:13px;color:var(--bh-public-secondary)}.radius{border-radius:var(--r)}.shadow{box-shadow:var(--s);border-radius:12px}
+.components{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.panel{padding:20px;border:1px solid var(--bh-public-border);border-radius:24px;background:var(--bh-white);box-shadow:0 12px 34px rgb(30 48 34 / 5%)}.button{display:inline-flex;min-height:44px;align-items:center;border-radius:12px;padding:10px 16px;background:var(--bh-brand-primary);color:var(--bh-brand-primary-ink);font-weight:600}.button.accent{background:var(--bh-brand-accent);color:var(--bh-brand-accent-ink)}.focus{outline:3px solid var(--bh-focus);outline-offset:3px}.choice{border:1px solid var(--bh-public-border);border-radius:18px;padding:14px;background:color-mix(in srgb,var(--bh-brand-primary) 6%,white)}.token-note{margin-top:10px;font-size:13px;color:var(--bh-public-muted)}
+@media(max-width:600px){main{width:min(100% - 28px,1440px);padding-top:32px}header{display:block}h1{font-size:32px}.type-sample{grid-template-columns:1fr;gap:6px}}
+</style>
+</head>
+<body><main>
+<header><div class="intro"><h1>BarberHub, en sus propios términos</h1><p>Tokens observados en la experiencia pública de reserva y en el branding del cliente. La muestra primaria es el fallback: cada barbería aporta sus colores reales en ejecución.</p></div></header>
+<section aria-labelledby="colors"><h2 id="colors">Color y contraste</h2><div class="color-grid">
+<div class="swatch"><div class="sample" style="--sample:var(--bh-brand-primary)"></div><div><strong>Primary · fallback</strong><code>#496C35</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-brand-primary-ink)"></div><div><strong>Primary ink · muestra</strong><code>#FFFFFF; runtime #000000 o #FFFFFF</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-brand-accent)"></div><div><strong>Accent · fallback</strong><code>#B8885A</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-brand-accent-ink)"></div><div><strong>Accent ink · muestra</strong><code>#000000; runtime #000000 o #FFFFFF</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-brand-surface)"></div><div><strong>Customer surface</strong><code>#F8F7F4</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-public-border)"></div><div><strong>Public border</strong><code>#E5E4DF</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-public-muted)"></div><div><strong>Public muted</strong><code>#6B7280</code></div></div>
+<div class="swatch"><div class="sample" style="--sample:var(--bh-customer-ink)"></div><div><strong>Customer ink</strong><code>#1F2937</code></div></div>
+</div><p class="token-note">Other observed text and fallback values: #141413, #52525B, #374151, #E7E5DF, #EAE8E2, #27272A, #FFFFFF.</p></section>
+<section aria-labelledby="type"><h2 id="type">Tipografía</h2>
+<div class="type-sample"><strong>Local /book headline</strong><span class="type-large">Tu próxima cita</span></div>
+<div class="type-sample"><strong>Body · this portable board</strong><span class="type-body">ui-sans-serif, system-ui, sans-serif · texto legible, directo y funcional.</span></div>
+<div class="type-sample"><strong>Supporting text</strong><span class="type-small">12px secondary content · labels and metadata remain readable.</span></div>
+<p class="token-note">Production booking declares local Plus Jakarta Sans and italic Instrument Serif; this self-contained board uses the system stack only.</p></section>
+<section aria-labelledby="spacing"><h2 id="spacing">Espaciado observado</h2><div class="scale">
+<div class="step"><div class="block" style="--w:4px"></div>.25rem</div><div class="step"><div class="block" style="--w:8px"></div>.5rem</div><div class="step"><div class="block" style="--w:12px"></div>.75rem</div><div class="step"><div class="block" style="--w:16px"></div>1rem</div><div class="step"><div class="block" style="--w:20px"></div>1.25rem</div><div class="step"><div class="block" style="--w:24px"></div>1.5rem</div><div class="step"><div class="block" style="--w:32px"></div>2rem</div><div class="step"><div class="block" style="--w:40px"></div>2.5rem</div></div></section>
+<section aria-labelledby="radii"><h2 id="radii">Radios observados</h2><div class="radius-grid"><div class="radius" style="--r:10px">.625rem · customer action</div><div class="radius" style="--r:12px">.75rem · field/button</div><div class="radius" style="--r:16px">1rem · map/dialog</div><div class="radius" style="--r:18px">1.125rem · choice</div><div class="radius" style="--r:24px">1.5rem · panel</div><div class="radius" style="--r:32px">2rem · intro</div><div class="radius" style="--r:9999px">9999px · avatar</div></div></section>
+<section aria-labelledby="shadows"><h2 id="shadows">Sombras observadas</h2><div class="shadow-grid"><div class="shadow" style="--s:0 22px 55px rgb(31 41 35 / 12%)">Editorial intro</div><div class="shadow" style="--s:0 12px 34px rgb(30 48 34 / 5%)">Panel</div><div class="shadow" style="--s:0 8px 22px rgb(30 48 34 / 6%)">Interactive choice hover</div></div></section>
+<section aria-labelledby="components"><h2 id="components">Componentes y estados</h2><div class="components"><article class="panel"><h3>Superficie pública</h3><p class="token-note">Blanca sobre el canvas suave, borde neutro y separación clara.</p></article><article class="panel"><h3>Acciones de marca</h3><p class="token-note"><span class="button">Principal</span> <span class="button accent">Acento</span></p></article><article class="panel"><h3>Opción seleccionada</h3><p class="token-note choice">Estado activo basado en el color primario del tenant.</p></article><article class="panel"><h3>Foco visible</h3><p class="token-note"><span class="button focus">Control enfocado</span></p></article></div></section>
+</main></body></html>
