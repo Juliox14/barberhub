@@ -75,13 +75,28 @@
                                 @if ($recoverableEvents->isNotEmpty())
                                     <details class="text-sm lg:col-span-4">
                                         <summary class="cursor-pointer text-amber-200 underline underline-offset-4">Historial recuperable</summary>
-                                        <p class="mt-2 text-slate-400">Solo se pueden recuperar fecha y estado registrados. El barbero, servicio y cliente no están guardados en este historial.</p>
-                                        <ul class="mt-3 space-y-2">
+                                        <p class="mt-2 max-w-3xl leading-6 text-slate-400">Solo se pueden recuperar fecha y estado registrados. El barbero, servicio y cliente no están guardados en este historial.</p>
+                                        <ul class="mt-3 space-y-3">
                                             @foreach ($recoverableEvents as $historyEvent)
-                                                <li>
-                                                    <a class="text-slate-200 underline underline-offset-4 hover:text-amber-200" href="{{ route('tenant.appointments.restore.show', [$barbershop, $appointment, 'event' => $historyEvent->id]) }}">
-                                                        {{ $historyEvent->label() }}: {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }} → {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('after_starts_at'))->format('d/m/Y H:i') }}
-                                                    </a>
+                                                <li class="space-y-2 rounded-lg border border-slate-800 p-3 sm:p-4">
+                                                    <h4 class="font-semibold text-slate-100">{{ $historyEvent->label() }}</h4>
+                                                    <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                                                        <div>
+                                                            <dt class="text-xs font-medium text-slate-400">Valor anterior</dt>
+                                                            <dd class="mt-1 flex flex-wrap items-center gap-2 text-slate-200">
+                                                                <time datetime="{{ $historyEvent->getRawOriginal('before_starts_at') }}">{{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }}</time>
+                                                                @include('tenant.partials.appointment-status-badge', ['status' => $historyEvent->before_status])
+                                                            </dd>
+                                                        </div>
+                                                        <div>
+                                                            <dt class="text-xs font-medium text-slate-400">Valor actual registrado</dt>
+                                                            <dd class="mt-1 flex flex-wrap items-center gap-2 text-slate-200">
+                                                                <time datetime="{{ $historyEvent->getRawOriginal('after_starts_at') }}">{{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('after_starts_at'))->format('d/m/Y H:i') }}</time>
+                                                                @include('tenant.partials.appointment-status-badge', ['status' => $historyEvent->after_status])
+                                                            </dd>
+                                                        </div>
+                                                    </dl>
+                                                    <a class="inline-flex min-h-11 items-center text-sm font-semibold text-amber-200 underline underline-offset-4 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" href="{{ route('tenant.appointments.restore.show', [$barbershop, $appointment, 'event' => $historyEvent->id]) }}">Revisar y recuperar este cambio</a>
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -131,11 +146,39 @@
                     @foreach ($restorableAppointments as $historicalAppointment)
                         @php($recoverableEvents = $historicalAppointment->events->filter(fn ($event) => in_array($event->event_kind, ['rescheduled', 'cancelled', 'completed', 'no_show', 'restored'], true) && $event->before_starts_at !== null && $event->after_starts_at !== null && in_array($event->before_status, [\App\Models\Appointment::STATUS_SCHEDULED, \App\Models\Appointment::STATUS_CANCELLED, \App\Models\Appointment::STATUS_COMPLETED, \App\Models\Appointment::STATUS_NO_SHOW], true) && $event->getRawOriginal('after_starts_at') === $historicalAppointment->getRawOriginal('starts_at') && $event->after_status === $historicalAppointment->status)))
                         @if ($recoverableEvents->isNotEmpty())
-                            <article class="space-y-3 px-5 py-4 sm:px-6">
-                                <h3 class="font-semibold text-slate-100">{{ $historicalAppointment->customer?->name ?? 'Cliente sin registrar' }} · {{ \Illuminate\Support\Carbon::parse($historicalAppointment->getRawOriginal('starts_at'))->format('d/m/Y H:i') }} · {{ $historicalAppointment->status }}</h3>
-                                <ul class="space-y-2">
+                            <article class="space-y-3 px-5 py-5 sm:px-6">
+                                <h3 class="break-words text-base font-semibold text-slate-100">{{ $historicalAppointment->customer?->name ?? 'Cliente sin registrar' }}</h3>
+                                <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                                    <div>
+                                        <dt class="text-xs font-medium text-slate-400">Fecha y hora</dt>
+                                        <dd class="mt-1 flex flex-wrap items-center gap-2 text-slate-200">
+                                            <time datetime="{{ $historicalAppointment->getRawOriginal('starts_at') }}">{{ \Illuminate\Support\Carbon::parse($historicalAppointment->getRawOriginal('starts_at'))->format('d/m/Y') }} · {{ \Illuminate\Support\Carbon::parse($historicalAppointment->getRawOriginal('starts_at'))->format('H:i') }}</time>
+                                            @include('tenant.partials.appointment-status-badge', ['status' => $historicalAppointment->status])
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <ul class="space-y-3">
                                     @foreach ($recoverableEvents as $historyEvent)
-                                        <li><a class="text-sm text-amber-200 underline underline-offset-4" href="{{ route('tenant.appointments.restore.show', [$barbershop, $historicalAppointment, 'event' => $historyEvent->id]) }}">{{ $historyEvent->label() }} · recuperar valor anterior ({{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }})</a></li>
+                                        <li class="space-y-2 rounded-lg border border-slate-800 p-3 sm:p-4">
+                                            <h4 class="font-semibold text-slate-100">{{ $historyEvent->label() }}</h4>
+                                            <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                                                <div>
+                                                    <dt class="text-xs font-medium text-slate-400">Valor anterior</dt>
+                                                    <dd class="mt-1 flex flex-wrap items-center gap-2 text-slate-200">
+                                                        <time datetime="{{ $historyEvent->getRawOriginal('before_starts_at') }}">{{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('d/m/Y') }} · {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('before_starts_at'))->format('H:i') }}</time>
+                                                        @include('tenant.partials.appointment-status-badge', ['status' => $historyEvent->before_status])
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-xs font-medium text-slate-400">Valor actual registrado</dt>
+                                                    <dd class="mt-1 flex flex-wrap items-center gap-2 text-slate-200">
+                                                        <time datetime="{{ $historyEvent->getRawOriginal('after_starts_at') }}">{{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('after_starts_at'))->format('d/m/Y') }} · {{ \Illuminate\Support\Carbon::parse($historyEvent->getRawOriginal('after_starts_at'))->format('H:i') }}</time>
+                                                        @include('tenant.partials.appointment-status-badge', ['status' => $historyEvent->after_status])
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                            <a class="inline-flex min-h-11 items-center text-sm font-semibold text-amber-200 underline underline-offset-4 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" href="{{ route('tenant.appointments.restore.show', [$barbershop, $historicalAppointment, 'event' => $historyEvent->id]) }}">Revisar y recuperar este cambio</a>
+                                        </li>
                                     @endforeach
                                 </ul>
                             </article>

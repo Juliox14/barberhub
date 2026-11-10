@@ -35,8 +35,9 @@ class TenantAppointmentRestorationTest extends TestCase
         $this->actingAs($owner)
             ->get(route('tenant.appointments.restore.show', [$shop, $appointment, 'event' => $event->id], false))
             ->assertOk()
-            ->assertSee('05/10/2026 10:00')
-            ->assertSee('05/10/2026 11:00')
+            ->assertSee('05/10/2026')
+            ->assertSee('10:00')
+            ->assertSee('11:00')
             ->assertSee('date=2026-10-05', false)
             ->assertSee('debe coincidir al confirmar')
             ->assertSee('name="_token"', false);
@@ -104,8 +105,9 @@ class TenantAppointmentRestorationTest extends TestCase
         $this->actingAs($owner)
             ->get(route('tenant.appointments.restore.show', [$shop, $appointment, 'event' => $event->id], false))
             ->assertOk()
-            ->assertSee('05/10/2026 01:00')
-            ->assertSee('05/10/2026 02:00')
+            ->assertSee('05/10/2026')
+            ->assertSee('01:00')
+            ->assertSee('02:00')
             ->assertSee('date=2026-10-05', false);
 
         $this->actingAs($owner)

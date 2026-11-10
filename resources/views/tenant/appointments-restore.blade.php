@@ -8,17 +8,51 @@
 
         <section class="space-y-4 rounded-xl border border-slate-800 bg-[#111820] p-5 sm:p-6" aria-labelledby="restore-values-heading">
             <h2 id="restore-values-heading" class="font-semibold text-white">{{ $event->label() }}</h2>
-            <dl class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Valor histórico que se restaurará</dt>
-                    <dd class="mt-1 text-slate-100">{{ \Illuminate\Support\Carbon::parse($event->getRawOriginal('before_starts_at'))->format('d/m/Y H:i') }} · {{ $event->before_status }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Valor actual (debe coincidir al confirmar)</dt>
-                    <dd class="mt-1 text-slate-100">{{ \Illuminate\Support\Carbon::parse($appointment->getRawOriginal('starts_at'))->format('d/m/Y H:i') }} · {{ $appointment->status }}</dd>
-                </div>
-            </dl>
-            <p class="text-sm leading-6 text-amber-100">Este historial solo permite recuperar fecha y estado. No registra cambios del barbero, servicio o cliente; esos datos no pueden reconstruirse aquí. Si se vuelve a programar, se validarán horarios, disponibilidad, relaciones y conflictos. Una cita cancelada, completada o marcada como no asistió puede volver a programada y afectará los reportes.</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <section class="min-w-0 rounded-lg border border-slate-700 bg-slate-900/50 p-4" aria-labelledby="historical-value-heading">
+                    <h3 id="historical-value-heading" class="text-sm font-semibold text-slate-100">Valor histórico que se restaurará</h3>
+                    <dl class="mt-3 space-y-3">
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Fecha</dt>
+                            <dd class="mt-1 font-semibold tabular-nums text-slate-100">{{ \Illuminate\Support\Carbon::parse($event->getRawOriginal('before_starts_at'))->format('d/m/Y') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Hora</dt>
+                            <dd class="mt-1 font-semibold tabular-nums text-slate-100">{{ \Illuminate\Support\Carbon::parse($event->getRawOriginal('before_starts_at'))->format('H:i') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Estado</dt>
+                            <dd class="mt-1">@include('tenant.partials.appointment-status-badge', ['status' => $event->before_status])</dd>
+                        </div>
+                    </dl>
+                </section>
+                <section class="min-w-0 rounded-lg border border-amber-300/30 bg-amber-300/5 p-4" aria-labelledby="current-value-heading">
+                    <h3 id="current-value-heading" class="text-sm font-semibold text-slate-100">Valor actual (debe coincidir al confirmar)</h3>
+                    <dl class="mt-3 space-y-3">
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Fecha</dt>
+                            <dd class="mt-1 font-semibold tabular-nums text-slate-100">{{ \Illuminate\Support\Carbon::parse($appointment->getRawOriginal('starts_at'))->format('d/m/Y') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Hora</dt>
+                            <dd class="mt-1 font-semibold tabular-nums text-slate-100">{{ \Illuminate\Support\Carbon::parse($appointment->getRawOriginal('starts_at'))->format('H:i') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-400">Estado</dt>
+                            <dd class="mt-1">@include('tenant.partials.appointment-status-badge', ['status' => $appointment->status])</dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+            <div class="space-y-2 text-sm leading-6 text-amber-100" aria-labelledby="recovery-limits-heading">
+                <h3 id="recovery-limits-heading" class="font-semibold">Antes de confirmar</h3>
+                <ul class="list-disc space-y-1 pl-5">
+                    <li>Este historial solo permite recuperar fecha y estado.</li>
+                    <li>No registra cambios del barbero, servicio o cliente; esos datos no pueden reconstruirse aquí.</li>
+                    <li>Si se vuelve a programar, se validarán horarios, disponibilidad, relaciones y conflictos.</li>
+                    <li>Una cita cancelada, completada o marcada como no asistió puede volver a programada y afectará los reportes.</li>
+                </ul>
+            </div>
         </section>
 
         <form method="POST" action="{{ route('tenant.appointments.restore', [$barbershop, $appointment]) }}" class="space-y-5 rounded-xl border border-slate-800 bg-[#111820] p-5 sm:p-6">
