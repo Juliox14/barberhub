@@ -75,7 +75,8 @@ self.addEventListener('notificationclick', (event) => {
         return;
     }
 
-    if (target.origin !== self.location.origin || !/^\/barbershops\/[^/]+\/appointments$/.test(target.pathname)) {
+    const allowedPath = /^\/barbershops\/[^/]+\/(?:appointments|book|profile)$/.test(target.pathname);
+    if (target.origin !== self.location.origin || !allowedPath) {
         return;
     }
 

@@ -87,12 +87,38 @@
                 </form>
             </section>
 
-            <section class="bh-public-panel bh-profile-section" aria-labelledby="reminders-heading">
+            <section class="bh-public-panel bh-profile-section" aria-labelledby="reminders-heading" data-customer-reminders
+                data-subscribe-url="{{ route('customer.profile.push-subscriptions.store', $barbershop) }}"
+                data-settings-url="{{ route('customer.profile.reminders.update', $barbershop) }}"
+                data-vapid-public-key="{{ config('webpush.public_key') }}"
+                data-timezone="{{ $barbershop->timezone }}"
+                data-frequency="{{ $preferences['customer_reminders']['frequency_months'] ?? 1 }}"
+                data-enabled="{{ ($preferences['customer_reminders']['enabled'] ?? false) ? 'true' : 'false' }}"
+                data-due-at="{{ \App\Support\CustomerReminders::dueAt($customer, $barbershop)?->toIso8601String() }}">
                 <header class="bh-profile-section-heading">
-                    <h2 id="reminders-heading">Recordatorios</h2>
-                    <span>Próximamente</span>
+                    <h2 id="reminders-heading">Recordatorios de corte</h2>
+                    <span>Solo para {{ $barbershop->name }}</span>
                 </header>
-                <p class="bh-profile-reminder-copy">Los recordatorios para volver a reservar todavía no están disponibles. Esta sección se habilitará cuando estén listos.</p>
+                <p class="bh-profile-reminder-copy">Recibe un aviso para volver a reservar. El plazo empieza desde tu último corte completado; si aún no tienes visitas, desde que lo actives.</p>
+                <form class="bh-reminder-form">
+                    <label for="reminder-frequency">Frecuencia</label>
+                    <select id="reminder-frequency" name="frequency_months" data-reminder-frequency>
+                        <option value="1" @selected((int) ($preferences['customer_reminders']['frequency_months'] ?? 1) === 1)>Cada mes</option>
+                        <option value="2" @selected((int) ($preferences['customer_reminders']['frequency_months'] ?? 1) === 2)>Cada 2 meses</option>
+                        <option value="3" @selected((int) ($preferences['customer_reminders']['frequency_months'] ?? 1) === 3)>Cada 3 meses</option>
+                    </select>
+                    <button class="bh-public-button" type="button" data-reminder-enable>{{ ($preferences['customer_reminders']['enabled'] ?? false) ? 'Actualizar frecuencia' : 'Activar recordatorios' }}</button>
+                    <button class="bh-profile-action" type="button" data-reminder-disable @disabled(! ($preferences['customer_reminders']['enabled'] ?? false))>Desactivar</button>
+                </form>
+                <p class="bh-profile-helper" role="status" aria-live="polite" data-reminder-status>
+                    @if (($preferences['customer_reminders']['enabled'] ?? false))
+                        @if ($dueAt = \App\Support\CustomerReminders::dueAt($customer, $barbershop))
+                            Próximo aviso: {{ $dueAt->timezone($barbershop->timezone)->locale('es')->translatedFormat('j \d\e F \d\e Y') }} ({{ $barbershop->timezone }}).
+                        @endif
+                    @else
+                        Requiere un navegador compatible, permiso de notificaciones y conexión segura HTTPS.
+                    @endif
+                </p>
             </section>
         </div>
     </div>

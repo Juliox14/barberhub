@@ -1,3 +1,5 @@
+import('./customer-reminders.js');
+
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 const userAgent = window.navigator.userAgent;
 const isIOS = /iphone|ipad|ipod/i.test(userAgent) || (/macintosh/i.test(userAgent) && window.navigator.maxTouchPoints > 1);

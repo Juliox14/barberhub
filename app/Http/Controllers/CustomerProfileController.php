@@ -10,6 +10,7 @@ use App\Support\TenantBranding;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 class CustomerProfileController extends Controller
 {
@@ -48,17 +49,20 @@ class CustomerProfileController extends Controller
     public function updatePreferences(UpdateCustomerPreferencesRequest $request, Barbershop $barbershop): RedirectResponse
     {
         $customer = $this->customerFor($request, $barbershop);
-        $preference = $customer->preference()->firstOrNew();
-        $existingPreferences = $preference->preferences ?? [];
         $validated = $request->validated();
-        $updatedPreferences = array_merge($existingPreferences, [
-            'preferred_barber_id' => isset($validated['preferred_barber_id']) ? (int) $validated['preferred_barber_id'] : null,
-            'preferred_service_id' => isset($validated['preferred_service_id']) ? (int) $validated['preferred_service_id'] : null,
-            'notes' => $validated['notes'] ?? '',
-        ]);
+        DB::transaction(function () use ($customer, $validated): void {
+            Customer::query()->whereKey($customer->id)->lockForUpdate()->firstOrFail();
+            $preference = $customer->preference()->lockForUpdate()->firstOrNew();
+            $existingPreferences = $preference->preferences ?? [];
+            $updatedPreferences = array_merge($existingPreferences, [
+                'preferred_barber_id' => isset($validated['preferred_barber_id']) ? (int) $validated['preferred_barber_id'] : null,
+                'preferred_service_id' => isset($validated['preferred_service_id']) ? (int) $validated['preferred_service_id'] : null,
+                'notes' => $validated['notes'] ?? '',
+            ]);
 
-        $preference->preferences = $updatedPreferences;
-        $preference->save();
+            $preference->preferences = $updatedPreferences;
+            $preference->save();
+        }, 3);
 
         return redirect()->route('customer.profile.show', $barbershop)->with('status', 'Tus preferencias se guardaron.');
     }

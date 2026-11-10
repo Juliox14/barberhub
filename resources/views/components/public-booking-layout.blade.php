@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }} · {{ $barbershop->name }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/pwa.js'])
 </head>
 <body class="bh-public" style="--bh-brand-primary: {{ $branding['primary'] }}; --bh-brand-primary-ink: {{ $branding['primary_foreground'] }}; --bh-brand-accent: {{ $branding['accent'] }}; --bh-brand-accent-ink: {{ $branding['accent_foreground'] }}; --bh-brand-surface: {{ $branding['surface'] }};">
     <header class="bh-public-header">
