@@ -119,6 +119,7 @@ Route::prefix('/barbershops/{barbershop:slug}/book')->name('public.booking.')->g
 });
 
 require __DIR__.'/public-availability.php';
+require __DIR__.'/customer-profile.php';
 require __DIR__.'/public-booking-management.php';
 require __DIR__.'/guest-booking-verification.php';
 require __DIR__.'/auth.php';

@@ -16,7 +16,12 @@
             @endif
             <span>{{ $barbershop->name }}</span>
         </a>
-        <a href="{{ route('login') }}" class="bh-public-link">{{ auth()->check() ? 'Mi cuenta' : 'Iniciar sesión' }}</a>
+        <nav class="bh-public-header-actions" aria-label="Cuenta y reservas">
+            @if (request()->routeIs('public.booking.create') && auth()->user()?->customers()->where('barbershop_id', $barbershop->id)->exists())
+                <a href="{{ route('customer.profile.show', $barbershop) }}" class="bh-public-link">Mi perfil</a>
+            @endif
+            <a href="{{ route('login') }}" class="bh-public-link">{{ auth()->check() ? 'Mi cuenta' : 'Iniciar sesión' }}</a>
+        </nav>
     </header>
     <main id="main-content" class="bh-public-main">
         @if ($errors->any())
