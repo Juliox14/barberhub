@@ -19,7 +19,7 @@ class PublicBookingHistoryTest extends TestCase
 
     public function test_staff_create_reschedule_cancel_complete_and_no_show_record_actor_history(): void
     {
-        $this->travelTo('2026-10-07 12:00:00 America/Mexico_City');
+        $this->travelTo('2026-10-04 12:00:00 America/Mexico_City');
 
         $shop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
         $owner = User::factory()->create();
@@ -50,6 +50,7 @@ class PublicBookingHistoryTest extends TestCase
             'before_starts_at' => '2026-10-05 10:00:00', 'after_starts_at' => '2026-10-05 11:00:00',
         ]);
 
+        $this->travelTo('2026-10-07 12:00:00 America/Mexico_City');
         foreach ([['complete', Appointment::STATUS_COMPLETED], ['no-show', Appointment::STATUS_NO_SHOW], ['cancel', Appointment::STATUS_CANCELLED]] as [$action, $status]) {
             $record = Appointment::factory()->for($shop)->for($barber)->for($service)->create([
                 'starts_at' => '2026-10-06 10:00:00', 'ends_at' => '2026-10-06 10:30:00',

@@ -186,6 +186,7 @@ class BarberPushNotificationTest extends TestCase
 
     public function test_owner_scheduling_for_another_barber_queues_assigned_event_after_success(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $owner, $barber, $service] = $this->appointmentContext();
         Queue::fake();
         config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);
@@ -205,6 +206,7 @@ class BarberPushNotificationTest extends TestCase
 
     public function test_owner_rescheduling_and_cancellation_queue_only_their_matching_events(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $owner, , , $appointment] = $this->appointmentContext();
         Queue::fake();
         config(['webpush.public_key' => 'test-public-key', 'webpush.private_key' => 'test-private-key', 'webpush.subject' => 'mailto:test@example.test']);

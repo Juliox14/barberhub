@@ -102,7 +102,7 @@ final class AppointmentRestoration
 
             if ($lockedEvent->before_status === Appointment::STATUS_SCHEDULED) {
                 $lockedAppointment->update(['status' => Appointment::STATUS_SCHEDULED]);
-                $restored = $scheduler->reschedule($lockedAppointment, $targetStartsAt);
+                $restored = $scheduler->reschedule($lockedAppointment, $targetStartsAt, requireFutureStart: false);
             } else {
                 $lockedAppointment->update([
                     'starts_at' => $targetStartsAt,

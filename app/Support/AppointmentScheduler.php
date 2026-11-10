@@ -38,9 +38,9 @@ class AppointmentScheduler
         });
     }
 
-    public function reschedule(Appointment $appointment, CarbonInterface $startsAt): Appointment
+    public function reschedule(Appointment $appointment, CarbonInterface $startsAt, bool $requireFutureStart = true): Appointment
     {
-        return DB::transaction(function () use ($appointment, $startsAt): Appointment {
+        return DB::transaction(function () use ($appointment, $startsAt, $requireFutureStart): Appointment {
             $barber = Barber::query()->whereKey($appointment->barber_id)->lockForUpdate()->firstOrFail();
             $appointment = Appointment::query()->whereKey($appointment->id)->lockForUpdate()->firstOrFail();
 
@@ -59,6 +59,7 @@ class AppointmentScheduler
                 $startsAt,
                 $endsAt,
                 $appointment->id,
+                $requireFutureStart,
             );
 
             $appointment->update(['starts_at' => $startsAt, 'ends_at' => $endsAt]);
@@ -75,6 +76,7 @@ class AppointmentScheduler
         CarbonInterface $startsAt,
         CarbonInterface $endsAt,
         ?int $ignoreAppointmentId = null,
+        bool $requireFutureStart = true,
     ): void {
         $errors = [];
 
@@ -96,6 +98,12 @@ class AppointmentScheduler
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
+        }
+
+        if ($requireFutureStart && $startsAt->lessThanOrEqualTo(now($barbershop->timezone))) {
+            throw ValidationException::withMessages([
+                'starts_at' => ['La cita debe programarse en una fecha y hora futuras.'],
+            ]);
         }
 
         $this->validateBusinessHourBounds($barbershop, $startsAt, $endsAt);

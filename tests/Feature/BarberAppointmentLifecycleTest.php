@@ -19,6 +19,7 @@ class BarberAppointmentLifecycleTest extends TestCase
 
     public function test_barber_reschedules_own_appointment_with_service_duration(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $user, $barber, $service, $appointment] = $this->appointmentContext();
 
         $this->actingAs($user)
@@ -117,6 +118,7 @@ class BarberAppointmentLifecycleTest extends TestCase
 
     public function test_reschedule_rejects_overlap_and_preserves_all_appointment_fields(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $user, $barber, $service, $appointment] = $this->appointmentContext();
         $blocking = Appointment::factory()->for($barbershop)->for($barber)->for($service)->create([
             'starts_at' => '2026-10-05 11:00:00',

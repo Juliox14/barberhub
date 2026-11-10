@@ -9,7 +9,7 @@ Branch: feat/threat-eradication; delivery: local-only work units, no publication
 Implementation constraints: preserve already-existing historical records and recovery semantics; match public strict-future scheduling convention and shop timezone; no new dependencies, database migrations, secrets, unrelated repairs or changes to the Gemini guide/captures. UI refinement preserves existing brand, forms, CSRF, routes, permissions, eligibility, raw wall-clock date convention and recovery warnings.
 
 ## Tasks
-- T1 | S1 | delegated writer (context backstop), independent verifier required for shared helper item3 | blocked | commit: pending | blocker: independent verifier returned unavailable without executing; functional writer tests pass; differential partial (public reschedule/history match, public create not established).
+- T1 | S1 | delegated writer (context backstop), independent verifier unavailable | done (explicit user-directed delivery; functional checks passed, independent proof unavailable) | commit: pending | limitation: public-create differential not established; no independent verification claim.
 - T2 | S2 | delegated UI worker (context backstop; disjoint views) | done (render/build checked, no browser) | commit: 2d38a78 | Risk: none if only presentation.
 - T3 | S1-S2 | parent integration/readback and bookkeeping | done (T1 proof stop disclosed) | commit: 2d38a78 (verified presentation candidate) | follow T1 proof stop; no bypass of unavailable verifier.
 
@@ -49,3 +49,8 @@ Final integration job-4 exit1:646 tests639passed6failed1skipped5665assertions. P
 
 ### L8 — Local presentation delivery and bounded stop
 Presentation unit committed2d38a78 (279 authored diff lines,254 additions25 deletions). Only two UI views/status partial, rendering tests and this tracking document included. Scheduling/restoration temporal source and fixture patches remain UNCOMMITTED, preserved in working tree; not reverted or published. T1 stays blocked: independent verifier did not execute; differential public-create case inconclusive. Requires explicit human disposition of missing proof before treating temporal correction as finished. No further verifier/differential run or replacement permitted automatically. T2 and T3 completed with precise limits; no browser screenshots/viewport validation claimed. Untracked guide/captures/Http/storage preserved.
+
+### L9 — Explicit delivery request (verbatim)
+Bien, commitea y mergea a main para que cerremos esta session
+
+User directs commit and local merge after the proof limitations were disclosed. This is delivery authorization, not evidence that an independent verification ran. Record functional implementation as delivered; keep unavailable independent verification and incomplete public-create differential as limitations. No verifier retry/replacement, no invented proof, no push or deployment. Before delivery, parent targeted set26passed200assertions, Pint and diffcheck passed. Full suite and build pending final result. Include the session-authored Gemini guide and preserve current one-character history-view syntax correction; exclude untracked captures/,storage/,app/Http/Controllers/Http/.

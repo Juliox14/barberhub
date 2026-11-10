@@ -21,6 +21,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_schedules_internal_appointment_with_service_derived_duration(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service, $customer] = $this->scheduleableContext(durationMinutes: 45);
 
         $appointment = app(AppointmentScheduler::class)->schedule(
@@ -45,6 +46,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_rejects_cross_tenant_barber_service_and_customer(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         $otherBarbershop = Barbershop::factory()->create();
         $barber = Barber::factory()->for($otherBarbershop)->create(['active' => true]);
@@ -68,6 +70,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_rejects_start_time_outside_fifteen_minute_slot_grid(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service] = $this->scheduleableContext();
 
         $this->expectScheduleValidationError(
@@ -81,6 +84,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_rejects_appointment_outside_business_hours(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service] = $this->scheduleableContext(durationMinutes: 60);
 
         $this->expectScheduleValidationError(
@@ -94,6 +98,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_rejects_appointment_outside_barber_availability(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service] = $this->scheduleableContext(availabilityStart: '10:00', availabilityEnd: '16:00');
 
         $this->expectScheduleValidationError(
@@ -107,6 +112,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_rejects_overlapping_scheduled_appointment_for_same_barber(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service] = $this->scheduleableContext();
         Appointment::factory()->for($barbershop)->for($barber)->for($service)->create([
             'starts_at' => Carbon::parse('2026-10-05 10:00:00'),
@@ -126,6 +132,7 @@ class AppointmentFoundationTest extends TestCase
 
     public function test_cancelled_appointment_does_not_block_same_barber_slot(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         [$barbershop, $barber, $service] = $this->scheduleableContext();
         Appointment::factory()->for($barbershop)->for($barber)->for($service)->cancelled()->create([
             'starts_at' => Carbon::parse('2026-10-05 10:00:00'),

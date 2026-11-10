@@ -27,6 +27,7 @@ class TenantAppointmentManagementTest extends TestCase
 
     public function test_owner_can_view_tenant_appointments_and_create_one(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
         $owner = User::factory()->create();
         Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
@@ -124,6 +125,7 @@ class TenantAppointmentManagementTest extends TestCase
 
     public function test_owner_and_admin_can_create_appointments_for_unregistered_customers(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         foreach ([Membership::ROLE_OWNER, Membership::ROLE_ADMIN] as $role) {
             $barbershop = Barbershop::factory()->create();
             $manager = User::factory()->create();
@@ -156,6 +158,7 @@ class TenantAppointmentManagementTest extends TestCase
 
     public function test_admin_can_create_an_appointment(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         $admin = User::factory()->create();
         Membership::factory()->for($admin)->for($barbershop)->create(['role' => Membership::ROLE_ADMIN]);
@@ -180,6 +183,7 @@ class TenantAppointmentManagementTest extends TestCase
 
     public function test_barber_can_create_an_appointment_for_an_existing_customer(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         $barberUser = User::factory()->create();
         Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);

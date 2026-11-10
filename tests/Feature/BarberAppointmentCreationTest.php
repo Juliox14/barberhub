@@ -47,6 +47,7 @@ class BarberAppointmentCreationTest extends TestCase
 
     public function test_barber_creates_name_only_customer_and_appointment_without_user(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         [$barberUser, $barber, $service] = $this->barberRecords($barbershop);
         $usersBefore = User::count();
@@ -75,6 +76,7 @@ class BarberAppointmentCreationTest extends TestCase
 
     public function test_barber_form_payload_accepts_existing_customer_with_empty_new_name(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         [$barberUser, $barber, $service, $customer] = $this->barberRecords($barbershop);
 
@@ -97,6 +99,7 @@ class BarberAppointmentCreationTest extends TestCase
 
     public function test_barber_form_payload_accepts_new_name_with_empty_customer_selection(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         [$barberUser, $barber, $service] = $this->barberRecords($barbershop);
 
@@ -120,6 +123,7 @@ class BarberAppointmentCreationTest extends TestCase
 
     public function test_platform_admin_with_barber_membership_can_select_another_active_barber(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         [$admin, $ownBarber, $service] = $this->barberRecords($barbershop);
         $admin->update(['is_platform_admin' => true]);
@@ -150,6 +154,7 @@ class BarberAppointmentCreationTest extends TestCase
 
     public function test_barber_creates_appointment_for_existing_tenant_customer(): void
     {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
         $barbershop = Barbershop::factory()->create();
         [$barberUser, $barber, $service, $customer] = $this->barberRecords($barbershop);
 
