@@ -1,6 +1,6 @@
 # Appointment time validation and history readability
 Objective: reject past appointment scheduling and improve the readability of existing history/recovery screens.
-Branch: feat/threat-eradication; delivery: local-only work units, no publication; runner: php artisan test --compact in SQLite :memory:.
+Branch: feat/threat-eradication (source); local main integration explicitly authorized; no push/deployment; runner: php artisan test --compact in SQLite :memory:.
 
 ## Specs
 - S1: "Oye hay que corregir una cosa, ahora mismo deja crear y modificar (reprogramar) citas con fechas y horas que ya pasaron."
@@ -9,7 +9,7 @@ Branch: feat/threat-eradication; delivery: local-only work units, no publication
 Implementation constraints: preserve already-existing historical records and recovery semantics; match public strict-future scheduling convention and shop timezone; no new dependencies, database migrations, secrets, unrelated repairs or changes to the Gemini guide/captures. UI refinement preserves existing brand, forms, CSRF, routes, permissions, eligibility, raw wall-clock date convention and recovery warnings.
 
 ## Tasks
-- T1 | S1 | delegated writer (context backstop), independent verifier unavailable | done (explicit user-directed delivery; functional checks passed, independent proof unavailable) | commit: pending | limitation: public-create differential not established; no independent verification claim.
+- T1 | S1 | delegated writer (context backstop), independent verifier unavailable | done (explicit user-directed delivery; functional checks passed, independent proof unavailable) | commit: ebf46c2 | limitation: public-create differential not established; no independent verification claim.
 - T2 | S2 | delegated UI worker (context backstop; disjoint views) | done (render/build checked, no browser) | commit: 2d38a78 | Risk: none if only presentation.
 - T3 | S1-S2 | parent integration/readback and bookkeeping | done (T1 proof stop disclosed) | commit: 2d38a78 (verified presentation candidate) | follow T1 proof stop; no bypass of unavailable verifier.
 
@@ -53,4 +53,8 @@ Presentation unit committed2d38a78 (279 authored diff lines,254 additions25 dele
 ### L9 — Explicit delivery request (verbatim)
 Bien, commitea y mergea a main para que cerremos esta session
 
-User directs commit and local merge after the proof limitations were disclosed. This is delivery authorization, not evidence that an independent verification ran. Record functional implementation as delivered; keep unavailable independent verification and incomplete public-create differential as limitations. No verifier retry/replacement, no invented proof, no push or deployment. Before delivery, parent targeted set26passed200assertions, Pint and diffcheck passed. Full suite and build pending final result. Include the session-authored Gemini guide and preserve current one-character history-view syntax correction; exclude untracked captures/,storage/,app/Http/Controllers/Http/.
+User directs commit and local merge after the proof limitations were disclosed. This is delivery authorization, not evidence that an independent verification ran. Record functional implementation as delivered; keep unavailable independent verification and incomplete public-create differential as limitations. No verifier retry/replacement, no invented proof, no push or deployment. Before delivery, parent targeted set26passed200assertions, Pint and diffcheck passed. Before-merge full suite exit1:646 total639passed6failed1skipped5665assertions; comparison confirms same six failures as baseline. Build exit0. Include the session-authored Gemini guide and preserve current one-character history-view syntax correction; exclude untracked captures/,storage/,app/Http/Controllers/Http/.
+
+### L10 — Final local delivery units
+Temporal validation with fixtures and regression:ebf46c2 (248 authored diff lines). Current history syntax correction:056eb84 (2 diff lines). Gemini report guide:98f762f (372 lines). UI remains2d38a78; prior security/restoration units remain their original separate commits. Final check result is not a fully green suite; independent temporal proof remains unavailable and public-create differential inconclusive. No retry, substitution or fabricated verdict.
+The user explicitly requests local merge of this branch into main to close the session. These existing cohesive slices form the locally authorized integration; no PR chain is opened, no push/merge to remote, no branch deletion or deployment. Remaining untracked captures/storage/Http are preserved. Merge outcome and final commit identity are recorded in the session memory after the Git operation.
