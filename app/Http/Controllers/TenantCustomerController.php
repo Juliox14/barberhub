@@ -18,6 +18,15 @@ final class TenantCustomerController extends Controller
         $user = $request->user();
         $membership = TenantDashboard::membershipFor($user, $barbershop);
 
+        if (! $user->is_platform_admin && $membership?->role === Membership::ROLE_BARBER) {
+            return view('tenant.barber-customers-index', [
+                'barbershop' => $barbershop,
+                'customers' => collect(),
+                'roleLabel' => TenantDashboard::roleLabel($membership),
+                'canManageMembers' => false,
+            ]);
+        }
+
         abort_unless(
             $user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN], true),
             403,

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appointment;
+use App\Models\Barber;
 use App\Models\Barbershop;
 use App\Models\Customer;
 use App\Models\Membership;
@@ -35,6 +37,11 @@ class TenantCustomersTest extends TestCase
                 ->assertSee('ana@example.com')
                 ->assertSee('555-0001')
                 ->assertSee('Zoe Cliente')
+                ->assertSee(route('tenant.customers.index', $barbershop), false)
+                ->assertSee(route('tenant.members.index', $barbershop), false)
+                ->assertSee(route('tenant.services.index', $barbershop), false)
+                ->assertSee(route('tenant.business-hours.index', $barbershop), false)
+                ->assertSee(route('tenant.barber-availability.index', $barbershop), false)
                 ->assertDontSee('Cliente ajeno')
                 ->assertViewHas('customers', fn ($customers): bool => $customers->pluck('name')->all() === ['Ana Cliente', 'Zoe Cliente']);
         }
@@ -73,24 +80,82 @@ class TenantCustomersTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function test_barber_inactive_member_customer_account_and_outsider_cannot_view_customers(): void
+    public function test_inactive_member_customer_account_and_outsider_cannot_view_customers(): void
     {
         $barbershop = Barbershop::factory()->create();
-        $barber = User::factory()->create();
+        $inactiveBarber = User::factory()->create();
         $inactiveAdmin = User::factory()->create();
         $customerAccount = User::factory()->create();
         $outsider = User::factory()->create();
-        Membership::factory()->for($barber)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
+        Membership::factory()->for($inactiveBarber)->for($barbershop)->create([
+            'role' => Membership::ROLE_BARBER,
+            'status' => Membership::STATUS_INACTIVE,
+        ]);
         Membership::factory()->for($inactiveAdmin)->for($barbershop)->create([
             'role' => Membership::ROLE_ADMIN,
             'status' => Membership::STATUS_INACTIVE,
         ]);
         Customer::factory()->for($barbershop)->for($customerAccount, 'user')->create();
 
-        foreach ([$barber, $inactiveAdmin, $customerAccount, $outsider] as $user) {
+        foreach ([$inactiveBarber, $inactiveAdmin, $customerAccount, $outsider] as $user) {
             $this->actingAs($user)
                 ->get(route('tenant.customers.index', $barbershop, false))
                 ->assertForbidden();
+        }
+    }
+
+    public function test_barber_sees_an_empty_regular_client_table_not_the_customer_directory_or_appointment_history(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = User::factory()->create();
+        Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
+        $barber = Barber::factory()->for($barbershop)->for($barberUser, 'user')->create();
+        $customer = Customer::factory()->for($barbershop)->for(User::factory())->create(['name' => 'Cliente con citas', 'email' => 'private@example.com']);
+        Appointment::factory()->for($barbershop)->for($barber)->for($customer)->create();
+        Customer::factory()->for($barbershop)->create(['name' => 'Cliente sin cuenta']);
+        $otherBarbershop = Barbershop::factory()->create();
+        Customer::factory()->for($otherBarbershop)->create(['name' => 'Cliente ajeno']);
+
+        $this->actingAs($barberUser)->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Mis clientes habituales')
+            ->assertSee('Todavía no tienes clientes habituales.')
+            ->assertSee('Nombre')
+            ->assertSee('Correo electrónico')
+            ->assertSee('Teléfono')
+            ->assertViewHas('customers', fn ($customers): bool => $customers->isEmpty())
+            ->assertViewHas('canManageMembers', false)
+            ->assertDontSee('Cliente con citas')
+            ->assertDontSee('private@example.com')
+            ->assertDontSee('Cliente sin cuenta')
+            ->assertDontSee('Cliente ajeno')
+            ->assertDontSee('Directorio de clientes')
+            ->assertDontSee('Invitar');
+
+        $this->get(route('tenant.customers.index', $otherBarbershop, false))->assertForbidden();
+    }
+
+    public function test_barber_navigation_shows_only_accessible_sections_across_tenant_pages(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = User::factory()->create();
+        Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
+        Barber::factory()->for($barbershop)->for($barberUser, 'user')->create();
+
+        foreach (['tenant.dashboard', 'tenant.appointments.index', 'tenant.customers.index'] as $route) {
+            $response = $this->actingAs($barberUser)->get(route($route, $barbershop, false))->assertOk();
+            $document = new DOMDocument;
+            $document->loadHTML($response->getContent());
+            $xpath = new DOMXPath($document);
+            $navigation = $xpath->query('//nav[@aria-label="Navegación de barbería"]')->item(0);
+
+            $this->assertNotNull($navigation);
+            foreach (['tenant.dashboard', 'tenant.appointments.index', 'tenant.customers.index'] as $accessibleRoute) {
+                $this->assertSame(1, $xpath->query('.//a[@href="'.route($accessibleRoute, $barbershop).'"]', $navigation)->length);
+            }
+            foreach (['Equipo', 'Servicios', 'Horarios', 'Disponibilidad', 'Marca', 'Reportes', 'Inventario', 'Configuración', 'Próximamente'] as $label) {
+                $this->assertStringNotContainsString($label, $navigation->textContent);
+            }
         }
     }
 
@@ -103,7 +168,7 @@ class TenantCustomersTest extends TestCase
         $this->actingAs($owner)
             ->get(route('tenant.customers.index', $barbershop, false))
             ->assertOk()
-            ->assertSee('Todavía no hay clientes registrados.');
+            ->assertSee('Todavía no hay clientes.');
 
         Customer::factory()->count(16)->for($barbershop)->sequence(
             ['name' => 'Cliente 01'],
@@ -135,7 +200,7 @@ class TenantCustomersTest extends TestCase
             ->assertSee('Cliente 16');
     }
 
-    public function test_customer_navigation_is_visible_only_to_managers_and_has_an_icon(): void
+    public function test_customer_navigation_is_visible_to_managers_and_barbers_and_has_an_icon(): void
     {
         $barbershop = Barbershop::factory()->create();
         $owner = User::factory()->create();
@@ -157,6 +222,6 @@ class TenantCustomersTest extends TestCase
         $this->actingAs($barber)
             ->get(route('tenant.dashboard', $barbershop, false))
             ->assertOk()
-            ->assertDontSee($href, false);
+            ->assertSee($href, false);
     }
 }

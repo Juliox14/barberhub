@@ -1,4 +1,4 @@
-@props(['barbershop', 'roleLabel', 'activePage' => 'dashboard', 'canManageMembers' => false, 'canManageBranding' => false])
+@props(['barbershop', 'roleLabel', 'activePage' => 'dashboard', 'canManageMembers' => false, 'canManageBranding' => false, 'canViewCustomers' => false])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -41,8 +41,6 @@
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Equipo
                         </x-ui.nav-link>
-                    @else
-                        <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Equipo</span>
                     @endif
 
                     @if ($canManageMembers)
@@ -50,8 +48,6 @@
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 15.5c0 1.38-1.12 2.5-2.5 2.5S13 16.88 13 15.5s1.12-2.5 2.5-2.5S18 14.12 18 15.5Z"/></svg>
                             Servicios
                         </x-ui.nav-link>
-                    @else
-                        <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Servicios</span>
                     @endif
 
                     @if ($canManageMembers)
@@ -59,8 +55,6 @@
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2"/></svg>
                             Horarios
                         </x-ui.nav-link>
-                    @else
-                        <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Horarios</span>
                     @endif
 
                     @if ($canManageMembers)
@@ -68,8 +62,6 @@
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 14v6M15 17h6"/></svg>
                             Disponibilidad
                         </x-ui.nav-link>
-                    @else
-                        <span class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-slate-500">Disponibilidad</span>
                     @endif
 
                     @if ($canManageBranding)
@@ -84,7 +76,7 @@
                         Agenda
                     </x-ui.nav-link>
 
-                    @if ($canManageMembers)
+                    @if ($canViewCustomers)
                         <x-ui.nav-link :href="route('tenant.customers.index', $barbershop)" :active="$activePage === 'customers'">
                             <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Clientes
@@ -94,7 +86,10 @@
                     @if ($canManageMembers)
                         <details data-report-navigation="desktop mobile" class="group mt-6 border-t border-slate-800 pt-5" @if ($activePage === 'reports') open @endif>
                             <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden">
-                                <span>Reportes</span>
+                                <span class="inline-flex items-center gap-3">
+                                    <img src="{{ asset('images/icons/dashboard-status.png') }}" alt="" width="20" height="20" class="h-5 w-5 shrink-0" aria-hidden="true">
+                                    Reportes
+                                </span>
                                 <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 7.5 5 5 5-5"/></svg>
                             </summary>
                             <div class="mt-1 space-y-1 pl-2">
@@ -114,13 +109,6 @@
                         </details>
                     @endif
 
-                    <div class="bh-sidebar__upcoming mt-6 border-t border-slate-800 pt-5">
-                        <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Próximamente</p>
-                        <div class="mt-2 space-y-1 text-sm text-slate-500">
-                            <span class="flex gap-3 px-3 py-2.5">Inventario</span>
-                            <span class="flex gap-3 px-3 py-2.5">Configuración</span>
-                        </div>
-                    </div>
                 </nav>
 
                 <x-ui.surface as="div" class="mt-auto p-4">

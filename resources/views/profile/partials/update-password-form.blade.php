@@ -1,4 +1,4 @@
-<section>
+<section id="change-password" class="scroll-mt-24">
     <header>
         <h2 class="text-lg font-medium text-gray-900">
             {{ __('Update Password') }}
@@ -15,18 +15,24 @@
 
         <div>
             <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+            <x-password-field id="update_password_current_password" tone="light" class="mt-1">
+                <x-text-input id="update_password_current_password" name="current_password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" class="block w-full pr-12" autocomplete="current-password" />
+            </x-password-field>
         </div>
 
         <div>
             <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+            <x-password-field id="update_password_password" tone="light" class="mt-1">
+                <x-text-input id="update_password_password" name="password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" class="block w-full pr-12" autocomplete="new-password" />
+            </x-password-field>
             <x-password-requirements tone="light" />
         </div>
 
         <div>
             <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+            <x-password-field id="update_password_password_confirmation" tone="light" class="mt-1">
+                <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" class="block w-full pr-12" autocomplete="new-password" />
+            </x-password-field>
         </div>
 
         <div class="flex items-center gap-4">

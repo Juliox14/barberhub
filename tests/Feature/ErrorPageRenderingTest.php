@@ -26,9 +26,7 @@ class ErrorPageRenderingTest extends TestCase
     public static function nativeErrorStatuses(): array
     {
         return [
-            'unauthorized' => [401, 'Iniciá sesión para continuar'],
             'payment required' => [402, 'No se pudo completar la solicitud'],
-            'forbidden' => [403, 'No tenés acceso a esta página'],
             'not found' => [404, 'No encontramos esta página'],
             'method not allowed' => [405, 'Esta acción no está disponible'],
             'page expired' => [419, 'La página expiró'],

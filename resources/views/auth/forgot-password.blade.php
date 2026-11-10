@@ -11,7 +11,7 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
+            <input id="email" class="mt-1 block w-full rounded-xl border border-slate-600 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" />
         </div>
 
         <x-recaptcha-challenge :required="$recaptchaRequired ?? false" :available="$recaptchaAvailable ?? false" :site-key="$recaptchaSiteKey ?? null" />

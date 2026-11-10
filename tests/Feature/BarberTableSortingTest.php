@@ -54,14 +54,16 @@ class BarberTableSortingTest extends TestCase
             ->assertViewHas('appointments', fn ($appointments): bool => $appointments->pluck('starts_at')->map(fn ($startsAt): string => $startsAt->format('H:i'))->all() === ['11:00', '10:00', '09:00']);
     }
 
-    public function test_barber_cannot_view_management_only_customer_or_barber_tables(): void
+    public function test_barber_can_view_empty_regular_clients_but_not_manage_barber_tables(): void
     {
         $barbershop = Barbershop::factory()->create();
         [$barberUser] = $this->barberRecords($barbershop);
 
         $this->actingAs($barberUser)
             ->get(route('tenant.customers.index', $barbershop, false))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee('Mis clientes habituales')
+            ->assertViewHas('customers', fn ($customers): bool => $customers->isEmpty());
 
         $this->get(route('tenant.barbers.index', $barbershop, false))
             ->assertForbidden();

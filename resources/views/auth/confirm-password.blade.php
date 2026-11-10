@@ -10,10 +10,12 @@
         <div>
             <x-input-label for="password" :value="__('Password')" />
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+            <x-password-field id="password" tone="light" class="mt-1">
+                <x-text-input id="password" class="block w-full pr-12"
+                                type="password" x-bind:type="passwordVisible ? 'text' : 'password'"
+                                name="password"
+                                required autocomplete="current-password" />
+            </x-password-field>
 
         </div>
 

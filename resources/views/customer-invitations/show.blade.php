@@ -49,7 +49,9 @@
 
             <div>
                 <label for="password" class="block text-sm font-semibold text-slate-100">Contraseña</label>
-                <input id="password" class="mt-2 block w-full rounded-xl border border-slate-600 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="password" name="password" required autocomplete="new-password" />
+                <x-password-field id="password" class="mt-2">
+                    <input id="password" class="block w-full rounded-xl border border-slate-600 bg-[#0b1015] pl-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25 pr-12" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" name="password" required autocomplete="new-password" />
+                </x-password-field>
                 <x-password-requirements />
                 @error('password')
                     <p class="mt-2 text-sm text-rose-300">{{ $message }}</p>
@@ -58,7 +60,9 @@
 
             <div>
                 <label for="password_confirmation" class="block text-sm font-semibold text-slate-100">Confirmar contraseña</label>
-                <input id="password_confirmation" class="mt-2 block w-full rounded-xl border border-slate-600 bg-[#0b1015] px-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="password" name="password_confirmation" required autocomplete="new-password" />
+                <x-password-field id="password_confirmation" class="mt-2">
+                    <input id="password_confirmation" class="block w-full rounded-xl border border-slate-600 bg-[#0b1015] pl-4 py-3 text-sm text-white placeholder:text-slate-500 shadow-inner shadow-black/20 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25 pr-12" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password" />
+                </x-password-field>
             </div>
 
             <button type="submit" class="flex min-h-12 w-full items-center justify-center rounded-xl bg-amber-300 px-4 py-3.5 text-sm font-bold text-[#1a1409] outline-none transition hover:bg-amber-200 focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#10151a]">

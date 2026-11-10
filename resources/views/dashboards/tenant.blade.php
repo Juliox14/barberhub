@@ -173,6 +173,5 @@
                 </div>
             @endif
         </section>
-        <p class="text-xs leading-6 text-slate-500">Inventario, reportes y configuración adicional se conectarán a medida que se implementen.</p>
     </div>
 </x-tenant-layout>

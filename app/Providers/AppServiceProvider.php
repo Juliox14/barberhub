@@ -44,11 +44,15 @@ class AppServiceProvider extends ServiceProvider
         ViewFacade::composer('components.tenant-layout', function (View $view): void {
             $barbershop = $view->getData()['barbershop'] ?? null;
             $user = request()->user();
-            $canManageBranding = $barbershop instanceof Barbershop
+            $membership = $barbershop instanceof Barbershop && $user instanceof User
+                ? TenantDashboard::membershipFor($user, $barbershop)
+                : null;
+            $canViewCustomers = $barbershop instanceof Barbershop
                 && $user instanceof User
-                && TenantDashboard::membershipFor($user, $barbershop)?->role === Membership::ROLE_OWNER;
+                && ($user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN, Membership::ROLE_BARBER], true));
 
-            $view->with('canManageBranding', $canManageBranding);
+            $view->with('canManageBranding', $membership?->role === Membership::ROLE_OWNER);
+            $view->with('canViewCustomers', $canViewCustomers);
         });
     }
 }

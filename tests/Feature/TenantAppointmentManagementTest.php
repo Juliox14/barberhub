@@ -123,6 +123,30 @@ class TenantAppointmentManagementTest extends TestCase
         }
     }
 
+    public function test_registered_customer_selection_hides_and_disables_the_unregistered_customer_field(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        $customer = Customer::factory()->for($barbershop)->create();
+
+        $response = $this->actingAs($owner)
+            ->withSession(['_old_input' => [
+                'form_context' => 'create-appointment',
+                'customer_id' => (string) $customer->id,
+            ]])
+            ->get(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false));
+
+        $response->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $input = $document->getElementById('new_customer_name');
+        $this->assertTrue($input->hasAttribute('disabled'));
+        $this->assertSame('display: none;', $input->parentNode->getAttribute('style'));
+        $this->assertSame('selected', $document->getElementById('customer_id')
+            ->getElementsByTagName('option')->item(1)->getAttribute('selected'));
+    }
+
     public function test_owner_and_admin_can_create_appointments_for_unregistered_customers(): void
     {
         $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');

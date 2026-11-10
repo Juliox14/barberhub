@@ -13,20 +13,26 @@
 
                 <div>
                     <label for="current_password" class="mb-1 block text-sm font-medium text-slate-300">Contraseña actual</label>
-                    <input id="current_password" name="current_password" type="password" required autocomplete="current-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                    <x-password-field id="current_password">
+                        <input id="current_password" name="current_password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" required autocomplete="current-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                    </x-password-field>
                     <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2 !text-rose-300" />
                 </div>
 
                 <div>
                     <label for="password" class="mb-1 block text-sm font-medium text-slate-300">Nueva contraseña</label>
-                    <input id="password" name="password" type="password" required autocomplete="new-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                    <x-password-field id="password">
+                        <input id="password" name="password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" required autocomplete="new-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                    </x-password-field>
                     <x-password-requirements />
                     <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2 !text-rose-300" />
                 </div>
 
                 <div>
                     <label for="password_confirmation" class="mb-1 block text-sm font-medium text-slate-300">Confirma la contraseña</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                    <x-password-field id="password_confirmation">
+                        <input id="password_confirmation" name="password_confirmation" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" required autocomplete="new-password" class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                    </x-password-field>
                 </div>
 
                 <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-bold text-[#1a1409] shadow-[0_10px_24px_rgba(251,191,36,0.13)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e12]">Renovar contraseña</button>

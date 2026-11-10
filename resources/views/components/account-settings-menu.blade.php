@@ -3,6 +3,7 @@
         <img src="{{ asset('images/icons/account-settings.png') }}" alt="" class="h-5 w-5">
     </summary>
     <div class="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-700 bg-[#111820] p-2 shadow-xl">
+        <a href="{{ route('profile.edit') }}#change-password" class="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Cambiar contraseña</a>
         <a href="{{ route('two-factor.settings') }}" class="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">Seguridad de mi cuenta</a>
     </div>
 </details>

@@ -72,7 +72,6 @@
         .bh-sidebar--collapsed .bh-brand span,
         .bh-sidebar--collapsed nav > div,
         .bh-sidebar--collapsed nav > span,
-        .bh-sidebar--collapsed .bh-sidebar__upcoming,
         .bh-sidebar--collapsed > .bh-surface p {
             display: none;
         }

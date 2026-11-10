@@ -31,7 +31,9 @@
                     @csrf
                     <div>
                         <label for="current_password" class="mb-1 block text-sm font-medium text-slate-300">Contraseña actual</label>
-                        <input id="current_password" name="current_password" type="password" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                        <x-password-field id="current_password">
+                            <input id="current_password" name="current_password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                        </x-password-field>
                         <x-input-error :messages="$errors->get('current_password')" class="mt-2 !text-rose-300" />
                     </div>
                     <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-bold text-[#1a1409] shadow-[0_10px_24px_rgba(251,191,36,0.13)] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e12]">Iniciar configuración</button>
@@ -45,7 +47,9 @@
                     @csrf
                     <div>
                         <label for="recovery_current_password" class="mb-1 block text-sm font-medium text-slate-300">Contraseña actual</label>
-                        <input id="recovery_current_password" name="current_password" type="password" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                        <x-password-field id="recovery_current_password">
+                            <input id="recovery_current_password" name="current_password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                        </x-password-field>
                     </div>
                     <div>
                         <label for="recovery_code" class="mb-1 block text-sm font-medium text-slate-300">Código de autenticación</label>
@@ -67,7 +71,9 @@
                         @method('DELETE')
                         <div>
                             <label for="disable_current_password" class="mb-1 block text-sm font-medium text-slate-300">Contraseña actual</label>
-                            <input id="disable_current_password" name="current_password" type="password" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300">
+                            <x-password-field id="disable_current_password">
+                                <input id="disable_current_password" name="current_password" type="password" x-bind:type="passwordVisible ? 'text' : 'password'" autocomplete="current-password" required class="w-full rounded-md border-slate-700 bg-[#0c1116] text-sm text-white focus:border-amber-300 focus:ring-amber-300 pr-12">
+                            </x-password-field>
                         </div>
                         <div>
                             <label for="disable_code" class="mb-1 block text-sm font-medium text-slate-300">Código de autenticación o recuperación</label>
