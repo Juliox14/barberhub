@@ -67,7 +67,14 @@ function initializeAvailability(document, fetchImplementation) {
         const dateField = filters.querySelector('[name="date"]');
         const dates = filters.querySelector('[data-date-options]');
         const picker = filters.querySelector('[data-date-picker]');
+        const calendar = filters.querySelector('[data-calendar-grid]');
+        const calendarStatus = filters.querySelector('[data-calendar-status]');
         let firstDate = dateField.value;
+        let calendarDays = new Map();
+        let calendarLoading = false;
+        let calendarRevision = 0;
+        let calendarController;
+        let calendarMonth = dateField.value.slice(0, 7);
         const renderDates = () => {
             if (!dates) return;
             dates.replaceChildren();
@@ -75,6 +82,7 @@ function initializeAvailability(document, fetchImplementation) {
             if (!value || value < dateField.min || value > dateField.max) {
                 dates.hidden = true;
                 if (picker) picker.open = true;
+                renderCalendar();
                 return;
             }
             const last = new Date(`${firstDate}T12:00:00Z`);
@@ -89,6 +97,7 @@ function initializeAvailability(document, fetchImplementation) {
                 button.type = 'button';
                 button.className = 'bh-public-date';
                 button.dataset.date = iso;
+                button.disabled = calendarLoading || calendarDays.get(iso) === false;
                 button.setAttribute('aria-pressed', String(iso === value));
                 button.setAttribute('aria-label', new Intl.DateTimeFormat('es', { dateStyle: 'full', timeZone: 'UTC' }).format(day));
                 const weekday = document.createElement('span');
@@ -104,6 +113,120 @@ function initializeAvailability(document, fetchImplementation) {
                 dates.append(button);
             }
             dates.hidden = false;
+            renderCalendar();
+        };
+        const renderCalendar = () => {
+            if (!calendar) return;
+            calendar.replaceChildren();
+            const month = new Date(`${calendarMonth}-01T12:00:00Z`);
+            const heading = document.createElement('strong');
+            heading.textContent = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(month);
+            const previous = document.createElement('button');
+            previous.type = 'button';
+            previous.textContent = 'Mes anterior';
+            previous.dataset.calendarMove = '-1';
+            const next = document.createElement('button');
+            next.type = 'button';
+            next.textContent = 'Mes siguiente';
+            next.dataset.calendarMove = '1';
+            const previousMonth = new Date(`${calendarMonth}-01T12:00:00Z`);
+            previousMonth.setUTCDate(0);
+            const nextMonth = new Date(`${calendarMonth}-01T12:00:00Z`);
+            nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+            previous.disabled = previousMonth.toISOString().slice(0, 10) < dateField.min;
+            next.disabled = nextMonth.toISOString().slice(0, 10) > dateField.max;
+            const grid = document.createElement('div');
+            grid.className = 'bh-public-calendar__days';
+            const daysInMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
+            const offset = (month.getUTCDay() + 6) % 7;
+            for (let blank = 0; blank < offset; blank++) grid.append(document.createElement('span'));
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = `${calendarMonth}-${String(day).padStart(2, '0')}`;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'bh-public-calendar__day';
+                button.textContent = String(day);
+                button.dataset.date = date;
+                button.disabled = date < dateField.min || date > dateField.max || calendarLoading || calendarDays.get(date) === false;
+                button.setAttribute('aria-pressed', String(date === dateField.value));
+                button.setAttribute('aria-label', new Intl.DateTimeFormat('es', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)));
+                button.addEventListener('click', () => {
+                    dateField.value = date;
+                    refresh();
+                });
+                grid.append(button);
+            }
+            calendar.append(previous, heading, next, grid);
+            calendar.querySelectorAll('button[data-calendar-move]').forEach((button) => button.addEventListener('click', () => {
+                const target = new Date(`${calendarMonth}-01T12:00:00Z`);
+                target.setUTCMonth(target.getUTCMonth() + Number(button.dataset.calendarMove));
+                const monthStart = target.toISOString().slice(0, 7);
+                if ((button.dataset.calendarMove === '-1' && previous.disabled) || (button.dataset.calendarMove === '1' && next.disabled)) return;
+                calendarMonth = monthStart;
+                loadCalendarDays();
+            }));
+        };
+        const loadCalendarDays = async () => {
+            const service = filters.querySelector('[name="service_id"]:checked');
+            const current = ++calendarRevision;
+            calendarController?.abort();
+            calendarController = new AbortController();
+            calendarLoading = true;
+            calendarDays = new Map();
+            renderDates();
+            if (!service) {
+                calendarLoading = false;
+                renderDates();
+                if (calendarStatus) calendarStatus.textContent = 'Elige un servicio para consultar los días disponibles.';
+                return;
+            }
+            if (calendarStatus) calendarStatus.textContent = 'Consultando días disponibles…';
+            const first = `${calendarMonth}-01` < dateField.min ? dateField.min : `${calendarMonth}-01`;
+            const calendarEnd = new Date(`${calendarMonth}-01T12:00:00Z`);
+            calendarEnd.setUTCMonth(calendarEnd.getUTCMonth() + 1, 0);
+            const last = [calendarEnd.toISOString().slice(0, 10), dateField.max].sort()[0];
+            const query = new URLSearchParams({ service_id: service.value, date: first, end_date: last });
+            if (professional.value) query.set('barber_id', professional.value);
+            try {
+                const response = await fetchImplementation(`${filters.dataset.availabilityUrl}?${query}`, {
+                    credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: calendarController.signal,
+                });
+                if (!response.ok) throw new Error('No pudimos consultar los días disponibles.');
+                const result = await response.json();
+                if (current !== calendarRevision) return;
+                calendarDays = new Map(result.days.map(({ date, available }) => [date, available]));
+                const stripStart = new Date(`${firstDate}T12:00:00Z`);
+                stripStart.setUTCDate(stripStart.getUTCDate() + 4);
+                const stripEnd = [stripStart.toISOString().slice(0, 10), dateField.max].sort()[0];
+                const monthEnd = calendarEnd.toISOString().slice(0, 10);
+                if (stripEnd > monthEnd) {
+                    const nextDay = new Date(`${monthEnd}T12:00:00Z`);
+                    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+                    const stripQuery = new URLSearchParams({ service_id: service.value, date: nextDay.toISOString().slice(0, 10), end_date: stripEnd });
+                    if (professional.value) stripQuery.set('barber_id', professional.value);
+                    const stripResponse = await fetchImplementation(`${filters.dataset.availabilityUrl}?${stripQuery}`, {
+                        credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: calendarController.signal,
+                    });
+                    if (!stripResponse.ok) throw new Error('No pudimos consultar los días cercanos.');
+                    const stripResult = await stripResponse.json();
+                    if (current !== calendarRevision) return;
+                    stripResult.days.forEach(({ date, available }) => calendarDays.set(date, available));
+                }
+                calendarLoading = false;
+                if (calendarStatus) calendarStatus.textContent = [...calendarDays.values()].some(Boolean) ? '' : 'No hay días con horarios disponibles en este mes.';
+                if (calendarDays.has(dateField.value) && calendarDays.get(dateField.value) !== true) {
+                    dateField.value = '';
+                    load.cancel();
+                }
+                renderDates();
+            } catch (error) {
+                if (current === calendarRevision && !calendarController.signal.aborted) {
+                    calendarLoading = false;
+                    renderDates();
+                    if (picker) picker.open = true;
+                    if (calendarStatus) calendarStatus.textContent = error.message || 'No pudimos consultar los días disponibles.';
+                }
+            }
         };
         const updatePreview = (choice = null) => {
             const service = filters.querySelector('[name="service_id"]:checked');
@@ -139,6 +262,12 @@ function initializeAvailability(document, fetchImplementation) {
                 empty: 'No hay horarios para esta selección. Prueba otra fecha o elige otro profesional.',
                 error: state.message ?? 'No pudimos consultar los horarios. Intenta nuevamente.',
             }[state.status];
+            if (state.status === 'empty' && calendarDays.has(dateField.value)) {
+                calendarDays.set(dateField.value, false);
+                dateField.value = '';
+                renderDates();
+                updatePreview();
+            }
             state.slots.forEach((slot) => {
                 const label = document.createElement('label');
                 label.className = 'bh-public-choice';
@@ -158,9 +287,23 @@ function initializeAvailability(document, fetchImplementation) {
                 list.append(label);
             });
         } });
-        const refresh = () => {
-            renderDates();
+        const refresh = async () => {
             const service = filters.querySelector('[name="service_id"]:checked');
+            if (calendar && !calendarDays.has(dateField.value)) {
+                await loadCalendarDays();
+                if (calendarDays.get(dateField.value) !== true) {
+                    load.cancel();
+                    status.textContent = 'Selecciona un día disponible para consultar horarios.';
+                    return;
+                }
+                return refresh();
+            }
+            if (calendar && calendarDays.get(dateField.value) !== true) {
+                load.cancel();
+                status.textContent = 'Selecciona un día disponible para consultar horarios.';
+                return;
+            }
+            renderDates();
             if (!service || !filters.reportValidity()) {
                 form.querySelector('[name="service_id"]').value = '';
                 load.cancel();
@@ -187,6 +330,12 @@ function initializeAvailability(document, fetchImplementation) {
             const serviceInput = form.querySelector('[name="service_id"]');
             const barberId = professional.value;
             if (serviceList) serviceList.replaceChildren();
+            calendarRevision++;
+            calendarController?.abort();
+            calendarDays = new Map();
+            calendarLoading = false;
+            if (calendarStatus) calendarStatus.textContent = 'Elige un servicio para consultar los días disponibles.';
+            renderDates();
             if (serviceFieldset) serviceFieldset.disabled = true;
             if (serviceInput) serviceInput.value = '';
             if (servicePanel) servicePanel.hidden = !barberId;
@@ -265,10 +414,22 @@ function initializeAvailability(document, fetchImplementation) {
         renderDates();
         if (dates && !dates.hidden && picker) picker.open = false;
         filters.dataset.enhanced = 'true';
+        if (picker) picker.dataset.enhanced = 'true';
+        dateField.type = 'text';
+        dateField.required = false;
+        dateField.tabIndex = -1;
+        dateField.setAttribute('aria-hidden', 'true');
         filters.addEventListener('submit', (event) => { event.preventDefault(); return refresh(); });
         filters.addEventListener('change', (event) => {
             if (event.target.name === 'barber_id') return;
-            if (['service_id', 'date'].includes(event.target.name)) return refresh();
+            if (event.target.name === 'service_id') {
+                calendarRevision++;
+                calendarController?.abort();
+                calendarDays = new Map();
+                calendarLoading = false;
+                return refresh();
+            }
+            if (event.target.name === 'date') return refresh();
         });
         list.addEventListener('change', (event) => {
             if (event.target.name !== 'slot') return;
@@ -278,6 +439,7 @@ function initializeAvailability(document, fetchImplementation) {
             if (selected && time && barber) selected.textContent = `${time} con ${barber}`;
             updatePreview(choice);
         });
+        if (calendar) loadCalendarDays();
     });
 }
 
