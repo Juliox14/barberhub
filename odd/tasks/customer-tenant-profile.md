@@ -12,7 +12,7 @@ S5. "tiene que seguir los colores y lo de la marca del tenant al que está regis
 ## Tasks
 T1 | S1,S5 | delegated | done | Design direction and existing-system extraction, reference screenshot; manifest, self-containment and token checks passed | commit: 6dff08a
 T2 | S1,S2,S3,S5 | delegated | done | Profile route, scoped ownership, history, preferences, responsive branded UI and regression tests | Risk: item 2 (customer authorization) | commit: 72b7650
-T3 | S4,S5 | delegated | done | Customer PWA opt-in and recurring tenant-specific reminders, scheduler and tests | Risk: item 2 (push authorization), item 4 (duplicate delivery) | commit: 4bf211d
+T3 | S4,S5 | delegated | done | Customer PWA opt-in and recurring tenant-specific reminders, scheduler and tests | Risk: item 2 (push authorization), item 4 (duplicate delivery) | commits: 4bf211d, 565b22a (frequency update)
 T4 | S1-S5 | independent verify plus parent checks | blocked | Automated checks passed; waiting for a browser/device and isolated PostgreSQL environment to validate real PWA/visual and concurrent execution. Failed-send eligibility checked, later successful retry not executed. | evidence: full suite662pass/1skip/5863assertions, JS22pass, recurrence recheck7pass/22assertions
 
 ## Log
