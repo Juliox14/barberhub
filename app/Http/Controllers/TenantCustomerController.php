@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Barber;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
@@ -19,9 +20,22 @@ final class TenantCustomerController extends Controller
         $membership = TenantDashboard::membershipFor($user, $barbershop);
 
         if (! $user->is_platform_admin && $membership?->role === Membership::ROLE_BARBER) {
+            $barber = Barber::query()
+                ->where('barbershop_id', $barbershop->id)
+                ->where('user_id', $user->id)
+                ->where('active', true)
+                ->first();
+            $customers = $barber === null
+                ? collect()
+                : $barbershop->customers()
+                    ->whereHas('preference', fn ($query) => $query->where('preferences->preferred_barber_id', $barber->id))
+                    ->orderBy('customers.name')
+                    ->paginate(15, ['customers.*'], 'customers_page')
+                    ->withQueryString();
+
             return view('tenant.barber-customers-index', [
                 'barbershop' => $barbershop,
-                'customers' => collect(),
+                'customers' => $customers,
                 'roleLabel' => TenantDashboard::roleLabel($membership),
                 'canManageMembers' => false,
             ]);

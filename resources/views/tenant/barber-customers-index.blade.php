@@ -18,16 +18,27 @@
                             <th scope="col" class="px-5 py-3 sm:px-6">Teléfono</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="3" class="px-5 py-14 text-center sm:px-6">
-                                <h3 class="font-semibold text-white">Todavía no tienes clientes habituales.</h3>
-                                <p class="mx-auto mt-2 max-w-lg leading-6 text-slate-400">La elección de barbero preferido estará disponible cuando se habilite la gestión de la cuenta del cliente. Las citas anteriores no agregan clientes a este listado.</p>
-                            </td>
-                        </tr>
+                    <tbody class="divide-y divide-slate-800">
+                        @forelse ($customers as $customer)
+                            <tr>
+                                <td class="px-5 py-4 text-slate-100 sm:px-6">{{ $customer->name ?: 'Sin nombre' }}</td>
+                                <td class="break-words px-5 py-4 text-slate-300 sm:px-6">{{ $customer->email ?: 'Sin correo electrónico' }}</td>
+                                <td class="px-5 py-4 text-slate-300 sm:px-6">{{ $customer->phone ?: 'Sin teléfono' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-5 py-14 text-center sm:px-6">
+                                    <h3 class="font-semibold text-white">Todavía no tienes clientes habituales.</h3>
+                                    <p class="mx-auto mt-2 max-w-lg leading-6 text-slate-400">Los clientes aparecerán aquí cuando indiquen que te prefieren en sus preferencias de esta barbería.</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
+            @if ($customers instanceof \Illuminate\Pagination\LengthAwarePaginator && $customers->hasPages())
+                <div class="border-t border-slate-800 p-5">{{ $customers->links() }}</div>
+            @endif
         </section>
     </div>
 </x-tenant-layout>

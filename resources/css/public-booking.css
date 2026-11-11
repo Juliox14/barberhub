@@ -259,7 +259,8 @@
 .bh-profile-helper { color: var(--bh-public-muted); font-size: .75rem; font-weight: 400; }
 .bh-profile-field-error { color: #991b1b; font-size: .75rem; font-weight: 500; }
 .bh-profile-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.125rem; padding-top: 1rem; border-top: 1px solid var(--bh-public-border); }
-.bh-profile-success { margin: 1rem 0 0 !important; border: 1px solid color-mix(in srgb, var(--bh-brand-primary) 25%, white); border-radius: .75rem; padding: .75rem 1rem; background: color-mix(in srgb, var(--bh-brand-primary) 8%, white); color: #27272a; font-size: .8125rem; }
+.bh-profile-alert { position: fixed; inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 60; display: flex; justify-content: center; pointer-events: none; }
+.bh-profile-alert > * { width: min(100%, 32rem); box-shadow: 0 12px 32px rgb(0 0 0 / 18%); pointer-events: auto; }
 .bh-profile-pagination { margin-top: 1rem; }
 .bh-customer-profile :is(a, button, select, textarea):focus-visible { outline: 3px solid #27272a; outline-offset: 3px; }
 .bh-public-footer { padding-block: 3rem; color: var(--bh-public-muted); font-size: .75rem; }

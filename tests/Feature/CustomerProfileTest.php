@@ -63,6 +63,7 @@ class CustomerProfileTest extends TestCase
 
         $this->actingAs($user)->get(route('customer.profile.show', $shop))
             ->assertOk()
+            ->assertDontSee('bh-profile-alert', false)
             ->assertSee('#225588')
             ->assertSee('4 de octubre de 2026')
             ->assertSee('8:00 p. m.')
@@ -78,12 +79,15 @@ class CustomerProfileTest extends TestCase
             ->assertViewHas('services', fn ($services): bool => $services->contains('id', $service->id)
                 && ! $services->contains('id', $inactiveService->id));
 
-        $this->actingAs($user)->put(route('customer.profile.preferences.update', $shop), [
+        $this->actingAs($user)->followingRedirects()->put(route('customer.profile.preferences.update', $shop), [
             'preferred_barber_id' => $barber->id,
             'preferred_service_id' => $service->id,
             'notes' => 'Dejar un poco de largo arriba.',
-        ])->assertRedirect(route('customer.profile.show', $shop))
-            ->assertSessionHas('status');
+        ])->assertOk()
+            ->assertSee('Tus preferencias se guardaron.')
+            ->assertSee('role="status"', false)
+            ->assertSee('bh-profile-alert', false)
+            ->assertDontSee('bh-profile-success');
 
         $this->assertSame([
             'preferred_barber_id' => $barber->id,
@@ -132,7 +136,8 @@ class CustomerProfileTest extends TestCase
             ])->assertOk()
             ->assertSee('aria-describedby="preferred-barber-error"', false)
             ->assertSee('class="bh-profile-field-error"', false)
-            ->assertSee('role="alert"', false);
+            ->assertSee('role="alert"', false)
+            ->assertDontSee('Tus preferencias se guardaron.');
         $this->assertSame($original, $customer->preference()->firstOrFail()->preferences);
     }
 

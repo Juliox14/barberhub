@@ -17,7 +17,9 @@
         </section>
 
         @if (session('status'))
-            <p class="bh-profile-success" role="status">{{ session('status') }}</p>
+            <div class="bh-profile-alert" aria-label="Avisos del perfil">
+                <x-ui.alert>{{ session('status') }}</x-ui.alert>
+            </div>
         @endif
 
         <div class="bh-profile-content">
