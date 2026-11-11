@@ -44,8 +44,15 @@ class CustomerReminderController extends Controller
             $reminders = [
                 ...$current,
                 'enabled' => $enabled,
-                'frequency_months' => $enabled ? (int) $validated['frequency_months'] : (int) ($current['frequency_months'] ?? 1),
+                'frequency_months' => $enabled && isset($validated['frequency_months'])
+                    ? (int) $validated['frequency_months']
+                    : (int) ($current['frequency_months'] ?? 1),
             ];
+            if ($enabled && isset($validated['frequency_weeks'])) {
+                $reminders['frequency_weeks'] = (int) $validated['frequency_weeks'];
+            } elseif ($enabled) {
+                unset($reminders['frequency_weeks']);
+            }
             if ($enabled && ! ($current['enabled'] ?? false)) {
                 $reminders['activated_at'] = now($barbershop->timezone)->toIso8601String();
                 unset($reminders['last_sent_period']);
@@ -62,6 +69,7 @@ class CustomerReminderController extends Controller
         return response()->json([
             'enabled' => (bool) ($settings['enabled'] ?? false),
             'frequency_months' => (int) ($settings['frequency_months'] ?? 1),
+            'frequency_weeks' => isset($settings['frequency_weeks']) ? (int) $settings['frequency_weeks'] : null,
             'due_at' => CustomerReminders::dueAt($customer->fresh(), $barbershop)?->toIso8601String(),
         ]);
     }

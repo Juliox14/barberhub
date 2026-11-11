@@ -39,24 +39,25 @@ class CustomerReminders
         }
 
         $frequencyMonths = (int) ($settings['frequency_months'] ?? 1);
+        $frequencyWeeks = isset($settings['frequency_weeks']) ? (int) $settings['frequency_weeks'] : null;
         $baseline = $baseline->setTimezone($barbershop->timezone);
-        $firstDueAt = $baseline->addMonthsNoOverflow($frequencyMonths);
+        $firstDueAt = self::advance($baseline, $frequencyMonths, $frequencyWeeks);
         $lastSentAt = isset($settings['last_sent_period'])
             ? CarbonImmutable::parse($settings['last_sent_period'])->setTimezone($barbershop->timezone)
             : null;
 
         if ($lastSentAt !== null && $lastSentAt->greaterThanOrEqualTo($baseline)) {
-            return $lastSentAt->addMonthsNoOverflow($frequencyMonths);
+            return self::advance($lastSentAt, $frequencyMonths, $frequencyWeeks);
         }
 
         return $firstDueAt;
     }
 
-    public static function latestDuePeriod(CarbonImmutable $dueAt, CarbonImmutable $now, int $frequencyMonths): CarbonImmutable
+    public static function latestDuePeriod(CarbonImmutable $dueAt, CarbonImmutable $now, int $frequencyMonths, ?int $frequencyWeeks = null): CarbonImmutable
     {
         $period = $dueAt;
         while ($period->lessThanOrEqualTo($now)) {
-            $nextPeriod = $period->addMonthsNoOverflow($frequencyMonths);
+            $nextPeriod = self::advance($period, $frequencyMonths, $frequencyWeeks);
             if ($nextPeriod->greaterThan($now)) {
                 return $period;
             }
@@ -64,6 +65,13 @@ class CustomerReminders
         }
 
         return $period;
+    }
+
+    private static function advance(CarbonImmutable $date, int $frequencyMonths, ?int $frequencyWeeks): CarbonImmutable
+    {
+        return $frequencyWeeks !== null
+            ? $date->addWeeks($frequencyWeeks)
+            : $date->addMonthsNoOverflow($frequencyMonths);
     }
 
     public static function periodKey(DateTimeInterface $dueAt): string

@@ -23,6 +23,14 @@ if (root) {
     }
 
     async function saveSettings(enabled) {
+        const body = { enabled };
+        if (enabled) {
+            if (frequency.value === 'weeks-2') {
+                body.frequency_weeks = 2;
+            } else {
+                body.frequency_months = Number(frequency.value.replace('months-', ''));
+            }
+        }
         const response = await fetch(root.dataset.settingsUrl, {
             method: 'PUT',
             credentials: 'same-origin',
@@ -31,7 +39,7 @@ if (root) {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
             },
-            body: JSON.stringify({ enabled, frequency_months: Number(frequency.value) }),
+            body: JSON.stringify(body),
         });
         if (!response.ok) {
             throw new Error(response.status === 422
@@ -87,6 +95,7 @@ if (root) {
             }
             const result = await saveSettings(true);
             root.dataset.enabled = 'true';
+            root.dataset.frequency = result.frequency_weeks ? 'weeks-2' : `months-${result.frequency_months}`;
             disableButton.disabled = false;
             setStatus(result.due_at
                 ? `Recordatorio activado. Próximo aviso: ${new Intl.DateTimeFormat('es', { dateStyle: 'long', timeZone: root.dataset.timezone }).format(new Date(result.due_at))}.`
@@ -101,8 +110,9 @@ if (root) {
     disableButton?.addEventListener('click', async () => {
         disableButton.disabled = true;
         try {
-            await saveSettings(false);
+            const result = await saveSettings(false);
             root.dataset.enabled = 'false';
+            root.dataset.frequency = result.frequency_weeks ? 'weeks-2' : `months-${result.frequency_months}`;
             setStatus('Recordatorios desactivados para esta barbería.');
         } catch (error) {
             setStatus(error instanceof Error ? error.message : 'No se pudo desactivar el recordatorio.');

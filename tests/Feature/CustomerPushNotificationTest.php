@@ -51,6 +51,33 @@ class CustomerPushNotificationTest extends TestCase
         $this->assertSame('No perder preferencias', $preference->fresh()->preferences['notes']);
     }
 
+    public function test_fortnight_reminders_repeat_every_fourteen_days_without_a_haircut(): void
+    {
+        $this->travelTo('2026-10-05 12:00:00 UTC');
+        $shop = Barbershop::factory()->create(['timezone' => 'UTC']);
+        $user = User::factory()->create();
+        $customer = Customer::factory()->for($shop)->for($user)->create();
+        $preference = CustomerPreference::factory()->for($customer)->create(['preferences' => [
+            'customer_reminders' => [
+                'enabled' => true,
+                'frequency_months' => 1,
+                'frequency_weeks' => 2,
+                'activated_at' => '2026-09-01T12:00:00Z',
+            ],
+        ]]);
+        PushSubscription::factory()->for($user)->create();
+        $sender = $this->mock(WebPushSender::class);
+        $sender->shouldReceive('send')->times(3);
+
+        (new SendCustomerReminderPush($customer->id, $shop->id))->handle($sender);
+        $this->travelTo('2026-10-19 12:00:00 UTC');
+        (new SendCustomerReminderPush($customer->id, $shop->id))->handle($sender);
+        $this->travelTo('2026-11-02 12:00:00 UTC');
+        (new SendCustomerReminderPush($customer->id, $shop->id))->handle($sender);
+
+        $this->assertSame('2026-10-27T12:00:00Z', $preference->fresh()->preferences['customer_reminders']['last_sent_period']);
+    }
+
     public function test_newer_completed_visit_resets_due_date_and_failed_delivery_does_not_consume_period(): void
     {
         $this->travelTo('2026-10-05 12:00:00 UTC');

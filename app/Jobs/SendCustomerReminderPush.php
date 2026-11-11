@@ -46,10 +46,12 @@ class SendCustomerReminderPush implements ShouldQueue
             }
 
             $frequencyMonths = (int) ($settings['frequency_months'] ?? 1);
+            $frequencyWeeks = isset($settings['frequency_weeks']) ? (int) $settings['frequency_weeks'] : null;
             $period = CustomerReminders::periodKey(CustomerReminders::latestDuePeriod(
                 $dueAt,
                 now($barbershop->timezone)->toImmutable(),
                 $frequencyMonths,
+                $frequencyWeeks,
             ));
             if (($settings['last_sent_period'] ?? null) === $period) {
                 return;
