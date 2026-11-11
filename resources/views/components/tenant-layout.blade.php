@@ -116,7 +116,16 @@
 
                 </nav>
 
-                <x-ui.surface as="div" class="mt-auto p-4">
+                @if ($canConnectGoogleCalendar)
+                    <nav class="mt-auto mb-4" aria-label="Integraciones de barbería">
+                        <x-ui.nav-link :href="route('tenant.google-calendar.show', $barbershop)" :active="$activePage === 'google-calendar'">
+                            <img src="{{ asset('images/icons/google-calendar.png') }}" alt="" width="20" height="20" class="h-5 w-5 shrink-0" aria-hidden="true">
+                            {{ $googleCalendarConnection?->connected_at ? 'Google Calendar conectado' : 'Conectar Google Calendar' }}
+                        </x-ui.nav-link>
+                    </nav>
+                @endif
+
+                <x-ui.surface as="div" class="{{ $canConnectGoogleCalendar ? '' : 'mt-auto' }} p-4">
                     <p class="text-sm font-semibold text-white">{{ $barbershop->name }}</p>
                     <p class="mt-1 text-xs text-slate-400">{{ $barbershop->timezone }}</p>
                 </x-ui.surface>

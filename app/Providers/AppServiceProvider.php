@@ -6,6 +6,7 @@ use App\Events\AccountLoginLocked;
 use App\Events\PlatformSecurityAction;
 use App\Listeners\RecordContainmentSecurityEvent;
 use App\Listeners\RecordSecurityAuditEvent;
+use App\Models\Barber;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
@@ -50,9 +51,20 @@ class AppServiceProvider extends ServiceProvider
             $canViewCustomers = $barbershop instanceof Barbershop
                 && $user instanceof User
                 && ($user->is_platform_admin || in_array($membership?->role, [Membership::ROLE_OWNER, Membership::ROLE_ADMIN, Membership::ROLE_BARBER], true));
+            $barber = $barbershop instanceof Barbershop && $user instanceof User
+                ? Barber::query()
+                    ->with('googleCalendarConnection')
+                    ->where('barbershop_id', $barbershop->getKey())
+                    ->where('user_id', $user->getKey())
+                    ->where('active', true)
+                    ->first()
+                : null;
 
             $view->with('canManageBranding', $membership?->role === Membership::ROLE_OWNER);
             $view->with('canViewCustomers', $canViewCustomers);
+            $view->with('googleCalendarBarber', $barber);
+            $view->with('googleCalendarConnection', $barber?->googleCalendarConnection);
+            $view->with('canConnectGoogleCalendar', $barber !== null);
         });
     }
 }

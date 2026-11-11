@@ -86,6 +86,13 @@
         "source": "https://icons8.com/icon/15/bar-chart",
         "color": "#f2bd55",
         "license": "free-png-with-attribution"
+      },
+      "google-calendar": {
+        "id": "UJGaYqXaHWdp",
+        "commonName": "google-calendar",
+        "file": "public/images/icons/google-calendar.png",
+        "source": "https://icons8.com/icon/UJGaYqXaHWdp/google-calendar",
+        "license": "free-png-with-attribution"
       }
     }
   }

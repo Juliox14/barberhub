@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['barbershop_id', 'user_id', 'display_name', 'active'])]
 class Barber extends Model
@@ -60,5 +61,10 @@ class Barber extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function googleCalendarConnection(): HasOne
+    {
+        return $this->hasOne(BarberGoogleCalendarConnection::class);
     }
 }
