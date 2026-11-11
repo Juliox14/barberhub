@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Barber;
 use App\Models\Barbershop;
+use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Support\ModuleContainment;
 use App\Support\PublicBookingAvailability;
@@ -65,11 +66,29 @@ final class PublicBookingAvailabilityController extends Controller
         }
 
         if ($endDate !== null) {
+            $weekdays = [];
+            for ($day = $date; $day->lte($endDate); $day = $day->addDay()) {
+                $weekdays[] = $day->dayOfWeek;
+            }
+            $businessHours = BusinessHour::query()
+                ->where('barbershop_id', $barbershop->id)
+                ->whereIn('weekday', array_unique($weekdays))
+                ->get()
+                ->keyBy('weekday');
+
             $days = [];
             for ($day = $date; $day->lte($endDate); $day = $day->addDay()) {
+                $businessHour = $businessHours->get($day->dayOfWeek);
+                $isClosed = $businessHour === null
+                    || $businessHour->closed
+                    || $businessHour->opens_at === null
+                    || $businessHour->closes_at === null;
+                $available = $availability->slots($barbershop, $service, $day->format('Y-m-d'), $barberId) !== [];
+
                 $days[] = [
                     'date' => $day->format('Y-m-d'),
-                    'available' => $availability->slots($barbershop, $service, $day->format('Y-m-d'), $barberId) !== [],
+                    'available' => $available,
+                    'reason' => $available ? null : ($isClosed ? 'closed' : 'no_slots'),
                 ];
             }
 

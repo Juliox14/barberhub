@@ -6,13 +6,15 @@ import { initializePublicBooking } from '../../resources/js/public-booking.js';
 function node(properties = {}) {
     return {
         children: [], listeners: {}, dataset: {}, value: '', hidden: false, disabled: false, textContent: '',
-        append(...children) { this.children.push(...children); },
-        replaceChildren(...children) { this.children = children; },
+        append(...children) { children.forEach((child) => { child.parentElement = this; }); this.children.push(...children); },
+        replaceChildren(...children) { this.children = []; this.append(...children); },
         setAttribute(name, value) { this[name] = value; },
+        getAttribute(name) { return this[name] ?? null; },
         addEventListener(name, listener) { this.listeners[name] = listener; },
         querySelector(selector) { return this.querySelectorAll(selector)[0] ?? null; },
         querySelectorAll(selector) {
             const matches = (child) => selector === child.tagName
+                || (selector === '[role="tooltip"]' && child.role === 'tooltip')
                 || (selector === 'button[data-calendar-move]' && child.tagName === 'button' && child.dataset.calendarMove !== undefined)
                 || (selector === '[name="service_id"]:checked' && child.name === 'service_id' && child.checked);
             return this.children.flatMap((child) => [ ...(matches(child) ? [child] : []), ...(child.querySelectorAll?.(selector) ?? []) ]);
@@ -74,17 +76,73 @@ test('enhanced calendar removes the native date picker from focus and keeps the 
 test('an available date remains selectable and renders the existing slot response', async () => {
     const page = calendarFixture({ slots: [{ starts_at: '2027-01-31T10:00', barber_id: 12, barber_name: 'Ana' }] });
     await new Promise((resolve) => setImmediate(resolve));
-    const free = page.dates.children.find((button) => button.dataset.date === '2027-01-31');
+    const free = page.dates.querySelectorAll('button').find((button) => button.dataset.date === '2027-01-31');
     assert.equal(free.disabled, false);
+    assert.equal(free.parentElement.dataset.dateTooltip, undefined);
+    assert.equal(free.parentElement.tabIndex, undefined);
     await free.listeners.click();
     assert.equal(page.dateField.value, '2027-01-31');
     assert.equal(page.slotList.children.length, 1);
 });
 
-test('CSS visibly grays both disabled date controls', async () => {
+test('closed and full disabled dates expose exact tooltips from hoverable and focusable wrappers', async () => {
+    const page = calendarFixture({ date: '2027-01-29', responses: () => Array.from({ length: 31 }, (_, index) => {
+        const date = `2027-01-${String(index + 1).padStart(2, '0')}`;
+        return { date, available: index < 29, reason: index === 29 ? 'closed' : index === 30 ? 'no_slots' : null };
+    }) });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    for (const [date, copy] of [['2027-01-30', 'Cerrado'], ['2027-01-31', 'No quedan horarios']]) {
+        const stripWrapper = page.dates.children.find((wrapper) => wrapper.dataset.dateTooltip === date);
+        const stripButton = stripWrapper?.children.find((child) => child.tagName === 'button');
+        const stripTooltip = stripWrapper?.children.find((child) => child.getAttribute?.('role') === 'tooltip');
+        assert.equal(stripButton.disabled, true);
+        assert.equal(stripWrapper.tabIndex, 0);
+        assert.equal(stripWrapper.getAttribute('aria-describedby'), stripTooltip.id);
+        assert.equal(stripTooltip.textContent, copy);
+
+        const monthButton = page.calendar.querySelectorAll('button').find((child) => child.dataset.date === date);
+        const monthWrapper = monthButton?.parentElement;
+        const monthTooltip = monthWrapper?.children.find((child) => child.getAttribute?.('role') === 'tooltip');
+        assert.equal(monthButton.disabled, true);
+        assert.equal(monthWrapper.dataset.dateTooltip, date);
+        assert.equal(monthWrapper.tabIndex, 0);
+        assert.equal(monthWrapper.getAttribute('aria-describedby'), monthTooltip.id);
+        assert.equal(monthTooltip.textContent, copy);
+    }
+});
+
+test('an empty selected-day slot refresh supplies the no-slots tooltip unless closure is confirmed', async () => {
+    const page = calendarFixture({ date: '2027-01-29', responses: () => Array.from({ length: 31 }, (_, index) => ({
+        date: `2027-01-${String(index + 1).padStart(2, '0')}`,
+        available: true,
+        reason: null,
+    })) });
+    await new Promise((resolve) => setImmediate(resolve));
+    await page.filters.listeners.submit({ preventDefault() {} });
+    const fullDay = page.calendar.querySelectorAll('button').find((button) => button.dataset.date === '2027-01-29');
+    assert.equal(fullDay.disabled, true);
+    assert.equal(fullDay.parentElement.querySelector('[role="tooltip"]').textContent, 'No quedan horarios');
+});
+
+test('unconfirmed loading and out-of-range days do not claim an unavailable cause', async () => {
+    const pending = [];
+    const page = calendarFixture({ max: '2027-01-30', fetchOverride: () => new Promise((resolve) => pending.push(resolve)) });
+    assert.ok(page.dates.children.every((wrapper) => wrapper.dataset.dateTooltip === undefined));
+    assert.ok(page.dates.querySelectorAll('button').every((button) => button.disabled));
+    pending[0]({ ok: true, json: async () => ({ days: [{ date: '2027-01-30', available: false, reason: 'closed' }] }) });
+    await new Promise((resolve) => setImmediate(resolve));
+    const outOfRange = page.calendar.querySelectorAll('button').find((button) => button.dataset.date === '2027-01-31');
+    assert.equal(outOfRange.disabled, true);
+    assert.equal(outOfRange.parentElement.dataset.dateTooltip, undefined);
+});
+
+test('CSS visibly grays both disabled date controls and reveals tooltip on hover or focus', async () => {
     const css = await readFile(new URL('../../resources/css/public-booking.css', import.meta.url), 'utf8');
     assert.match(css, /\.bh-public-date:disabled\s*\{[^}]*background:\s*#e5e7eb/s);
     assert.match(css, /\.bh-public-calendar__day:disabled\s*\{[^}]*background:\s*#e5e7eb/s);
+    assert.match(css, /\.bh-public-date-wrap:hover\s*>\s*\.bh-public-date-tooltip/);
+    assert.match(css, /\.bh-public-date-wrap:focus-visible\s*>\s*\.bh-public-date-tooltip/);
 });
 
 test('unavailable dates are disabled and a refreshed empty slot response clears the chosen date', async () => {
@@ -93,7 +151,7 @@ test('unavailable dates are disabled and a refreshed empty slot response clears 
         available: `2027-01-${String(index + 1).padStart(2, '0')}` !== '2027-01-30',
     })) });
     await new Promise((resolve) => setImmediate(resolve));
-    const closed = page.dates.children.find((button) => button.dataset.date === '2027-01-30');
+    const closed = page.dates.querySelectorAll('button').find((button) => button.dataset.date === '2027-01-30');
     assert.equal(closed.disabled, true);
     await page.filters.listeners.submit({ preventDefault() {} });
     assert.equal(page.dateField.value, '');
@@ -115,7 +173,7 @@ test('zero-availability month reports an empty state and disables every in-range
     await new Promise((resolve) => setImmediate(resolve));
     assert.match(page.calendarStatus.textContent, /No hay días con horarios/);
     assert.equal(page.dateField.value, '');
-    assert.ok(page.calendar.children[3].children.filter((button) => button.dataset.date).every((button) => button.disabled));
+    assert.ok(page.calendar.querySelectorAll('button').filter((button) => button.dataset.date).every((button) => button.disabled));
 });
 
 test('calendar request failures are distinct and open the calendar status', async () => {
@@ -126,6 +184,8 @@ test('calendar request failures are distinct and open the calendar status', asyn
     await new Promise((resolve) => setImmediate(resolve));
     assert.match(page.calendarStatus.textContent, /No pudimos consultar/);
     assert.equal(page.picker.open, true);
+    assert.ok(page.dates.children.every((wrapper) => wrapper.dataset.dateTooltip === undefined));
+    assert.ok(page.calendar.querySelectorAll('button').every((button) => button.parentElement.dataset.dateTooltip === undefined));
     page.filters.dataset.availabilityUrl = originalQuery;
 });
 
@@ -140,12 +200,21 @@ test('month navigation requests bounded ranges and disables navigation outside m
     assert.equal(page.calendar.children[2].disabled, true);
 });
 
-test('service changes query days for the new pair instead of carrying prior eligibility', async () => {
-    const page = calendarFixture();
+test('service changes clear prior unavailable reasons and query days for the new pair', async () => {
+    const page = calendarFixture({ date: '2027-01-29', responses: (query) => Array.from({ length: Math.round((new Date(`${query.get('end_date')}T12:00:00Z`) - new Date(`${query.get('date')}T12:00:00Z`)) / 86400000) + 1 }, (_, index) => {
+        const day = new Date(`${query.get('date')}T12:00:00Z`);
+        day.setUTCDate(day.getUTCDate() + index);
+        const date = day.toISOString().slice(0, 10);
+        const isOldServiceReason = query.get('service_id') === '4' && date === '2027-01-31';
+        return { date, available: !isOldServiceReason, reason: isOldServiceReason ? 'closed' : null };
+    }) });
     await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(page.dates.children.some((wrapper) => wrapper.dataset.dateTooltip === '2027-01-31'));
     page.service.value = '9';
     await page.filters.listeners.change({ target: { name: 'service_id' } });
+    await new Promise((resolve) => setImmediate(resolve));
     assert.ok(page.requests.some((request) => request.searchParams.get('service_id') === '9' && request.searchParams.has('end_date')));
+    assert.ok(page.dates.children.every((wrapper) => wrapper.dataset.dateTooltip === undefined));
 });
 
 test('late calendar responses cannot overwrite a newer month response', async () => {
@@ -169,7 +238,7 @@ test('late calendar responses cannot overwrite a newer month response', async ()
     await new Promise((resolve) => setImmediate(resolve));
     pending[0].resolve({ ok: true, json: async () => ({ days: rangeDays(pending[0].url, false) }) });
     await new Promise((resolve) => setImmediate(resolve));
-    const februaryTenth = page.calendar.children[3].children.find((button) => button.dataset.date === '2027-02-10');
+    const februaryTenth = page.calendar.querySelectorAll('button').find((button) => button.dataset.date === '2027-02-10');
     assert.equal(februaryTenth.disabled, false);
 });
 
@@ -180,11 +249,14 @@ test('five-date strip loads next-month eligibility instead of disabling unknown 
         return Array.from({ length: Math.round((end - start) / 86400000) + 1 }, (_, index) => {
             const current = new Date(start);
             current.setUTCDate(current.getUTCDate() + index);
-            return { date: current.toISOString().slice(0, 10), available: true };
+            const date = current.toISOString().slice(0, 10);
+            return { date, available: date !== '2027-02-02', reason: date === '2027-02-02' ? 'no_slots' : null };
         });
     } });
     await new Promise((resolve) => setImmediate(resolve));
-    const februarySecond = page.dates.children.find((button) => button.dataset.date === '2027-02-02');
-    assert.equal(februarySecond.disabled, false);
+    const februarySecond = page.dates.querySelectorAll('button').find((button) => button.dataset.date === '2027-02-02');
+    assert.equal(februarySecond.disabled, true);
+    assert.equal(februarySecond.parentElement.dataset.dateTooltip, '2027-02-02');
+    assert.equal(februarySecond.parentElement.querySelector('[role="tooltip"]').textContent, 'No quedan horarios');
     assert.ok(page.requests.some((request) => request.searchParams.get('date') === '2027-02-01' && request.searchParams.get('end_date') === '2027-02-03'));
 });

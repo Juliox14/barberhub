@@ -75,6 +75,26 @@ function initializeAvailability(document, fetchImplementation) {
         let calendarRevision = 0;
         let calendarController;
         let calendarMonth = dateField.value.slice(0, 7);
+        const createDateWrapper = (date, reason, scope) => {
+            const wrapper = document.createElement('span');
+            wrapper.className = `bh-public-date-wrap bh-public-date-wrap--${scope}`;
+            if (reason !== 'closed' && reason !== 'no_slots') return wrapper;
+
+            const tooltip = document.createElement('span');
+            const tooltipId = `bh-public-date-tooltip-${scope}-${date}`;
+            const tooltipText = reason === 'closed' ? 'Cerrado' : 'No quedan horarios';
+            wrapper.dataset.dateTooltip = date;
+            wrapper.tabIndex = 0;
+            wrapper.setAttribute('role', 'group');
+            wrapper.setAttribute('aria-label', `${new Intl.DateTimeFormat('es', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`))}: ${tooltipText}`);
+            wrapper.setAttribute('aria-describedby', tooltipId);
+            tooltip.id = tooltipId;
+            tooltip.className = 'bh-public-date-tooltip';
+            tooltip.setAttribute('role', 'tooltip');
+            tooltip.textContent = tooltipText;
+            wrapper.append(tooltip);
+            return wrapper;
+        };
         const renderDates = () => {
             if (!dates) return;
             dates.replaceChildren();
@@ -97,7 +117,7 @@ function initializeAvailability(document, fetchImplementation) {
                 button.type = 'button';
                 button.className = 'bh-public-date';
                 button.dataset.date = iso;
-                button.disabled = calendarLoading || calendarDays.get(iso) === false;
+                button.disabled = calendarLoading || calendarDays.get(iso)?.available === false;
                 button.setAttribute('aria-pressed', String(iso === value));
                 button.setAttribute('aria-label', new Intl.DateTimeFormat('es', { dateStyle: 'full', timeZone: 'UTC' }).format(day));
                 const weekday = document.createElement('span');
@@ -105,12 +125,14 @@ function initializeAvailability(document, fetchImplementation) {
                 const number = document.createElement('strong');
                 number.textContent = iso.slice(-2);
                 button.append(weekday, number);
+                const wrapper = createDateWrapper(iso, calendarDays.get(iso)?.reason, 'strip');
+                wrapper.append(button);
                 button.addEventListener('click', () => {
                     dateField.value = iso;
                     if (picker) picker.open = false;
                     return refresh();
                 });
-                dates.append(button);
+                dates.append(wrapper);
             }
             dates.hidden = false;
             renderCalendar();
@@ -147,14 +169,16 @@ function initializeAvailability(document, fetchImplementation) {
                 button.className = 'bh-public-calendar__day';
                 button.textContent = String(day);
                 button.dataset.date = date;
-                button.disabled = date < dateField.min || date > dateField.max || calendarLoading || calendarDays.get(date) === false;
+                button.disabled = date < dateField.min || date > dateField.max || calendarLoading || calendarDays.get(date)?.available === false;
                 button.setAttribute('aria-pressed', String(date === dateField.value));
                 button.setAttribute('aria-label', new Intl.DateTimeFormat('es', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)));
                 button.addEventListener('click', () => {
                     dateField.value = date;
                     refresh();
                 });
-                grid.append(button);
+                const wrapper = createDateWrapper(date, calendarDays.get(date)?.reason, 'month');
+                wrapper.append(button);
+                grid.append(wrapper);
             }
             calendar.append(previous, heading, next, grid);
             calendar.querySelectorAll('button[data-calendar-move]').forEach((button) => button.addEventListener('click', () => {
@@ -194,7 +218,7 @@ function initializeAvailability(document, fetchImplementation) {
                 if (!response.ok) throw new Error('No pudimos consultar los días disponibles.');
                 const result = await response.json();
                 if (current !== calendarRevision) return;
-                calendarDays = new Map(result.days.map(({ date, available }) => [date, available]));
+                calendarDays = new Map(result.days.map(({ date, available, reason }) => [date, { available, reason: ['closed', 'no_slots'].includes(reason) ? reason : null }]));
                 const stripStart = new Date(`${firstDate}T12:00:00Z`);
                 stripStart.setUTCDate(stripStart.getUTCDate() + 4);
                 const stripEnd = [stripStart.toISOString().slice(0, 10), dateField.max].sort()[0];
@@ -210,11 +234,14 @@ function initializeAvailability(document, fetchImplementation) {
                     if (!stripResponse.ok) throw new Error('No pudimos consultar los días cercanos.');
                     const stripResult = await stripResponse.json();
                     if (current !== calendarRevision) return;
-                    stripResult.days.forEach(({ date, available }) => calendarDays.set(date, available));
+                    stripResult.days.forEach(({ date, available, reason }) => calendarDays.set(date, {
+                        available,
+                        reason: ['closed', 'no_slots'].includes(reason) ? reason : null,
+                    }));
                 }
                 calendarLoading = false;
-                if (calendarStatus) calendarStatus.textContent = [...calendarDays.values()].some(Boolean) ? '' : 'No hay días con horarios disponibles en este mes.';
-                if (calendarDays.has(dateField.value) && calendarDays.get(dateField.value) !== true) {
+                if (calendarStatus) calendarStatus.textContent = [...calendarDays.values()].some(({ available }) => available) ? '' : 'No hay días con horarios disponibles en este mes.';
+                if (calendarDays.has(dateField.value) && calendarDays.get(dateField.value).available !== true) {
                     dateField.value = '';
                     load.cancel();
                 }
@@ -263,7 +290,11 @@ function initializeAvailability(document, fetchImplementation) {
                 error: state.message ?? 'No pudimos consultar los horarios. Intenta nuevamente.',
             }[state.status];
             if (state.status === 'empty' && calendarDays.has(dateField.value)) {
-                calendarDays.set(dateField.value, false);
+                const currentDay = calendarDays.get(dateField.value);
+                calendarDays.set(dateField.value, {
+                    available: false,
+                    reason: currentDay.reason === 'closed' ? 'closed' : 'no_slots',
+                });
                 dateField.value = '';
                 renderDates();
                 updatePreview();
@@ -291,14 +322,14 @@ function initializeAvailability(document, fetchImplementation) {
             const service = filters.querySelector('[name="service_id"]:checked');
             if (calendar && !calendarDays.has(dateField.value)) {
                 await loadCalendarDays();
-                if (calendarDays.get(dateField.value) !== true) {
+                if (calendarDays.get(dateField.value)?.available !== true) {
                     load.cancel();
                     status.textContent = 'Selecciona un día disponible para consultar horarios.';
                     return;
                 }
                 return refresh();
             }
-            if (calendar && calendarDays.get(dateField.value) !== true) {
+            if (calendar && calendarDays.get(dateField.value)?.available !== true) {
                 load.cancel();
                 status.textContent = 'Selecciona un día disponible para consultar horarios.';
                 return;
