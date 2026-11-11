@@ -6,14 +6,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['access_token', 'refresh_token', 'token_expires_at', 'google_calendar_id', 'connected_at'])]
+#[Fillable(['access_token', 'refresh_token', 'token_expires_at', 'google_calendar_id', 'connected_at', 'sync_status', 'sync_error', 'backfill_status'])]
 class BarberGoogleCalendarConnection extends Model
 {
     protected $hidden = ['access_token', 'refresh_token'];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [

@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barber;
+use App\Models\BarberGoogleCalendarConnection;
 use App\Models\Barbershop;
 use App\Models\User;
 use App\Support\GoogleCalendarClient;
+use App\Support\GoogleCalendarSync;
 use App\Support\TenantDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Throwable;
 
 final class BarberGoogleCalendarController extends Controller
 {
@@ -26,6 +30,8 @@ final class BarberGoogleCalendarController extends Controller
             'barbershop' => $barbershop,
             'connection' => $connection,
             'connected' => $connection?->connected_at !== null,
+            'syncStatus' => $connection?->sync_status ?? 'disconnected',
+            'syncError' => $connection?->sync_error,
             'roleLabel' => TenantDashboard::roleLabel(TenantDashboard::membershipFor($request->user(), $barbershop)),
             'activePage' => 'google-calendar',
         ]);
@@ -49,6 +55,7 @@ final class BarberGoogleCalendarController extends Controller
             'user_id' => $request->user()->getKey(),
             'barber_id' => $barber->getKey(),
             'barbershop_id' => $barbershop->getKey(),
+            'connection_fingerprint' => $this->connectionFingerprint($barber->googleCalendarConnection),
             'expires_at' => now()->addMinutes(10)->timestamp,
         ]);
 
@@ -85,6 +92,11 @@ final class BarberGoogleCalendarController extends Controller
 
         if ($barber === null || $barbershop === null) {
             return $this->fallback('No se pudo validar tu perfil de barbero para esta conexión.');
+        }
+        $currentConnectionFingerprint = $this->connectionFingerprint($barber->googleCalendarConnection);
+        if (($pending['connection_fingerprint'] ?? null) !== $currentConnectionFingerprint) {
+            return redirect()->route('tenant.google-calendar.show', $barbershop)
+                ->with('calendar_error', 'La conexión cambió mientras autorizabas Google. Inicia una nueva solicitud.');
         }
 
         $user = $request->user();
@@ -142,13 +154,34 @@ final class BarberGoogleCalendarController extends Controller
             return $this->fallback('Ya no tienes acceso a esta barbería. Inicia una nueva solicitud desde tu panel.');
         }
 
-        $barber->googleCalendarConnection()->updateOrCreate([], [
-            'access_token' => $accessToken,
-            'refresh_token' => $refreshToken,
-            'token_expires_at' => now()->addSeconds(max(0, (int) ($tokens['expires_in'] ?? 0))),
-            'google_calendar_id' => $calendarId,
-            'connected_at' => now(),
-        ]);
+        $connectionId = $barber->googleCalendarConnection?->id;
+        $expectedConnectionFingerprint = $pending['connection_fingerprint'] ?? null;
+        $connection = Cache::lock('google-calendar-connection-'.($connectionId ?? 'new-'.$barber->id), 60)->block(10, function () use ($barber, $expectedConnectionFingerprint, $accessToken, $refreshToken, $tokens, $calendarId) {
+            $currentConnection = $barber->googleCalendarConnection()->first();
+            if ($this->connectionFingerprint($currentConnection) !== $expectedConnectionFingerprint) {
+                return null;
+            }
+
+            return $barber->googleCalendarConnection()->updateOrCreate([], [
+                'access_token' => $accessToken,
+                'refresh_token' => $refreshToken,
+                'token_expires_at' => now()->addSeconds(max(0, (int) ($tokens['expires_in'] ?? 0))),
+                'google_calendar_id' => $calendarId,
+                'connected_at' => now(),
+                'sync_status' => 'connected',
+                'sync_error' => null,
+                'backfill_status' => 'pending',
+            ]);
+        });
+        if ($connection === null) {
+            return redirect()->route('tenant.google-calendar.show', $barbershop)
+                ->with('calendar_error', 'La conexión cambió mientras autorizabas Google. Inicia una nueva solicitud.');
+        }
+        try {
+            app(GoogleCalendarSync::class)->queueBackfill($connection->id);
+        } catch (Throwable) {
+            // The durable backfill marker lets the scheduler recover this enqueue.
+        }
 
         return redirect()->route('tenant.google-calendar.show', $barbershop)
             ->with('status', 'Google Calendar conectado correctamente.');
@@ -159,12 +192,17 @@ final class BarberGoogleCalendarController extends Controller
         $barber = $this->selfBarber($request, $barbershop);
         $connection = $barber->googleCalendarConnection;
         if ($connection !== null) {
-            $connection->forceFill([
-                'access_token' => null,
-                'refresh_token' => null,
-                'token_expires_at' => null,
-                'connected_at' => null,
-            ])->save();
+            Cache::lock('google-calendar-connection-'.$connection->id, 60)->block(10, function () use ($connection): void {
+                $connection->refresh();
+                $connection->forceFill([
+                    'access_token' => null,
+                    'refresh_token' => null,
+                    'token_expires_at' => null,
+                    'connected_at' => null,
+                    'sync_status' => 'disconnected',
+                    'sync_error' => null,
+                ])->save();
+            });
         }
 
         return redirect()->route('tenant.google-calendar.show', $barbershop)
@@ -181,6 +219,21 @@ final class BarberGoogleCalendarController extends Controller
             ->where('user_id', $user->getKey())
             ->where('active', true)
             ->firstOrFail();
+    }
+
+    private function connectionFingerprint(?BarberGoogleCalendarConnection $connection): ?string
+    {
+        if ($connection === null) {
+            return null;
+        }
+
+        return hash('sha256', implode("\0", [
+            (string) $connection->getRawOriginal('updated_at'),
+            (string) $connection->getRawOriginal('connected_at'),
+            (string) $connection->google_calendar_id,
+            (string) $connection->getRawOriginal('access_token'),
+            (string) $connection->getRawOriginal('refresh_token'),
+        ]));
     }
 
     private function validCallback(mixed $redirectUri): bool

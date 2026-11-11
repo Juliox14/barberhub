@@ -2,14 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SyncAppointmentToGoogleCalendar;
+use App\Jobs\SyncBarberGoogleCalendar;
+use App\Models\Appointment;
 use App\Models\Barber;
 use App\Models\BarberGoogleCalendarConnection;
 use App\Models\Barbershop;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\GoogleCalendarDispatcher;
+use App\Support\GoogleCalendarSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schedule;
 use Tests\TestCase;
 
 class BarberGoogleCalendarConnectionTest extends TestCase
@@ -192,6 +199,7 @@ class BarberGoogleCalendarConnectionTest extends TestCase
 
     public function test_callback_stores_encrypted_credentials_only_after_scope_and_calendar_provisioning_succeed(): void
     {
+        Queue::fake([SyncBarberGoogleCalendar::class]);
         Http::preventStrayRequests();
         Http::fake([
             'oauth2.googleapis.com/token' => Http::response([
@@ -212,9 +220,11 @@ class BarberGoogleCalendarConnectionTest extends TestCase
             ->assertSessionHas('status');
 
         $connection = BarberGoogleCalendarConnection::query()->sole();
+        Queue::assertPushed(SyncBarberGoogleCalendar::class, fn (SyncBarberGoogleCalendar $job): bool => $job->connectionId === $connection->id);
         $this->assertSame('secret-access', $connection->access_token);
         $this->assertSame('secret-refresh', $connection->refresh_token);
         $this->assertSame('calendar-id', $connection->google_calendar_id);
+        $this->assertSame('pending', $connection->backfill_status);
         $this->assertNotNull($connection->connected_at);
         $this->assertStringNotContainsString('secret-access', $connection->getRawOriginal('access_token'));
         $this->assertStringNotContainsString('secret-refresh', $connection->getRawOriginal('refresh_token'));
@@ -223,6 +233,55 @@ class BarberGoogleCalendarConnectionTest extends TestCase
         Http::assertSent(fn (Request $request): bool => $request->url() === 'https://www.googleapis.com/calendar/v3/calendars'
             && $request['timeZone'] === 'America/Mexico_City'
             && $request->hasHeader('Authorization', 'Bearer secret-access'));
+    }
+
+    public function test_failed_initial_backfill_enqueue_keeps_connection_marker_for_scheduler_recovery(): void
+    {
+        $this->travelTo('2026-10-01 00:00:00 UTC');
+        $this->mock(GoogleCalendarSync::class)
+            ->shouldReceive('queueBackfill')
+            ->once()
+            ->andThrow(new \RuntimeException('queue unavailable'));
+        Http::preventStrayRequests();
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'secret-access',
+                'refresh_token' => 'secret-refresh',
+                'expires_in' => 3600,
+                'scope' => 'https://www.googleapis.com/auth/calendar.app.created',
+            ]),
+            'www.googleapis.com/calendar/v3/calendars' => Http::response(['id' => 'calendar-id']),
+        ]);
+        $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
+        $barberUser = $this->createBarber($barbershop);
+        $barber = $barbershop->barbers()->firstOrFail();
+        $appointment = Appointment::factory()->for($barbershop)->for($barber)->create([
+            'starts_at' => '2026-10-05 10:00:00', 'ends_at' => '2026-10-05 10:30:00',
+        ]);
+        $this->configureCallbackState($barbershop, $barberUser, 'queue-failure-state');
+
+        $this->actingAs($barberUser)
+            ->get(route('tenant.google-calendar.callback', ['state' => 'queue-failure-state', 'code' => 'private-code'], false))
+            ->assertRedirect(route('tenant.google-calendar.show', $barbershop, false))
+            ->assertSessionHas('status');
+        $connection = BarberGoogleCalendarConnection::query()->sole();
+        $this->assertSame('pending', $connection->backfill_status);
+
+        app()->forgetInstance(GoogleCalendarSync::class);
+        Queue::fake([SyncBarberGoogleCalendar::class, SyncAppointmentToGoogleCalendar::class]);
+        $reconciler = collect(Schedule::events())->first(fn ($event): bool => $event->getSummaryForDisplay() === 'google-calendar-reconcile');
+        $this->assertNotNull($reconciler);
+        $reconciler->run(app());
+        Queue::assertPushed(SyncBarberGoogleCalendar::class, fn (SyncBarberGoogleCalendar $job): bool => $job->connectionId === $connection->id);
+        (new SyncBarberGoogleCalendar($connection->id))->handle(app(GoogleCalendarDispatcher::class));
+
+        $this->assertDatabaseHas('appointment_google_calendar_events', [
+            'appointment_id' => $appointment->id,
+            'connection_id' => $connection->id,
+            'google_calendar_id' => 'calendar-id',
+        ]);
+        $this->assertSame('complete', $connection->fresh()->backfill_status);
+        Queue::assertPushed(SyncAppointmentToGoogleCalendar::class);
     }
 
     public function test_reconnect_without_a_fresh_refresh_token_does_not_reuse_the_previous_account_token(): void
@@ -453,6 +512,32 @@ class BarberGoogleCalendarConnectionTest extends TestCase
         $this->assertSame((int) $owner->getKey(), session('google_calendar_oauth_state.user_id'));
     }
 
+    public function test_oauth_callback_started_before_disconnect_cannot_reconnect_the_calendar(): void
+    {
+        Http::preventStrayRequests();
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = $this->createBarber($barbershop);
+        $connection = $barbershop->barbers()->first()->googleCalendarConnection()->create([
+            'access_token' => 'secret-access',
+            'refresh_token' => 'secret-refresh',
+            'google_calendar_id' => 'calendar-id',
+            'connected_at' => now(),
+        ]);
+        $this->configureCallbackState($barbershop, $barberUser, 'stale-state');
+
+        $this->actingAs($barberUser)
+            ->delete(route('tenant.google-calendar.disconnect', $barbershop, false))
+            ->assertRedirect(route('tenant.google-calendar.show', $barbershop, false));
+        $this->get(route('tenant.google-calendar.callback', ['state' => 'stale-state', 'code' => 'private-code'], false))
+            ->assertRedirect(route('tenant.google-calendar.show', $barbershop, false))
+            ->assertSessionHas('calendar_error');
+
+        $connection->refresh();
+        $this->assertNull($connection->connected_at);
+        $this->assertSame('calendar-id', $connection->google_calendar_id);
+        Http::assertNothingSent();
+    }
+
     public function test_disconnect_clears_credentials_but_keeps_calendar_and_does_not_call_google(): void
     {
         Http::preventStrayRequests();
@@ -492,6 +577,21 @@ class BarberGoogleCalendarConnectionTest extends TestCase
         return $user;
     }
 
+    private function connectionFingerprint(?BarberGoogleCalendarConnection $connection): ?string
+    {
+        if ($connection === null) {
+            return null;
+        }
+
+        return hash('sha256', implode("\0", [
+            (string) $connection->getRawOriginal('updated_at'),
+            (string) $connection->getRawOriginal('connected_at'),
+            (string) $connection->google_calendar_id,
+            (string) $connection->getRawOriginal('access_token'),
+            (string) $connection->getRawOriginal('refresh_token'),
+        ]));
+    }
+
     private function configureCallbackState(Barbershop $barbershop, User $user, string $state): void
     {
         config(['services.google_calendar.redirect' => 'https://app.example.test/google-calendar/callback']);
@@ -501,6 +601,7 @@ class BarberGoogleCalendarConnectionTest extends TestCase
             'user_id' => $user->getKey(),
             'barber_id' => $barber->getKey(),
             'barbershop_id' => $barbershop->getKey(),
+            'connection_fingerprint' => $this->connectionFingerprint($barber->googleCalendarConnection),
             'expires_at' => now()->addMinutes(10)->timestamp,
         ]]);
     }

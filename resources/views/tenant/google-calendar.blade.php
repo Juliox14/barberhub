@@ -9,7 +9,16 @@
             <p class="rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100" role="alert">{{ session('calendar_error') }}</p>
         @endif
 
-        @if ($connected)
+        @if ($syncStatus === 'reconnect_needed')
+            <section class="space-y-4 rounded-xl border border-amber-300/40 bg-[#111820] p-5 sm:p-6" role="status">
+                <p class="font-semibold text-amber-200">Vuelve a conectar Google Calendar</p>
+                <p class="text-sm leading-6 text-slate-300">{{ $syncError ?: 'La autorización de Google necesita renovarse.' }}</p>
+                <form method="POST" action="{{ route('tenant.google-calendar.connect', $barbershop) }}">
+                    @csrf
+                    <button type="submit" class="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-[#17130b]">Conectar de nuevo</button>
+                </form>
+            </section>
+        @elseif ($connected)
             <section class="space-y-4 rounded-xl border border-slate-800 bg-[#111820] p-5 sm:p-6">
                 <p class="font-semibold text-emerald-200">Google Calendar conectado</p>
                 <p class="text-sm leading-6 text-slate-300">Las futuras citas se administrarán en el calendario dedicado de BarberHub.</p>
