@@ -1,5 +1,5 @@
 <x-public-booking-layout :barbershop="$barbershop" :branding="$branding">
-    <div class="bh-public-wizard" data-booking-wizard data-initial-step="{{ $errors->has('slot') || (old('name') && ! old('slot')) ? 2 : (old('slot') ? 3 : 1) }}">
+    <div class="bh-public-wizard" data-booking-wizard data-initial-step="{{ $errors->has('slot') || (old('name') && ! old('slot')) ? 4 : (old('slot') ? 3 : ($barberId === null ? 1 : ($service === null ? 2 : 3))) }}">
     <section class="bh-public-intro bh-public-intro--editorial" aria-labelledby="booking-heading">
         <div class="bh-public-intro__copy">
             <p class="bh-public-intro__description">{{ $branding['description'] ?: $barbershop->name }}</p>
@@ -22,32 +22,44 @@
 
     <x-barbershop-location :barbershop="$barbershop" />
 
-    @if ($services->isEmpty())
-        <section class="bh-public-panel"><h2>Aún no hay servicios para reservar</h2><p>Contacta a la barbería para consultar su disponibilidad.</p></section>
+    @if ($barbers->isEmpty())
+        <section class="bh-public-panel"><h2>Aún no hay profesionales para reservar</h2><p>Contacta a la barbería para consultar su disponibilidad.</p></section>
     @else
-        @include('public.booking-progress', ['step' => 1])
+        @include('public.booking-progress', ['step' => $barberId === null ? 1 : ($service === null ? 2 : 3)])
         <div class="bh-public-columns bh-public-columns--editorial">
-            <form method="GET" action="{{ route('public.booking.create', $barbershop) }}" class="bh-public-form bh-public-flow" data-availability data-availability-url="{{ route('public.availability', $barbershop) }}">
-                <section aria-labelledby="service-heading" data-step-panel="1" tabindex="-1">
-                    <header class="bh-public-section-heading"><span aria-hidden="true">01</span><h2 id="service-heading">Elige tu servicio</h2><small>Servicios disponibles</small></header>
-                    <fieldset>
+            <form method="GET" action="{{ route('public.booking.create', $barbershop) }}" class="bh-public-form bh-public-flow" data-availability data-availability-url="{{ route('public.availability', $barbershop) }}" data-booking-url="{{ route('public.booking.create', $barbershop) }}">
+                <section aria-labelledby="professional-heading" data-step-panel="1" tabindex="-1">
+                    <header class="bh-public-section-heading"><span aria-hidden="true">01</span><h2 id="professional-heading">Elige un profesional</h2></header>
+                    <label>Profesional
+                        <select name="barber_id" required>
+                            <option value="">Seleccionar profesional</option>
+                            @foreach ($barbers as $barber)<option value="{{ $barber->id }}" @selected($barberId === $barber->id)>{{ $barber->display_name }}</option>@endforeach
+                        </select>
+                    </label>
+                </section>
+                <section aria-labelledby="service-heading" data-step-panel="2" tabindex="-1" @if ($barberId === null) hidden @endif>
+                    <header class="bh-public-section-heading"><span aria-hidden="true">02</span><h2 id="service-heading">Elige tu servicio</h2><small>Servicios disponibles</small></header>
+                    <fieldset data-service-fieldset @disabled($barberId === null)>
                         <legend class="sr-only">Servicios disponibles</legend>
-                        @foreach ($services as $item)
-                            <label class="bh-public-choice bh-public-service">
-                                <input type="radio" name="service_id" value="{{ $item->id }}" data-service-name="{{ $item->name }}" data-service-price="{{ $item->price }}" data-service-duration="{{ $item->duration_minutes }}" @checked($service?->id === $item->id) required>
-                                <span class="bh-public-service__details"><strong>{{ $item->name }}</strong>@if ($item->description)<small>{{ $item->description }}</small>@endif<small>{{ $item->duration_minutes }} min</small></span>
-                                <span class="bh-public-service__price">{{ $item->price }}</span>
-                            </label>
-                        @endforeach
+                        <div data-service-list>
+                            @foreach ($services as $item)
+                                <label class="bh-public-choice bh-public-service">
+                                    <input type="radio" name="service_id" value="{{ $item->id }}" data-service-name="{{ $item->name }}" data-service-price="{{ $item->price }}" data-service-duration="{{ $item->duration_minutes }}" @checked($service?->id === $item->id) required>
+                                    <span class="bh-public-service__details"><strong>{{ $item->name }}</strong>@if ($item->description)<small>{{ $item->description }}</small>@endif<small>{{ $item->duration_minutes }} min</small></span>
+                                    <span class="bh-public-service__price">{{ $item->price }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <p data-service-status role="status" @if ($barberId !== null && $services->isNotEmpty()) hidden @endif>{{ $barberId !== null ? 'Este profesional aún no tiene servicios asignados.' : 'Selecciona un profesional para ver sus servicios.' }}</p>
                     </fieldset>
                 </section>
-                <section aria-labelledby="slot-heading" data-step-panel="2" tabindex="-1">
-                    <header class="bh-public-section-heading"><span aria-hidden="true">02</span><h2 id="slot-heading">Encuentra tu horario</h2>
+                <section aria-labelledby="slot-heading" data-step-panel="3" tabindex="-1" @if ($barberId === null) hidden @endif>
+                    <header class="bh-public-section-heading"><span aria-hidden="true">03</span><h2 id="slot-heading">Encuentra tu horario</h2>
                         <p data-slot-status role="status" aria-live="polite" class="bh-public-slot-status">
                             @if (!$service)
                                 Selecciona un servicio y una fecha para ver los horarios disponibles.
                             @elseif (empty($slots))
-                                No hay horarios disponibles para esta selección. Prueba otra fecha o elige “Sin preferencia”.
+                                No hay horarios disponibles para esta selección. Prueba otra fecha.
                             @else
                                 {{ count($slots) }} horarios disponibles. Elige el que mejor te quede.
                             @endif
@@ -63,12 +75,6 @@
                                     <label><span class="sr-only">Fecha de la cita</span><input type="date" name="date" value="{{ $date }}" min="{{ $today }}" max="{{ $lastDate }}" required></label>
                                 </details>
                             </div>
-                            <label>Profesional
-                                <select name="barber_id">
-                                    <option value="">Sin preferencia</option>
-                                    @foreach ($barbers as $barber)<option value="{{ $barber->id }}" @selected($barberId === $barber->id)>{{ $barber->display_name }}</option>@endforeach
-                                </select>
-                            </label>
                         </div>
                         <button type="submit" class="bh-public-button bh-public-button--secondary bh-public-refresh">Ver horarios disponibles</button>
                         <fieldset data-slot-fieldset @disabled(empty($slots))>
@@ -86,8 +92,8 @@
                     </div>
                 </section>
             </form>
-            <aside id="booking-details" class="bh-public-panel bh-public-reservation" aria-labelledby="reservation-heading" data-step-panel="3" tabindex="-1">
-                <header class="bh-public-reservation__heading"><div><span>Paso 03</span><h2 id="reservation-heading">Tu reserva</h2></div><p class="bh-public-reservation__tenant">{{ $barbershop->name }}</p></header>
+            <aside id="booking-details" class="bh-public-panel bh-public-reservation" aria-labelledby="reservation-heading" data-step-panel="4" tabindex="-1">
+                <header class="bh-public-reservation__heading"><div><span>Paso 04</span><h2 id="reservation-heading">Tu reserva</h2></div><p class="bh-public-reservation__tenant">{{ $barbershop->name }}</p></header>
                 <dl class="bh-public-preview">
                     <div>
                         <dt>Servicio</dt>

@@ -411,6 +411,109 @@ test('resend countdown never overwrites verification results and stops after ver
     assert.equal(page.status.textContent, verificationMessage);
 });
 
+test('changing professional refreshes offered services without submitting or retaining stale booking state', async () => {
+    const serviceList = element({ children: [element({ children: [element({ checked: true, value: '1' })] })] });
+    const serviceField = element({ value: '1' });
+    const barber = element({ value: '12' });
+    const date = element({ value: '2026-10-09', min: '2026-10-05', max: '2027-01-03' });
+    const slots = element({ children: [element({ checked: true, value: '7|stale' })] });
+    const status = element();
+    const selected = element({ textContent: '10:00 con María' });
+    const serviceStatus = element();
+    const servicePanel = element({ hidden: false });
+    const slotPanel = element({ hidden: false });
+    const serviceFieldset = element({ disabled: false });
+    const submit = element({ disabled: false });
+    let nativeSubmits = 0;
+    let request;
+    const filters = element({
+        dataset: { availabilityUrl: '/availability', bookingUrl: '/booking' },
+        querySelector(selector) {
+            return ({ '[name="barber_id"]': barber, '[name="date"]': date,
+                '[name="service_id"]:checked': serviceList.children.map((label) => label.children[0]).find((service) => service.checked),
+                '[name="service_id"]': serviceList.children[0]?.children[0], '[data-service-list]': serviceList,
+                '[data-service-fieldset]': serviceFieldset, '[data-service-status]': serviceStatus,
+                '[data-step-panel="2"]': servicePanel, '[data-step-panel="3"]': slotPanel,
+                '[data-date-options]': element({ hidden: true }), '[data-date-picker]': element({ open: true }),
+                '[data-slot-fieldset]': element() })[selector] ?? null;
+        },
+        querySelectorAll(selector) { return selector === '[name="service_id"]' ? serviceList.children : []; },
+        submit() { nativeSubmits++; },
+        reportValidity: () => true,
+    });
+    const booking = element({
+        dataset: { emailVerified: 'true', availabilityReady: 'true' },
+        querySelector(selector) { return selector === '[name="service_id"]' ? serviceField : selector === '[data-slot-submit]' ? submit : null; },
+    });
+    const document = {
+        querySelector(selector) { return ({ '[data-availability]': filters, '[data-public-booking]': booking,
+            '[data-slot-list]': slots, '[data-slot-status]': status, '[data-selected-slot]': selected })[selector] ?? null; },
+        querySelectorAll(selector) { return selector === '[data-availability]' ? [filters] : []; },
+        createElement(tagName) { return element({ tagName }); },
+    };
+    const requests = [];
+    let resolveObsoleteServices;
+    initializePublicBooking(document, async (url, options) => {
+        request = { url, options };
+        requests.push(request);
+        const parsed = new URL(url, 'http://localhost');
+        if (parsed.pathname === '/availability') {
+            return { ok: true, json: async () => ({ slots: [slot] }) };
+        }
+        const barberId = parsed.searchParams.get('barber_id');
+        if (barberId === '13') {
+            return new Promise((resolve) => { resolveObsoleteServices = resolve; });
+        }
+        return { ok: true, json: async () => ({ services: [
+            { id: barberId === '14' ? 9 : 4, name: barberId === '14' ? 'Corte' : 'Barba', description: null, price: '180.00', duration_minutes: 30 },
+        ] }) };
+    });
+
+    await barber.listeners.change({ target: barber });
+
+    assert.equal(nativeSubmits, 0);
+    assert.equal(barber.value, '12');
+    assert.equal(new URL(request.url, 'http://localhost').searchParams.get('barber_id'), '12');
+    assert.equal(request.options.headers.Accept, 'application/json');
+    assert.equal(serviceField.value, '');
+    assert.equal(date.value, date.min);
+    assert.equal(slots.children.length, 0);
+    assert.equal(selected.textContent, 'Selecciona un horario para ver tu elección.');
+    assert.equal(serviceList.children.length, 1);
+    assert.equal(serviceList.children[0].children[0].value, '4');
+    const offeredService = serviceList.children[0].children[0];
+    assert.equal(offeredService.dataset.serviceName, 'Barba');
+    assert.doesNotMatch(status.textContent, /Sin preferencia/);
+
+    offeredService.checked = true;
+    await filters.listeners.change({ target: offeredService });
+
+    const availabilityRequest = requests.at(-1);
+    const availabilityQuery = new URL(availabilityRequest.url, 'http://localhost').searchParams;
+    assert.equal(availabilityQuery.get('service_id'), '4');
+    assert.equal(availabilityQuery.get('barber_id'), '12');
+    assert.equal(availabilityQuery.get('date'), date.min);
+    assert.equal(serviceField.value, '4');
+    assert.equal(filters.dataset.availabilityState, 'ready');
+
+    barber.value = '13';
+    const obsoleteServiceRequest = barber.listeners.change({ target: barber });
+    const obsoleteRequest = requests.at(-1);
+    barber.value = '14';
+    await barber.listeners.change({ target: barber });
+    assert.equal(obsoleteRequest.options.signal.aborted, true);
+    assert.equal(new URL(requests.at(-1).url, 'http://localhost').searchParams.get('barber_id'), '14');
+    assert.equal(serviceList.children[0].children[0].value, '9');
+    resolveObsoleteServices({ ok: true, json: async () => ({ services: [
+        { id: 8, name: 'Obsoleto', description: null, price: '1.00', duration_minutes: 10 },
+    ] }) });
+    await obsoleteServiceRequest;
+    assert.equal(serviceList.children[0].children[0].value, '9');
+    assert.equal(serviceField.value, '');
+    assert.equal(slots.children.length, 0);
+    assert.equal(date.value, date.min);
+});
+
 test('verified accounts keep their existing code-free path and still need available slots', () => {
     for (const ready of ['true', 'false']) {
         const submit = element();
