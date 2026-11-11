@@ -86,6 +86,8 @@ class AppointmentScheduler
 
         if ($service->barbershop_id !== $barbershop->id || ! $service->active) {
             $errors['service'] = ['Selecciona un servicio activo de esta barbería.'];
+        } elseif ($ignoreAppointmentId === null && ! $barber->services()->whereKey($service->id)->exists()) {
+            $errors['service'] = ['El barbero seleccionado no ofrece este servicio.'];
         }
 
         if ($customer !== null && $customer->barbershop_id !== $barbershop->id) {

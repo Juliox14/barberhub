@@ -93,7 +93,7 @@ final class TenantAppointmentController extends Controller
             'sortState' => $sortState,
             'date' => $date,
             'barbers' => $canManageAppointments ? $barbershop->barbers()->where('active', true)->orderBy('display_name')->get() : collect(),
-            'services' => $canCreateAppointments ? $barbershop->services()->where('active', true)->orderBy('name')->get() : collect(),
+            'services' => $canCreateAppointments ? $barbershop->services()->where('active', true)->with('barbers:id')->orderBy('name')->get() : collect(),
             'customers' => $canCreateAppointments ? $barbershop->customers()->orderBy('name')->get() : collect(),
             'roleLabel' => TenantDashboard::roleLabel($membership),
             'canManageMembers' => $canManageAppointments,
@@ -154,6 +154,9 @@ final class TenantAppointmentController extends Controller
 
         $barber ??= $barbershop->barbers()->whereKey($validated['barber_id'])->firstOrFail();
         $service = $barbershop->services()->whereKey($validated['service_id'])->firstOrFail();
+        if (! $barber->services()->whereKey($service->id)->exists()) {
+            throw ValidationException::withMessages(['service_id' => 'El barbero seleccionado no ofrece este servicio.']);
+        }
         $customer = isset($validated['customer_id'])
             ? $barbershop->customers()->whereKey($validated['customer_id'])->firstOrFail()
             : null;

@@ -25,6 +25,7 @@ final class PublicBookingAvailability
 
         $barbers = $barbershop->barbers()
             ->where('active', true)
+            ->whereHas('services', fn ($query) => $query->whereKey($service->id)->where('active', true))
             ->when($barberId !== null, fn ($query) => $query->whereKey($barberId))
             ->orderBy('id')
             ->get();

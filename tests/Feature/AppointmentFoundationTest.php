@@ -164,6 +164,7 @@ class AppointmentFoundationTest extends TestCase
         $barbershop = Barbershop::factory()->create();
         $barber = Barber::factory()->for($barbershop)->create(['active' => true]);
         $service = Service::factory()->for($barbershop)->create(['duration_minutes' => $durationMinutes, 'active' => true]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         $customer = Customer::factory()->for($barbershop)->create();
         BusinessHour::factory()->for($barbershop)->create([
             'weekday' => BusinessHour::WEEKDAY_MONDAY,
