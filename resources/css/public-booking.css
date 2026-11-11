@@ -278,7 +278,8 @@
     [data-wizard-enhanced] [data-wizard-fallback],
     [data-wizard-enhanced][data-wizard-step="1"] [data-step-panel]:not([data-step-panel="1"]),
     [data-wizard-enhanced][data-wizard-step="2"] [data-step-panel]:not([data-step-panel="2"]),
-    [data-wizard-enhanced][data-wizard-step="3"] .bh-public-flow,
+    [data-wizard-enhanced][data-wizard-step="3"] [data-step-panel]:not([data-step-panel="3"]),
+    [data-wizard-enhanced][data-wizard-step="4"] .bh-public-flow,
     [data-wizard-enhanced]:not([data-wizard-step="1"]) .bh-public-intro { display: none; }
     [data-wizard-enhanced] [data-step-panel] { scroll-margin-block: 6rem; }
     [data-wizard-enhanced] .bh-public-mobile-bar { flex-wrap: wrap; }
