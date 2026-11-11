@@ -120,8 +120,6 @@
                         @if ($dueAt = \App\Support\CustomerReminders::dueAt($customer, $barbershop))
                             Próximo aviso: {{ $dueAt->timezone($barbershop->timezone)->locale('es')->translatedFormat('j \d\e F \d\e Y') }} ({{ $barbershop->timezone }}).
                         @endif
-                    @else
-                        Requiere un navegador compatible, permiso de notificaciones y conexión segura HTTPS.
                     @endif
                 </p>
             </section>
