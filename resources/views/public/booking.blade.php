@@ -72,6 +72,8 @@
                                 <div class="bh-public-dates" data-date-options role="group" aria-label="Fechas cercanas" hidden></div>
                                 <details class="bh-public-date-picker" data-date-picker open>
                                     <summary>Elegir otra fecha</summary>
+                                    <p data-calendar-status role="status" aria-live="polite"></p>
+                                    <div class="bh-public-calendar" data-calendar-grid role="group" aria-label="Calendario de fechas"></div>
                                     <label><span class="sr-only">Fecha de la cita</span><input type="date" name="date" value="{{ $date }}" min="{{ $today }}" max="{{ $lastDate }}" required></label>
                                 </details>
                             </div>

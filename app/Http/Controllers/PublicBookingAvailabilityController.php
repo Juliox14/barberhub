@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Barber;
 use App\Models\Barbershop;
+use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Support\ModuleContainment;
 use App\Support\PublicBookingAvailability;
@@ -26,6 +27,7 @@ final class PublicBookingAvailabilityController extends Controller
         $validated = $request->validate([
             'service_id' => ['required', 'integer'],
             'date' => ['required', 'string', 'date_format:Y-m-d'],
+            'end_date' => ['sometimes', 'string', 'date_format:Y-m-d', 'after_or_equal:date'],
             'barber_id' => ['sometimes', 'nullable', 'integer'],
         ]);
         $today = CarbonImmutable::today($barbershop->timezone);
@@ -42,6 +44,18 @@ final class PublicBookingAvailabilityController extends Controller
             ->first();
         abort_if($service === null, 404);
 
+        $endDate = isset($validated['end_date'])
+            ? CarbonImmutable::createFromFormat('!Y-m-d', $validated['end_date'], $barbershop->timezone)
+            : null;
+
+        if ($endDate !== null && (
+            $endDate->format('Y-m-d') !== $validated['end_date']
+            || $endDate->gt($today->addDays(90))
+            || $date->diffInDays($endDate) > 30
+        )) {
+            throw ValidationException::withMessages(['end_date' => 'Selecciona un rango de hasta 31 días dentro de los próximos 90 días.']);
+        }
+
         $barberId = $validated['barber_id'] ?? null;
         if ($barberId !== null && ! Barber::query()
             ->whereKey($barberId)
@@ -49,6 +63,36 @@ final class PublicBookingAvailabilityController extends Controller
             ->where('active', true)
             ->exists()) {
             abort(404);
+        }
+
+        if ($endDate !== null) {
+            $weekdays = [];
+            for ($day = $date; $day->lte($endDate); $day = $day->addDay()) {
+                $weekdays[] = $day->dayOfWeek;
+            }
+            $businessHours = BusinessHour::query()
+                ->where('barbershop_id', $barbershop->id)
+                ->whereIn('weekday', array_unique($weekdays))
+                ->get()
+                ->keyBy('weekday');
+
+            $days = [];
+            for ($day = $date; $day->lte($endDate); $day = $day->addDay()) {
+                $businessHour = $businessHours->get($day->dayOfWeek);
+                $isClosed = $businessHour === null
+                    || $businessHour->closed
+                    || $businessHour->opens_at === null
+                    || $businessHour->closes_at === null;
+                $available = $availability->slots($barbershop, $service, $day->format('Y-m-d'), $barberId) !== [];
+
+                $days[] = [
+                    'date' => $day->format('Y-m-d'),
+                    'available' => $available,
+                    'reason' => $available ? null : ($isClosed ? 'closed' : 'no_slots'),
+                ];
+            }
+
+            return response()->json(['days' => $days]);
         }
 
         return response()->json(['slots' => $availability->slots($barbershop, $service, $date->format('Y-m-d'), $barberId)]);

@@ -110,6 +110,144 @@ class PublicBookingAvailabilityTest extends TestCase
         $this->getJson(route('public.availability', ['barbershop' => $shop->slug, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertNotFound();
     }
 
+    public function test_returns_bounded_calendar_days_using_selected_barber_and_service_duration(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+        $otherBarber = Barber::factory()->for($shop)->create();
+        BarberAvailability::factory()->for($otherBarber)->create(['weekday' => BusinessHour::WEEKDAY_MONDAY]);
+        Appointment::factory()->for($shop)->for($barber)->for($service)->create([
+            'starts_at' => '2026-10-05 10:00:00',
+            'ends_at' => '2026-10-05 10:30:00',
+        ]);
+        $service->update(['duration_minutes' => 45]);
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $barber->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-10-07',
+        ]))->assertOk()->assertExactJson(['days' => [
+            ['date' => '2026-10-05', 'available' => false, 'reason' => 'no_slots'],
+            ['date' => '2026-10-06', 'available' => false, 'reason' => 'closed'],
+            ['date' => '2026-10-07', 'available' => false, 'reason' => 'closed'],
+        ]]);
+    }
+
+    public function test_calendar_marks_an_open_free_day_available(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $barber->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-10-05',
+        ]))->assertOk()->assertExactJson(['days' => [['date' => '2026-10-05', 'available' => true, 'reason' => null]]]);
+    }
+
+    public function test_calendar_marks_a_shop_closed_day_unavailable(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+        BusinessHour::factory()->for($shop)->create([
+            'weekday' => BusinessHour::WEEKDAY_TUESDAY,
+            'closed' => true,
+        ]);
+        BusinessHour::factory()->for($shop)->create([
+            'weekday' => BusinessHour::WEEKDAY_THURSDAY,
+            'opens_at' => null,
+            'closes_at' => null,
+        ]);
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $barber->id,
+            'date' => '2026-10-06',
+            'end_date' => '2026-10-08',
+        ]))->assertOk()->assertExactJson(['days' => [
+            ['date' => '2026-10-06', 'available' => false, 'reason' => 'closed'],
+            ['date' => '2026-10-07', 'available' => false, 'reason' => 'closed'],
+            ['date' => '2026-10-08', 'available' => false, 'reason' => 'closed'],
+        ]]);
+    }
+
+    public function test_calendar_marks_day_unavailable_when_service_duration_exceeds_opening(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+        $service->update(['duration_minutes' => 61]);
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $barber->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-10-05',
+        ]))->assertOk()->assertExactJson(['days' => [['date' => '2026-10-05', 'available' => false, 'reason' => 'no_slots']]]);
+    }
+
+    public function test_full_selected_professional_is_unavailable_even_when_another_professional_is_free(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $selectedBarber] = $this->availabilityContext();
+        $otherBarber = Barber::factory()->for($shop)->create();
+        BarberAvailability::factory()->for($otherBarber)->create(['weekday' => BusinessHour::WEEKDAY_MONDAY]);
+        $otherBarber->services()->syncWithoutDetaching([$service->id]);
+        foreach ([['10:00', '10:30'], ['10:15', '10:45'], ['10:30', '11:00']] as [$start, $end]) {
+            Appointment::factory()->for($shop)->for($selectedBarber)->for($service)->create([
+                'starts_at' => '2026-10-05 '.$start.':00',
+                'ends_at' => '2026-10-05 '.$end.':00',
+            ]);
+        }
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $selectedBarber->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-10-05',
+        ]))->assertOk()->assertExactJson(['days' => [['date' => '2026-10-05', 'available' => false, 'reason' => 'no_slots']]]);
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'date' => '2026-10-05',
+            'barber_id' => $otherBarber->id,
+        ]))->assertOk()->assertJsonCount(3, 'slots');
+    }
+
+    public function test_calendar_reports_no_slots_when_selected_barber_is_personally_off_during_shop_hours(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+        $barber->availabilities()->delete();
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'barber_id' => $barber->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-10-05',
+        ]))->assertOk()->assertExactJson(['days' => [['date' => '2026-10-05', 'available' => false, 'reason' => 'no_slots']]]);
+    }
+
+    public function test_rejects_calendar_ranges_longer_than_31_days(): void
+    {
+        $this->travelTo('2026-10-05 12:00:00 UTC');
+        [$shop, $service] = $this->availabilityContext();
+
+        $this->getJson(route('public.availability', [
+            'barbershop' => $shop->slug,
+            'service_id' => $service->id,
+            'date' => '2026-10-05',
+            'end_date' => '2026-11-05',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('end_date');
+    }
+
     public function test_rejects_invalid_past_and_too_far_dates(): void
     {
         $this->travelTo('2026-10-05 12:00:00 UTC');
