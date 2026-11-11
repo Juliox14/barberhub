@@ -363,6 +363,7 @@ class BarberPushNotificationTest extends TestCase
         [$barbershop, $barberUser] = $this->barberContext($barbershop);
         $barber = Barber::query()->where('user_id', $barberUser->id)->firstOrFail();
         $service = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 30]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         BusinessHour::factory()->for($barbershop)->create(['weekday' => 1, 'opens_at' => '09:00', 'closes_at' => '18:00', 'closed' => false]);
         BarberAvailability::factory()->for($barber)->create(['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '18:00', 'active' => true]);
         $appointment = Appointment::factory()->for($barbershop)->for($barber)->for($service)->create([

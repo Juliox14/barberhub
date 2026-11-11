@@ -61,6 +61,7 @@ function initializeAvailability(document, fetchImplementation) {
         const list = document.querySelector('[data-slot-list]');
         const status = document.querySelector('[data-slot-status]');
         const selected = document.querySelector('[data-selected-slot]');
+        const professional = filters.querySelector('[name="barber_id"]');
         if (!form || !list || !status) return;
         const fieldset = filters.querySelector('[data-slot-fieldset]') ?? form.querySelector('[data-slot-fieldset]');
         const dateField = filters.querySelector('[name="date"]');
@@ -135,7 +136,7 @@ function initializeAvailability(document, fetchImplementation) {
                 idle: 'Completa el servicio y la fecha para consultar horarios.',
                 loading: 'Buscando horarios disponibles…',
                 ready: `${state.slots.length} horarios disponibles. Elige el que mejor te quede.`,
-                empty: 'No hay horarios para esta selección. Prueba otra fecha o elige “Sin preferencia”.',
+                empty: 'No hay horarios para esta selección. Prueba otra fecha o elige otro profesional.',
                 error: state.message ?? 'No pudimos consultar los horarios. Intenta nuevamente.',
             }[state.status];
             state.slots.forEach((slot) => {
@@ -168,16 +169,106 @@ function initializeAvailability(document, fetchImplementation) {
             form.querySelector('[name="service_id"]').value = service.value;
             return load(filters.dataset.availabilityUrl, {
                 service_id: service.value,
-                barber_id: filters.querySelector('[name="barber_id"]').value,
+                barber_id: professional.value,
                 date: filters.querySelector('[name="date"]').value,
             });
         };
+        let servicesRevision = 0;
+        let servicesController;
+        const refreshServices = async () => {
+            const current = ++servicesRevision;
+            servicesController?.abort();
+            servicesController = undefined;
+            const serviceList = filters.querySelector('[data-service-list]');
+            const serviceFieldset = filters.querySelector('[data-service-fieldset]');
+            const serviceStatus = filters.querySelector('[data-service-status]');
+            const servicePanel = filters.querySelector('[data-step-panel="2"]');
+            const slotPanel = filters.querySelector('[data-step-panel="3"]');
+            const serviceInput = form.querySelector('[name="service_id"]');
+            const barberId = professional.value;
+            if (serviceList) serviceList.replaceChildren();
+            if (serviceFieldset) serviceFieldset.disabled = true;
+            if (serviceInput) serviceInput.value = '';
+            if (servicePanel) servicePanel.hidden = !barberId;
+            if (slotPanel) slotPanel.hidden = !barberId;
+            dateField.value = dateField.min;
+            load.cancel();
+            updatePreview();
+            if (!barberId) {
+                if (serviceStatus) {
+                    serviceStatus.hidden = false;
+                    serviceStatus.textContent = 'Selecciona un profesional para ver sus servicios.';
+                }
+                return;
+            }
+            if (serviceStatus) {
+                serviceStatus.hidden = false;
+                serviceStatus.textContent = 'Cargando servicios disponibles…';
+            }
+            const requestController = new AbortController();
+            servicesController = requestController;
+            try {
+                const query = new URLSearchParams({ barber_id: barberId });
+                const response = await fetchImplementation(`${filters.dataset.bookingUrl}?${query}`, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                    signal: requestController.signal,
+                });
+                if (!response.ok) throw new Error('No pudimos consultar los servicios. Intenta nuevamente.');
+                const result = await response.json();
+                if (!Array.isArray(result.services)) throw new Error('La respuesta de servicios no es válida. Intenta nuevamente.');
+                if (current !== servicesRevision) return;
+                result.services.forEach((service) => {
+                    const label = document.createElement('label');
+                    label.className = 'bh-public-choice bh-public-service';
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = 'service_id';
+                    input.value = String(service.id);
+                    input.required = true;
+                    input.dataset.serviceName = service.name;
+                    input.dataset.servicePrice = service.price;
+                    input.dataset.serviceDuration = String(service.duration_minutes);
+                    const details = document.createElement('span');
+                    details.className = 'bh-public-service__details';
+                    const name = document.createElement('strong');
+                    name.textContent = service.name;
+                    details.append(name);
+                    if (service.description) {
+                        const description = document.createElement('small');
+                        description.textContent = service.description;
+                        details.append(description);
+                    }
+                    const duration = document.createElement('small');
+                    duration.textContent = `${service.duration_minutes} min`;
+                    details.append(duration);
+                    const price = document.createElement('span');
+                    price.className = 'bh-public-service__price';
+                    price.textContent = service.price;
+                    label.append(input, details, price);
+                    serviceList.append(label);
+                });
+                if (serviceFieldset) serviceFieldset.disabled = result.services.length === 0;
+                if (serviceStatus) {
+                    serviceStatus.hidden = result.services.length > 0;
+                    serviceStatus.textContent = 'Este profesional aún no tiene servicios asignados.';
+                }
+            } catch (error) {
+                if (current !== servicesRevision || requestController.signal.aborted) return;
+                if (serviceStatus) {
+                    serviceStatus.hidden = false;
+                    serviceStatus.textContent = error.message || 'No pudimos consultar los servicios. Intenta nuevamente.';
+                }
+            }
+        };
+        professional?.addEventListener('change', refreshServices);
         renderDates();
         if (dates && !dates.hidden && picker) picker.open = false;
         filters.dataset.enhanced = 'true';
         filters.addEventListener('submit', (event) => { event.preventDefault(); return refresh(); });
         filters.addEventListener('change', (event) => {
-            if (['service_id', 'barber_id', 'date'].includes(event.target.name)) return refresh();
+            if (event.target.name === 'barber_id') return;
+            if (['service_id', 'date'].includes(event.target.name)) return refresh();
         });
         list.addEventListener('change', (event) => {
             if (event.target.name !== 'slot') return;

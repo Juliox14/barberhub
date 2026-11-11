@@ -28,6 +28,7 @@ class PublicBookingHistoryTest extends TestCase
         Membership::factory()->for($barberUser)->for($shop)->create(['role' => Membership::ROLE_BARBER]);
         $barber = Barber::factory()->for($shop)->create(['user_id' => $barberUser->id]);
         $service = Service::factory()->for($shop)->create(['duration_minutes' => 30]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         BusinessHour::factory()->for($shop)->create(['weekday' => 1, 'opens_at' => '09:00', 'closes_at' => '18:00']);
         BarberAvailability::factory()->for($barber)->create(['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '18:00']);
 

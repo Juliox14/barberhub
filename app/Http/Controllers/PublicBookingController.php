@@ -29,7 +29,7 @@ use Throwable;
 
 final class PublicBookingController extends Controller
 {
-    public function create(Request $request, Barbershop $barbershop, PublicBookingAvailability $availability): Response
+    public function create(Request $request, Barbershop $barbershop, PublicBookingAvailability $availability): Response|JsonResponse
     {
         $this->ensureAvailable($barbershop);
         $validated = $request->validate([
@@ -40,12 +40,30 @@ final class PublicBookingController extends Controller
         $today = CarbonImmutable::today($barbershop->timezone);
         $date = $validated['date'] ?? $today->format('Y-m-d');
         $this->ensureDate($barbershop, $date);
-        $services = $barbershop->services()->where('active', true)->orderBy('name')->get();
         $barbers = $barbershop->barbers()->where('active', true)->orderBy('display_name')->get();
-        $service = isset($validated['service_id']) ? $services->firstWhere('id', $validated['service_id']) : null;
-        abort_if(isset($validated['service_id']) && $service === null, 404);
         $barberId = $validated['barber_id'] ?? null;
         abort_if($barberId !== null && ! $barbers->contains('id', $barberId), 404);
+        $services = $barberId === null
+            ? collect()
+            : $barbershop->services()
+                ->where('active', true)
+                ->whereHas('barbers', fn ($query) => $query->whereKey($barberId))
+                ->orderBy('name')
+                ->get();
+        $service = isset($validated['service_id']) ? $services->firstWhere('id', $validated['service_id']) : null;
+        abort_if(isset($validated['service_id']) && $service === null, 404);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'services' => $services->map(fn ($service): array => [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'description' => $service->description,
+                    'price' => $service->price,
+                    'duration_minutes' => $service->duration_minutes,
+                ])->values(),
+            ])->header('Cache-Control', 'no-store, private');
+        }
 
         return response()->view('public.booking', [
             'barbershop' => $barbershop, 'branding' => TenantBranding::resolve($barbershop),
@@ -89,7 +107,7 @@ final class PublicBookingController extends Controller
             'summary' => $summary,
         ], 600);
 
-        return $this->respond($request, $barbershop, 'public.booking-summary', ['draft_id' => $draftId, 'summary' => $summary]);
+        return $this->respond($request, $barbershop, 'public.booking-summary', ['draft_id' => $draftId, 'draft_barber_id' => $slot['barber_id'], 'draft_service_id' => $service->id, 'summary' => $summary]);
     }
 
     public function store(Request $request, Barbershop $barbershop, AppointmentScheduler $scheduler, GuestBookingVerification $verification, AppointmentHistory $history, GuestCustomerResolver $guestCustomers, AppointmentPushDispatcher $pushDispatcher): Response|JsonResponse|RedirectResponse
@@ -151,7 +169,7 @@ final class PublicBookingController extends Controller
                 }
 
                 return redirect()->route('public.booking.create', [
-                    'barbershop' => $barbershop, 'service_id' => $draft['service_id'], 'date' => substr($summary['starts_at'], 0, 10),
+                    'barbershop' => $barbershop, 'barber_id' => $draft['barber_id'], 'service_id' => $draft['service_id'], 'date' => substr($summary['starts_at'], 0, 10),
                 ])->withErrors(['slot' => array_merge(...array_values($exception->errors()))])->withInput([
                     'name' => $summary['name'], 'email' => $summary['email'], 'phone' => $summary['phone'],
                 ]);

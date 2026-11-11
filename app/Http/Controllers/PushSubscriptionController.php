@@ -21,6 +21,20 @@ class PushSubscriptionController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $this->canReceivePush($user, $barbershop), 403);
 
+        return $this->storeForUser($request, $user);
+    }
+
+    public function storeForCustomer(Request $request, Barbershop $barbershop): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $barbershop->status === Barbershop::STATUS_ACTIVE
+            && $barbershop->customers()->where('user_id', $user->id)->exists(), 403);
+
+        return $this->storeForUser($request, $user);
+    }
+
+    private function storeForUser(Request $request, User $user): JsonResponse
+    {
         $validated = $request->validate([
             'endpoint' => ['required', 'string', 'max:2048'],
             'keys' => ['required', 'array:p256dh,auth'],
@@ -91,6 +105,20 @@ class PushSubscriptionController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $this->canReceivePush($user, $barbershop), 403);
 
+        return $this->destroyForUser($request, $user, $subscription);
+    }
+
+    public function destroyForCustomer(Request $request, Barbershop $barbershop, PushSubscription $subscription): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $barbershop->status === Barbershop::STATUS_ACTIVE
+            && $barbershop->customers()->where('user_id', $user->id)->exists(), 403);
+
+        return $this->destroyForUser($request, $user, $subscription);
+    }
+
+    private function destroyForUser(Request $request, User $user, PushSubscription $subscription): JsonResponse
+    {
         abort_unless(
             $subscription->user_id === $user->id
             && $subscription->session_hash === hash('sha256', $request->session()->getId()),

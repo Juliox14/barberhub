@@ -41,20 +41,58 @@ class PublicBookingTest extends TestCase
         $hidden = Service::factory()->for($shop)->create(['active' => false]);
         $foreign = Service::factory()->create();
         $this->get(route('public.booking.create', $shop))->assertOk()
-            ->assertSee($shop->name)->assertSee($service->name)->assertSee('#225588')
+            ->assertSee($shop->name)->assertSee('Elige un profesional')->assertDontSee($service->name)->assertSee('#225588')
             ->assertSee('&lt;script&gt;bad()&lt;/script&gt;', false)
             ->assertDontSee('<script>bad()</script>', false)
             ->assertDontSee($hidden->name)->assertDontSee($foreign->name)
-            ->assertSee('Sin preferencia')
+            ->assertDontSee('Sin preferencia')
             ->assertSee('data-availability-url="'.route('public.availability', $shop).'"', false)
+            ->assertSee('data-booking-url="'.route('public.booking.create', $shop).'"', false)
             ->assertSee('data-slot-list', false)->assertSee('data-slot-status', false)
+            ->assertSee('data-step-panel="2"', false)
             ->assertSee('data-public-booking', false);
+    }
+
+    public function test_booking_page_starts_with_professional_then_limits_services_to_their_offerings(): void
+    {
+        [$shop, $service, $barber] = $this->context();
+        $unassigned = Service::factory()->for($shop)->create(['name' => 'No ofrecido']);
+        $secondBarber = Barber::factory()->for($shop)->create(['display_name' => 'Otra profesional']);
+        $secondBarber->services()->sync([$unassigned->id]);
+
+        $this->get(route('public.booking.create', $shop))->assertOk()
+            ->assertSee('Elige un profesional')
+            ->assertDontSee('Sin preferencia')
+            ->assertSee('data-step-panel="2"', false);
+
+        $this->get(route('public.booking.create', [$shop, 'barber_id' => $barber->id]))->assertOk()
+            ->assertSee($service->name)->assertDontSee($unassigned->name)
+            ->assertSee('Elige tu servicio');
+        $this->get(route('public.booking.create', [$shop, 'barber_id' => $secondBarber->id]))->assertOk()
+            ->assertSee($unassigned->name)->assertDontSee($service->name);
+    }
+
+    public function test_booking_selection_request_returns_only_the_selected_professionals_offered_services(): void
+    {
+        [$shop, $service] = $this->context();
+        $otherService = Service::factory()->for($shop)->create(['name' => 'Barba']);
+        $otherBarber = Barber::factory()->for($shop)->create();
+        $otherBarber->services()->sync([$otherService->id]);
+
+        $this->getJson(route('public.booking.create', [$shop, 'barber_id' => $otherBarber->id]))
+            ->assertOk()
+            ->assertJsonPath('services.0.id', $otherService->id)
+            ->assertJsonPath('services.0.name', 'Barba')
+            ->assertJsonPath('services.0.description', $otherService->description)
+            ->assertJsonPath('services.0.price', $otherService->price)
+            ->assertJsonPath('services.0.duration_minutes', $otherService->duration_minutes)
+            ->assertJsonMissing(['id' => $service->id]);
     }
 
     public function test_reference_layout_keeps_slots_associated_with_the_real_booking_form(): void
     {
-        [$shop, $service] = $this->context();
-        $response = $this->get(route('public.booking.create', [$shop, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
+        [$shop, $service, $barber] = $this->context();
+        $response = $this->get(route('public.booking.create', [$shop, 'barber_id' => $barber->id, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
         $html = new \DOMDocument;
         $html->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new \DOMXPath($html);
@@ -93,13 +131,30 @@ class PublicBookingTest extends TestCase
         $this->assertSame('Confirmar reserva', trim($submit->textContent));
         $this->assertTrue($submit->hasAttribute('disabled'));
         $this->assertSame(1, $xpath->query('//form[@data-email-verified="false" and @data-availability-ready="true"]')->length);
-        $accountPage = $this->actingAs(User::factory()->create())->get(route('public.booking.create', [$shop, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
+        $accountPage = $this->actingAs(User::factory()->create())->get(route('public.booking.create', [$shop, 'barber_id' => $barber->id, 'service_id' => $service->id, 'date' => '2026-10-05']))->assertOk();
         $html->loadHTML($accountPage->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $accountXpath = new \DOMXPath($html);
         $this->assertFalse($accountXpath->query('//button[@data-slot-submit]')->item(0)->hasAttribute('disabled'));
         $this->assertSame(1, $accountXpath->query('//form[@data-email-verified="true" and @data-availability-ready="true"]')->length);
         $response->assertSee('data-booking-price', false)->assertSee('data-booking-time', false)
             ->assertDontSee('Cancelación gratuita')->assertDontSee('Los Muchachos');
+        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseCount('customers', 0);
+    }
+
+    public function test_public_summary_rejects_a_forged_unassigned_barber_service_pair(): void
+    {
+        [$shop, , $barber] = $this->context();
+        $unassigned = Service::factory()->for($shop)->create();
+        $this->actingAs(User::factory()->create());
+
+        $this->postJson(route('public.booking.summary', $shop), [
+            'service_id' => $unassigned->id,
+            'slot' => $barber->id.'|2026-10-05T10:00',
+            'name' => 'Invitado',
+            'email' => 'guest@example.com',
+        ])->assertUnprocessable()->assertJsonValidationErrors('slot');
+
         $this->assertDatabaseCount('appointments', 0);
         $this->assertDatabaseCount('customers', 0);
     }
@@ -414,13 +469,13 @@ class PublicBookingTest extends TestCase
         [$shop, $service, $barber] = $this->context();
         $user = User::factory()->create();
         $this->actingAs($user);
-        $page = $this->get(route('public.booking.create', ['barbershop' => $shop, 'service_id' => $service->id, 'date' => '2026-10-05']))
+        $page = $this->get(route('public.booking.create', ['barbershop' => $shop, 'barber_id' => $barber->id, 'service_id' => $service->id, 'date' => '2026-10-05']))
             ->assertOk()->assertSee('10:00')->assertSee($barber->display_name)->assertSee('Tus datos');
         $cookie = $page->getCookie(config('session.cookie'));
         $this->withCookie($cookie->getName(), $cookie->getValue());
         $summary = $this->post(route('public.booking.summary', $shop), $this->payload($service, $barber))
             ->assertOk()->assertSee('Revisa tu reserva')->assertSee($barber->display_name)->assertSee($user->email)
-            ->assertSee('Paso 3 de 4 · Datos personales y confirmación');
+            ->assertSee('Paso 4 de 4 · Datos personales y confirmación');
         $draft = $summary->viewData('draft_id');
         $this->post(route('public.booking.store', $shop), ['draft_id' => $draft])->assertOk()
             ->assertSee('¡Tu cita está confirmada!')->assertSee($barber->display_name)->assertSee($user->email)
@@ -456,7 +511,7 @@ class PublicBookingTest extends TestCase
             'starts_at' => '2026-10-05 10:00:00', 'ends_at' => '2026-10-05 10:30:00',
         ]);
         $response = $this->from(route('public.booking.summary', $shop))->post(route('public.booking.store', $shop), ['draft_id' => $summary->viewData('draft_id')]);
-        $response->assertRedirect(route('public.booking.create', ['barbershop' => $shop, 'service_id' => $service->id, 'date' => '2026-10-05']))
+        $response->assertRedirect(route('public.booking.create', ['barbershop' => $shop, 'barber_id' => $barber->id, 'service_id' => $service->id, 'date' => '2026-10-05']))
             ->assertSessionHasErrors('slot')->assertSessionHasInput('email', 'guest@example.com');
         $this->get($response->headers->get('Location'))->assertOk()->assertSee('guest@example.com');
         $this->assertDatabaseCount('customers', 0);
@@ -489,6 +544,7 @@ class PublicBookingTest extends TestCase
         $barber = Barber::factory()->for($shop)->create();
         BusinessHour::factory()->for($shop)->create(['weekday' => 1, 'opens_at' => '10:00', 'closes_at' => '11:00']);
         BarberAvailability::factory()->for($barber)->create(['weekday' => 1, 'starts_at' => '10:00', 'ends_at' => '11:00']);
+        $barber->services()->syncWithoutDetaching([$service->id]);
 
         return [$shop, $service, $barber];
     }

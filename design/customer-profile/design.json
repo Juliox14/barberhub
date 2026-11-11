@@ -1,0 +1,14 @@
+{
+  "title": "Perfil de cliente por barbería",
+  "brief": "Perfil de cliente tenant-scoped para BarberHub, con el estilo público de /book y la jerarquía visual de references/image.png. Prioriza identidad, fecha de membresía y visitas; después historial, preferencias de salón y recordatorios periódicos. Una sola dirección fijada para revisión, sin producción implementada.",
+  "feature": "odd/tasks/customer-tenant-profile.md",
+  "artboards": [
+    {
+      "file": "01-client-profile.html",
+      "title": "Perfil del cliente · Los Muchachos",
+      "tradeoff": "Jerarquía directa y familiar al referente; prioriza contexto del cliente y acciones claras antes que densidad administrativa.",
+      "width": 1440,
+      "height": 1100
+    }
+  ]
+}

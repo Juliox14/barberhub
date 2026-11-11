@@ -74,6 +74,27 @@ class BarberAppointmentCreationTest extends TestCase
         ]);
     }
 
+    public function test_barber_cannot_book_a_service_they_do_not_offer(): void
+    {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
+        $barbershop = Barbershop::factory()->create();
+        [$barberUser, $barber] = $this->barberRecords($barbershop);
+        $unassigned = Service::factory()->for($barbershop)->create(['duration_minutes' => 30]);
+
+        $this->actingAs($barberUser)
+            ->from(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+            ->post(route('tenant.appointments.store', $barbershop, false), [
+                'service_id' => $unassigned->id,
+                'new_customer_name' => 'No debe persistir',
+                'starts_at' => '2026-10-05T11:00',
+            ])
+            ->assertRedirect(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+            ->assertSessionHasErrors('service_id');
+
+        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseMissing('customers', ['name' => 'No debe persistir']);
+    }
+
     public function test_barber_form_payload_accepts_existing_customer_with_empty_new_name(): void
     {
         $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
@@ -263,6 +284,7 @@ class BarberAppointmentCreationTest extends TestCase
         Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
         $barber = Barber::factory()->for($barbershop)->create(['user_id' => $barberUser->id, 'active' => true]);
         $service = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 30]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         $customer = Customer::factory()->for($barbershop)->create();
         BusinessHour::factory()->for($barbershop)->create([
             'weekday' => BusinessHour::WEEKDAY_MONDAY,

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['barbershop_id', 'name', 'description', 'price', 'duration_minutes', 'active'])]
@@ -29,6 +30,11 @@ class Service extends Model
     public function barbershop(): BelongsTo
     {
         return $this->belongsTo(Barbershop::class);
+    }
+
+    public function barbers(): BelongsToMany
+    {
+        return $this->belongsToMany(Barber::class);
     }
 
     public function appointments(): HasMany

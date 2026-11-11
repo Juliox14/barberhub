@@ -186,6 +186,7 @@ class PastAppointmentValidationTest extends TestCase
             'active' => true,
         ]);
         $service = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 15]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         BusinessHour::factory()->for($barbershop)->create([
             'weekday' => BusinessHour::WEEKDAY_MONDAY,
             'opens_at' => '09:00',

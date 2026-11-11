@@ -1,16 +1,16 @@
-@props(['barbershop', 'date', 'canManageAppointments', 'barbers', 'services', 'customers'])
+@props(['barbershop', 'date', 'canManageAppointments', 'barbers', 'services', 'customers', 'selectedBarberId' => null])
 
 @php
     $selectedCustomerId = old('form_context') === 'create-appointment' ? (string) old('customer_id', '') : '';
 @endphp
 
-<form id="appointment-create" x-data="{ customerId: @js($selectedCustomerId) }" method="POST" action="{{ route('tenant.appointments.store', $barbershop) }}" class="space-y-5">
+<form id="appointment-create" x-data="{ customerId: @js($selectedCustomerId), barberId: @js(old('form_context') === 'create-appointment' ? old('barber_id', $selectedBarberId) : $selectedBarberId), serviceId: @js(old('form_context') === 'create-appointment' ? old('service_id', '') : ''), startsAt: @js(old('form_context') === 'create-appointment' ? old('starts_at', $date.'T09:00') : $date.'T09:00') }" method="POST" action="{{ route('tenant.appointments.store', $barbershop) }}" class="space-y-5">
     @csrf
     <input type="hidden" name="form_context" value="create-appointment">
     @if ($canManageAppointments)
         <div>
             <label for="barber_id" class="mb-2 block text-sm font-semibold text-slate-200">Barbero</label>
-            <select id="barber_id" name="barber_id" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+            <select id="barber_id" name="barber_id" x-model="barberId" x-on:change="serviceId = ''; startsAt = '{{ $date }}T09:00'" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
                 <option value="">Seleccionar barbero</option>
                 @foreach ($barbers as $barberOption)
                     <option value="{{ $barberOption->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('barber_id') === (string) $barberOption->id)>{{ $barberOption->display_name }}</option>
@@ -20,10 +20,10 @@
     @endif
     <div>
         <label for="service_id" class="mb-2 block text-sm font-semibold text-slate-200">Servicio</label>
-        <select id="service_id" name="service_id" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+        <select id="service_id" name="service_id" x-model="serviceId" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
             <option value="">Seleccionar servicio</option>
             @foreach ($services as $service)
-                <option value="{{ $service->id }}" @selected(old('form_context') === 'create-appointment' && (string) old('service_id') === (string) $service->id)>{{ $service->name }} · {{ $service->duration_minutes }} min</option>
+                <option value="{{ $service->id }}" data-barber-ids="{{ json_encode($service->barbers->modelKeys()) }}" x-bind:disabled="! barberId || ! JSON.parse($el.dataset.barberIds).includes(Number(barberId))" @selected(old('form_context') === 'create-appointment' && (string) old('service_id') === (string) $service->id)>{{ $service->name }} · {{ $service->duration_minutes }} min</option>
             @endforeach
         </select>
     </div>
@@ -43,6 +43,6 @@
     </div>
     <div>
         <label for="starts_at" class="mb-2 block text-sm font-semibold text-slate-200">Inicio</label>
-        <input id="starts_at" name="starts_at" type="datetime-local" value="{{ old('form_context') === 'create-appointment' ? old('starts_at', $date.'T09:00') : $date.'T09:00' }}" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
+        <input id="starts_at" name="starts_at" type="datetime-local" value="{{ old('form_context') === 'create-appointment' ? old('starts_at', $date.'T09:00') : $date.'T09:00' }}" x-model="startsAt" required class="block min-h-11 w-full rounded-lg border border-slate-700 bg-[#0b1117] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300">
     </div>
 </form>

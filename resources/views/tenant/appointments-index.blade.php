@@ -204,6 +204,7 @@
                     :barbers="$barbers"
                     :services="$services"
                     :customers="$customers"
+                    :selected-barber-id="$barber?->id"
                 />
                 <x-slot:footer>
                     <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" x-on:click="hidePanel()">Cancelar</button>

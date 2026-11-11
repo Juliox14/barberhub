@@ -64,6 +64,18 @@ class PublicBookingAvailabilityTest extends TestCase
         $this->assertDatabaseCount('appointments', 1);
     }
 
+    public function test_availability_only_returns_slots_for_the_selected_barbers_offered_services(): void
+    {
+        $this->travelTo('2026-10-05 08:00:00 UTC');
+        [$shop, $service, $barber] = $this->availabilityContext();
+        $unassigned = Service::factory()->for($shop)->create();
+
+        $this->getJson(route('public.availability', ['barbershop' => $shop->slug, 'service_id' => $unassigned->id, 'date' => '2026-10-05']))
+            ->assertOk()->assertExactJson(['slots' => []]);
+        $this->getJson(route('public.availability', ['barbershop' => $shop->slug, 'service_id' => $service->id, 'date' => '2026-10-05', 'barber_id' => $barber->id]))
+            ->assertOk()->assertJsonCount(3, 'slots');
+    }
+
     public function test_uses_lowest_barber_id_for_unpreferred_slots_and_honors_selected_barber(): void
     {
         $this->travelTo('2026-10-05 08:00:00 UTC');
@@ -116,6 +128,7 @@ class PublicBookingAvailabilityTest extends TestCase
         $barber = Barber::factory()->for($shop)->create();
         BusinessHour::factory()->for($shop)->create(['weekday' => BusinessHour::WEEKDAY_MONDAY, 'opens_at' => '10:00', 'closes_at' => '11:00']);
         BarberAvailability::factory()->for($barber)->create(['weekday' => BusinessHour::WEEKDAY_MONDAY, 'starts_at' => '10:00', 'ends_at' => '11:00']);
+        $barber->services()->syncWithoutDetaching([$service->id]);
 
         return [$shop, $service, $barber];
     }

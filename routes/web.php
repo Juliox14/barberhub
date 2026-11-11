@@ -12,6 +12,7 @@ use App\Http\Controllers\SecurityAuditLogController;
 use App\Http\Controllers\TenantAppointmentController;
 use App\Http\Controllers\TenantBarberAvailabilityController;
 use App\Http\Controllers\TenantBarberController;
+use App\Http\Controllers\TenantBarberServiceController;
 use App\Http\Controllers\TenantBrandingController;
 use App\Http\Controllers\TenantBusinessHourController;
 use App\Http\Controllers\TenantBusinessReportController;
@@ -70,6 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::post('/barbers', [TenantBarberController::class, 'store'])->name('tenant.barbers.store');
             Route::post('/barbers/invitations', [TenantBarberController::class, 'invite'])->name('tenant.barbers.invitations.store');
             Route::put('/barbers/{barber}', [TenantBarberController::class, 'update'])->name('tenant.barbers.update');
+            Route::get('/barber-services/me', [TenantBarberServiceController::class, 'selfEdit'])->name('tenant.barber-services.self.edit');
+            Route::put('/barber-services/me', [TenantBarberServiceController::class, 'selfUpdate'])->name('tenant.barber-services.self.update');
+            Route::get('/barbers/{barber}/services', [TenantBarberServiceController::class, 'edit'])->name('tenant.barber-services.edit');
+            Route::put('/barbers/{barber}/services', [TenantBarberServiceController::class, 'update'])->name('tenant.barber-services.update');
         });
         Route::middleware(EnsureModuleAvailable::class.':services')->group(function (): void {
             Route::get('/services', [TenantServiceController::class, 'index'])->name('tenant.services.index');
@@ -119,6 +124,7 @@ Route::prefix('/barbershops/{barbershop:slug}/book')->name('public.booking.')->g
 });
 
 require __DIR__.'/public-availability.php';
+require __DIR__.'/customer-profile.php';
 require __DIR__.'/public-booking-management.php';
 require __DIR__.'/guest-booking-verification.php';
 require __DIR__.'/auth.php';

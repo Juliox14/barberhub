@@ -30,7 +30,16 @@ class ModuleContainmentMatrixTest extends TestCase
     {
         $modules = [
             'members' => ['members.index' => 'GET', 'members.store' => 'POST', 'members.update' => 'PUT', 'members.destroy' => 'DELETE'],
-            'barbers' => ['barbers.index' => 'GET', 'barbers.store' => 'POST', 'barbers.invitations.store' => 'POST', 'barbers.update' => 'PUT'],
+            'barbers' => [
+                'barbers.index' => 'GET',
+                'barbers.store' => 'POST',
+                'barbers.invitations.store' => 'POST',
+                'barbers.update' => 'PUT',
+                'barber-services.self.edit' => 'GET',
+                'barber-services.self.update' => 'PUT',
+                'barber-services.edit' => 'GET',
+                'barber-services.update' => 'PUT',
+            ],
             'services' => ['services.index' => 'GET', 'services.store' => 'POST', 'services.update' => 'PUT'],
             'appointments' => [
                 'appointments.index' => 'GET',
@@ -75,10 +84,19 @@ class ModuleContainmentMatrixTest extends TestCase
         $otherShop = Barbershop::factory()->create();
         Membership::factory()->for($owner)->for($shop)->create(['role' => Membership::ROLE_OWNER]);
         Membership::factory()->for($owner)->for($otherShop)->create(['role' => Membership::ROLE_OWNER]);
-        $url = $this->endpoint($name, $this->fixtures($shop));
-        $otherUrl = $this->endpoint($name, $this->fixtures($otherShop));
-        $this->actingAs($owner);
+        $shopFixtures = $this->fixtures($shop);
+        $otherFixtures = $this->fixtures($otherShop);
+        $url = $this->endpoint($name, $shopFixtures);
+        $otherUrl = $this->endpoint($name, $otherFixtures);
+        $normalActor = str_contains($name, 'barber-services.self.')
+            ? User::query()->findOrFail($shopFixtures['barber']->user_id)
+            : $owner;
+        $otherNormalActor = str_contains($name, 'barber-services.self.')
+            ? User::query()->findOrFail($otherFixtures['barber']->user_id)
+            : $owner;
+        $this->actingAs($normalActor);
         $normalStatus = $this->normalRequest($name, $method, $url);
+        $this->actingAs($otherNormalActor);
         $otherStatus = $this->normalRequest($name, $method, $otherUrl);
 
         $this->actingAs($admin)->post(route('platform.security.modules.suspend', $shop, false), [
@@ -93,8 +111,9 @@ class ModuleContainmentMatrixTest extends TestCase
             Notification::assertNothingSent();
         }
 
-        $this->actingAs($owner);
+        $this->actingAs($otherNormalActor);
         $this->assertSame($otherStatus, $this->normalRequest($name, $method, $otherUrl));
+        $this->actingAs($owner);
         $unaffectedRoute = $module === 'services' ? 'tenant.appointments.index' : 'tenant.services.index';
         $this->get(route($unaffectedRoute, $shop, false))->assertOk();
         $this->get(route('tenant.dashboard', $shop, false))->assertOk();
@@ -102,7 +121,7 @@ class ModuleContainmentMatrixTest extends TestCase
         $this->actingAs($admin)->get(route('platform.security.index', absolute: false))->assertOk();
 
         $this->travel(15)->minutes();
-        $this->actingAs($owner);
+        $this->actingAs($normalActor);
         $this->assertSame($normalStatus, $this->normalRequest($name, $method, $url));
         $this->actingAs($admin)->post(route('platform.security.modules.suspend', $shop, false), [
             'module' => $module, 'reason' => 'Comprobar levantamiento anticipado.',
@@ -111,7 +130,7 @@ class ModuleContainmentMatrixTest extends TestCase
         $this->actingAs($admin)->post(route('platform.security.modules.release', $shop, false), [
             'module' => $module, 'reason' => 'Prueba finalizada.',
         ])->assertRedirect();
-        $this->actingAs($owner);
+        $this->actingAs($normalActor);
         $this->assertSame($normalStatus, $this->normalRequest($name, $method, $url));
     }
 
@@ -135,7 +154,7 @@ class ModuleContainmentMatrixTest extends TestCase
         sort($expected);
         sort($actual);
 
-        $this->assertCount(45, $actual);
+        $this->assertCount(51, $actual);
         $this->assertSame($expected, $actual);
     }
 
@@ -173,11 +192,12 @@ class ModuleContainmentMatrixTest extends TestCase
         $service = Service::factory()->for($shop)->create();
         $customer = Customer::factory()->for($shop)->create();
         $appointment = Appointment::factory()->for($shop)->for($barber)->for($service)->for($customer)->create();
+        $barberMembership = Membership::factory()->for(User::query()->findOrFail($barber->user_id))->for($shop)->create(['role' => Membership::ROLE_BARBER]);
         $startsAt = $appointment->getRawOriginal('starts_at');
 
         return [
             'barbershop' => $shop,
-            'membership' => Membership::factory()->for($shop)->create(['role' => Membership::ROLE_BARBER]),
+            'membership' => $barberMembership,
             'barber' => $barber,
             'service' => $service,
             'customer' => $customer,

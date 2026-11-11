@@ -79,6 +79,49 @@ class TenantAppointmentManagementTest extends TestCase
         ]);
     }
 
+    public function test_manager_cannot_create_an_appointment_for_an_unassigned_pair(): void
+    {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
+        $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        [$barber] = $this->scheduleableRecords($barbershop);
+        $unassigned = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 30]);
+
+        $this->actingAs($owner)
+            ->from(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+            ->post(route('tenant.appointments.store', $barbershop, false), [
+                'barber_id' => $barber->id,
+                'service_id' => $unassigned->id,
+                'customer_id' => '',
+                'starts_at' => '2026-10-05T11:00',
+            ])
+            ->assertRedirect(route('tenant.appointments.index', ['barbershop' => $barbershop, 'date' => '2026-10-05'], false))
+            ->assertSessionHasErrors('service_id');
+
+        $this->assertDatabaseCount('appointments', 0);
+    }
+
+    public function test_removing_an_offering_does_not_block_rescheduling_an_existing_appointment(): void
+    {
+        $this->travelTo('2026-10-04 08:00:00 America/Mexico_City');
+        $barbershop = Barbershop::factory()->create(['timezone' => 'America/Mexico_City']);
+        $owner = User::factory()->create();
+        Membership::factory()->for($owner)->for($barbershop)->create(['role' => Membership::ROLE_OWNER]);
+        [$barber, $service] = $this->scheduleableRecords($barbershop);
+        $appointment = Appointment::factory()->for($barbershop)->for($barber)->for($service)->create([
+            'starts_at' => '2026-10-05 10:00:00',
+            'ends_at' => '2026-10-05 10:30:00',
+        ]);
+        $barber->services()->detach($service);
+
+        $this->actingAs($owner)
+            ->put(route('tenant.appointments.reschedule', [$barbershop, $appointment], false), ['starts_at' => '2026-10-05T11:00'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('appointments', ['id' => $appointment->id, 'starts_at' => '2026-10-05 11:00:00']);
+    }
+
     public function test_barber_can_only_view_their_own_tenant_appointments(): void
     {
         $barbershop = Barbershop::factory()->create();
@@ -309,6 +352,7 @@ class TenantAppointmentManagementTest extends TestCase
             'active' => true,
         ]);
         $service = Service::factory()->for($barbershop)->create(['active' => true, 'duration_minutes' => 30]);
+        $barber->services()->syncWithoutDetaching([$service->id]);
         $customer = Customer::factory()->for($barbershop)->create();
         BusinessHour::factory()->for($barbershop)->create([
             'weekday' => BusinessHour::WEEKDAY_MONDAY,

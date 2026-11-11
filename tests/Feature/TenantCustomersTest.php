@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Barber;
 use App\Models\Barbershop;
 use App\Models\Customer;
+use App\Models\CustomerPreference;
 use App\Models\Membership;
 use App\Models\User;
 use DOMDocument;
@@ -133,6 +134,66 @@ class TenantCustomersTest extends TestCase
             ->assertDontSee('Invitar');
 
         $this->get(route('tenant.customers.index', $otherBarbershop, false))->assertForbidden();
+    }
+
+    public function test_barber_sees_only_same_tenant_customers_who_prefer_their_active_barber_profile(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = User::factory()->create();
+        Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
+        $barber = Barber::factory()->for($barbershop)->for($barberUser, 'user')->create();
+        $otherBarber = Barber::factory()->for($barbershop)->create();
+        $preferredUser = User::factory()->create();
+        $preferred = Customer::factory()->for($barbershop)->for($preferredUser, 'user')->create(['name' => 'Preferente', 'email' => 'prefiere@example.com', 'phone' => '555-0101']);
+        CustomerPreference::factory()->for($preferred)->create(['preferences' => ['preferred_barber_id' => $barber->id]]);
+        $otherPreference = Customer::factory()->for($barbershop)->create(['name' => 'Otro barbero', 'email' => 'otro@example.com']);
+        CustomerPreference::factory()->for($otherPreference)->create(['preferences' => ['preferred_barber_id' => $otherBarber->id]]);
+        $unpreferred = Customer::factory()->for($barbershop)->create(['name' => 'Sin preferencia']);
+        $foreignShop = Barbershop::factory()->create();
+        $foreignPreference = Customer::factory()->for($foreignShop)->create(['name' => 'Preferencia ajena']);
+        CustomerPreference::factory()->for($foreignPreference)->create(['preferences' => ['preferred_barber_id' => $barber->id]]);
+        $appointmentOnly = Customer::factory()->for($barbershop)->create(['name' => 'Solo cita']);
+        Appointment::factory()->for($barbershop)->for($barber)->for($appointmentOnly)->create();
+
+        $this->actingAs($preferredUser)->put(route('customer.profile.preferences.update', $barbershop), [
+            'preferred_barber_id' => $barber->id,
+        ])->assertRedirect(route('customer.profile.show', $barbershop));
+
+        $this->actingAs($barberUser)->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Preferente')
+            ->assertSee('prefiere@example.com')
+            ->assertSee('555-0101')
+            ->assertDontSee('Otro barbero')
+            ->assertDontSee('Sin preferencia')
+            ->assertDontSee('Preferencia ajena')
+            ->assertDontSee('Solo cita')
+            ->assertViewHas('customers', fn ($customers): bool => $customers->pluck('id')->all() === [$preferred->id])
+            ->assertViewHas('canManageMembers', false);
+
+        $this->actingAs($preferredUser)->put(route('customer.profile.preferences.update', $barbershop), [])
+            ->assertRedirect(route('customer.profile.show', $barbershop));
+
+        $this->actingAs($barberUser)->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertDontSee('Preferente')
+            ->assertViewHas('customers', fn ($customers): bool => $customers->isEmpty());
+    }
+
+    public function test_barber_with_no_active_linked_profile_sees_no_preferred_customers(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = User::factory()->create();
+        Membership::factory()->for($barberUser)->for($barbershop)->create(['role' => Membership::ROLE_BARBER]);
+        $inactiveBarber = Barber::factory()->for($barbershop)->for($barberUser, 'user')->create(['active' => false]);
+        $customer = Customer::factory()->for($barbershop)->create(['name' => 'Cliente visible solo si está activo']);
+        CustomerPreference::factory()->for($customer)->create(['preferences' => ['preferred_barber_id' => $inactiveBarber->id]]);
+
+        $this->actingAs($barberUser)->get(route('tenant.customers.index', $barbershop, false))
+            ->assertOk()
+            ->assertSee('Todavía no tienes clientes habituales.')
+            ->assertDontSee('Cliente visible solo si está activo')
+            ->assertViewHas('customers', fn ($customers): bool => $customers->isEmpty());
     }
 
     public function test_barber_navigation_shows_only_accessible_sections_across_tenant_pages(): void

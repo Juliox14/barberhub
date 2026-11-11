@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-client-profile.html",
+  "handoffs": {
+    "01-client-profile.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-10T21:47:36.493Z",
+      "startedAt": "2026-11-10T21:47:55.050Z",
+      "implementedAt": "2026-11-10T22:28:41.263Z",
+      "feature": "odd/tasks/customer-tenant-profile.md",
+      "note": "Perfil implementado con marca del tenant, historial, preferencias y recordatorios. Suite:662 aprobadas/1 omitida. Sin prueba visual en navegador ni push real; requiere validación en dispositivo."
+    }
+  }
+}
