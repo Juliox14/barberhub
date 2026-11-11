@@ -40,14 +40,17 @@
                             </div>
                             <p class="text-sm text-slate-200">{{ $barber->display_name }}</p>
                             <p class="text-sm {{ $barber->active ? 'text-emerald-200' : 'text-slate-400' }}">{{ $barber->active ? 'Activo' : 'Inactivo' }}</p>
-                            <button
-                                type="button"
-                                class="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:w-auto"
+                            <div class="flex flex-wrap gap-2 lg:justify-end">
+                                <a href="{{ route('tenant.barber-services.edit', [$barbershop, $barber]) }}" class="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:w-auto">Servicios</a>
+                                <button
+                                    type="button"
+                                    class="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 lg:w-auto"
                                 data-slide-over-trigger
                                 x-on:click="$dispatch('form-slide-over-open', { id: 'barber-{{ $barber->id }}' })"
-                            >
-                                Editar
-                            </button>
+                                >
+                                    Editar
+                                </button>
+                            </div>
                         </article>
 
                         <x-form-slide-over

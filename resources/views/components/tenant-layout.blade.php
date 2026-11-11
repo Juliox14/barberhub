@@ -43,6 +43,11 @@
                         </x-ui.nav-link>
                     @endif
 
+                    <x-ui.nav-link :href="route('tenant.barber-services.self.edit', $barbershop)" :active="$activePage === 'barber-services'">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/></svg>
+                        Mis servicios
+                    </x-ui.nav-link>
+
                     @if ($canManageMembers)
                         <x-ui.nav-link :href="route('tenant.services.index', $barbershop)" :active="$activePage === 'services'">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 15.5c0 1.38-1.12 2.5-2.5 2.5S13 16.88 13 15.5s1.12-2.5 2.5-2.5S18 14.12 18 15.5Z"/></svg>
