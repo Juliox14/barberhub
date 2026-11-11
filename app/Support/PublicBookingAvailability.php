@@ -51,6 +51,15 @@ final class PublicBookingAvailability
             $end = $close->lessThan($availableUntil) ? $close : $availableUntil;
             $minute = (int) $start->format('i');
             $start = $start->setMinute((int) (ceil($minute / 15) * 15))->setSecond(0);
+            $appointments = $barber->appointments()
+                ->where('status', Appointment::STATUS_SCHEDULED)
+                ->where('starts_at', '<', $end)
+                ->where('ends_at', '>', $start)
+                ->get(['starts_at', 'ends_at'])
+                ->map(fn (Appointment $appointment): array => [
+                    CarbonImmutable::parse($appointment->getRawOriginal('starts_at'), $barbershop->timezone),
+                    CarbonImmutable::parse($appointment->getRawOriginal('ends_at'), $barbershop->timezone),
+                ]);
 
             for ($candidate = $start; $candidate->copy()->addMinutes($duration)->lessThanOrEqualTo($end); $candidate = $candidate->addMinutes(15)) {
                 if (! $candidate->greaterThan($now)) {
@@ -58,11 +67,8 @@ final class PublicBookingAvailability
                 }
 
                 $candidateEnd = $candidate->addMinutes($duration);
-                $overlaps = $barber->appointments()
-                    ->where('status', Appointment::STATUS_SCHEDULED)
-                    ->where('starts_at', '<', $candidateEnd)
-                    ->where('ends_at', '>', $candidate)
-                    ->exists();
+                $overlaps = $appointments->contains(fn (array $appointment): bool => $appointment[0]->lt($candidateEnd) && $appointment[1]->gt($candidate)
+                );
 
                 if (! $overlaps) {
                     $key = $candidate->format('Y-m-d\TH:i');
