@@ -33,8 +33,14 @@ class BarberGoogleCalendarConnectionTest extends TestCase
         $labelPosition = strpos($content, 'Conectar Google Calendar');
         $footerPosition = strrpos($content, $barbershop->name);
 
-        $response->assertOk()->assertSee('Conectar Google Calendar');
+        $response->assertOk()
+            ->assertSee('Conectar Google Calendar')
+            ->assertSee('aria-haspopup="dialog"', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee('Continuar con Google')
+            ->assertDontSee('href="'.route('tenant.google-calendar.show', $barbershop, false).'"', false);
         $this->assertStringContainsString('images/icons/google-calendar.png', $content);
+        $this->assertStringContainsString('/google-calendar/connect"', $content);
         $this->assertIsInt($labelPosition);
         $this->assertIsInt($footerPosition);
         $this->assertLessThan($footerPosition, $labelPosition);
@@ -71,11 +77,30 @@ class BarberGoogleCalendarConnectionTest extends TestCase
             ->get(route('tenant.dashboard', $barbershop, false))
             ->assertOk()
             ->assertSee('Google Calendar conectado')
-            ->assertDontSee('Conectar Google Calendar');
+            ->assertDontSee('Conectar Google Calendar')
+            ->assertSee('bh-surface mt-auto p-4', false);
 
         $this->get(route('tenant.google-calendar.show', $barbershop, false))
             ->assertOk()
             ->assertSee('Desconectar Google Calendar');
+    }
+
+    public function test_reconnect_needed_state_shows_a_safe_recovery_prompt_in_the_modal(): void
+    {
+        $barbershop = Barbershop::factory()->create();
+        $barberUser = $this->createBarber($barbershop);
+        $barbershop->barbers()->firstOrFail()->googleCalendarConnection()->create([
+            'sync_status' => 'reconnect_needed',
+            'sync_error' => 'private provider details',
+        ]);
+
+        $this->actingAs($barberUser)
+            ->get(route('tenant.dashboard', $barbershop, false))
+            ->assertOk()
+            ->assertSee('La autorización de Google necesita renovarse.')
+            ->assertSee('Continuar con Google')
+            ->assertSee('title="Conectar Google Calendar"', false)
+            ->assertDontSee('private provider details');
     }
 
     public function test_barber_is_redirected_to_google_with_an_expiring_session_bound_state(): void

@@ -40,7 +40,7 @@ final class SyncAppointmentToGoogleCalendar implements ShouldQueue
         }
 
         Cache::lock('google-calendar-connection-'.$initialMapping->connection_id, 60)->block(10, function () use ($client): void {
-            $mapping = AppointmentGoogleCalendarEvent::query()->with(['appointment.barbershop', 'appointment.service', 'appointment.barber', 'connection'])->find($this->mappingId);
+            $mapping = AppointmentGoogleCalendarEvent::query()->with(['appointment.barbershop', 'appointment.service', 'appointment.barber', 'appointment.customer', 'connection'])->find($this->mappingId);
             $connection = $mapping?->connection;
             if ($mapping === null || $connection === null || $connection->connected_at === null
                 || $connection->google_calendar_id !== $mapping->google_calendar_id) {
@@ -270,9 +270,28 @@ final class SyncAppointmentToGoogleCalendar implements ShouldQueue
         $startsAt = Carbon::parse($appointment->getRawOriginal('starts_at'), $timezone);
         $endsAt = Carbon::parse($appointment->getRawOriginal('ends_at'), $timezone);
 
+        $customerName = trim((string) $appointment->customer?->name);
+        $summary = $appointment->service->name.' · '.$appointment->barber->display_name;
+        $description = 'Cita de BarberHub';
+
+        if ($customerName !== '') {
+            $summary .= ' · '.$customerName;
+            $description .= "\nCliente: ".$customerName;
+        }
+
+        $location = implode(', ', array_filter(
+            array_map(static fn (?string $part): string => trim((string) $part), [
+                $appointment->barbershop->street_address,
+                $appointment->barbershop->city,
+                $appointment->barbershop->region,
+            ]),
+            static fn (string $part): bool => $part !== '',
+        ));
+
         return [
-            'summary' => $appointment->service->name.' · '.$appointment->barber->display_name,
-            'description' => 'Cita de BarberHub',
+            'summary' => $summary,
+            'description' => $description,
+            'location' => $location,
             'start' => ['dateTime' => $startsAt->toRfc3339String(), 'timeZone' => $timezone],
             'end' => ['dateTime' => $endsAt->toRfc3339String(), 'timeZone' => $timezone],
         ];

@@ -209,14 +209,28 @@ class GoogleCalendarAppointmentSyncTest extends TestCase
         Http::fake(['www.googleapis.com/calendar/v3/calendars/calendar-id/events*' => Http::response(['id' => 'event-id'])]);
         $this->travelTo('2026-10-01 00:00:00 UTC');
         [$appointment, $mapping] = $this->connectedAppointment();
+        $appointment->barbershop->update([
+            'street_address' => '  123 Main Street  ',
+            'city' => 'Ciudad de México',
+            'region' => 'CDMX',
+        ]);
+        $appointment->barber->update(['display_name' => 'Barbero principal']);
+        $appointment->service->update(['name' => 'Corte clásico']);
+        $customer = Customer::factory()->for($appointment->barbershop)->create(['name' => 'Cliente de prueba']);
+        $appointment->update(['customer_id' => $customer->id]);
 
         (new SyncAppointmentToGoogleCalendar($mapping->id))->handle(app(GoogleCalendarClient::class));
 
         Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+            && $request['summary'] === 'Corte clásico · Barbero principal · Cliente de prueba'
+            && $request['description'] === "Cita de BarberHub\nCliente: Cliente de prueba"
+            && $request['location'] === '123 Main Street, Ciudad de México, CDMX'
             && $request['start']['dateTime'] === '2026-10-05T10:00:00-06:00'
             && $request['start']['timeZone'] === 'America/Mexico_City'
             && $request['end']['dateTime'] === '2026-10-05T10:30:00-06:00'
             && ! isset($request['attendees'])
+            && ! isset($request['phone'])
+            && ! isset($request['email'])
             && is_string($request['id']));
         $this->assertDatabaseHas('appointment_google_calendar_events', [
             'id' => $mapping->id,
@@ -265,12 +279,23 @@ class GoogleCalendarAppointmentSyncTest extends TestCase
         ]);
         $this->travelTo('2026-10-01 00:00:00 UTC');
         [$appointment, $mapping] = $this->connectedAppointment();
+        $appointment->barbershop->update([
+            'street_address' => '45 Avenida Central',
+            'city' => 'Guadalajara',
+            'region' => 'Jalisco',
+        ]);
+        $customer = Customer::factory()->for($appointment->barbershop)->create(['name' => 'Cliente actualizado']);
+        $appointment->update(['customer_id' => $customer->id]);
         $mapping->forceFill(['google_event_id' => str_repeat('a', 32)])->save();
 
         (new SyncAppointmentToGoogleCalendar($mapping->id))->handle(app(GoogleCalendarClient::class));
 
         Http::assertSent(fn (Request $request): bool => $request->method() === 'POST' && $request['id'] === str_repeat('a', 32));
-        Http::assertSent(fn (Request $request): bool => $request->method() === 'PUT' && $request['id'] === str_repeat('a', 32));
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'PUT'
+            && $request['id'] === str_repeat('a', 32)
+            && str_contains($request['summary'], 'Cliente actualizado')
+            && $request['description'] === "Cita de BarberHub\nCliente: Cliente actualizado"
+            && $request['location'] === '45 Avenida Central, Guadalajara, Jalisco');
         $this->assertSame(str_repeat('a', 32), $mapping->fresh()->google_event_id);
     }
 
@@ -288,7 +313,9 @@ class GoogleCalendarAppointmentSyncTest extends TestCase
         (new SyncAppointmentToGoogleCalendar($mapping->id))->handle(app(GoogleCalendarClient::class));
 
         Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
-            && $request['start']['dateTime'] === '2026-10-05T11:00:00-06:00');
+            && $request['start']['dateTime'] === '2026-10-05T11:00:00-06:00'
+            && $request['description'] === 'Cita de BarberHub'
+            && $request['location'] === '');
         Http::assertNotSent(fn (Request $request): bool => $request->method() === 'DELETE');
         $this->assertSame('synced', $mapping->fresh()->sync_status);
     }
