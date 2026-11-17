@@ -148,12 +148,12 @@ class FormAlertsTest extends TestCase
 
             $this->from('/login')->post('/login', ['email' => $email, 'password' => 'wrong-password'])
                 ->assertRedirect('/login')->assertSessionHasErrors([
-                    'email' => 'Demasiados intentos de inicio de sesión. Volvé a intentarlo en 60 segundos.',
+                    'email' => 'Demasiados intentos de inicio de sesión. Vuelve a intentarlo en 60 segundos.',
                 ]);
 
             $response = $this->withCookie(config('session.cookie'), session()->getId())->get('/login');
 
-            $response->assertSee('Demasiados intentos de inicio de sesión. Volvé a intentarlo en 60 segundos.')
+            $response->assertSee('Demasiados intentos de inicio de sesión. Vuelve a intentarlo en 60 segundos.')
                 ->assertDontSee('auth.throttle');
             $this->assertSame(5, RateLimiter::attempts($key));
             $this->assertGuest();

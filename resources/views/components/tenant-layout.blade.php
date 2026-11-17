@@ -1,5 +1,9 @@
 @props(['barbershop', 'roleLabel', 'activePage' => 'dashboard', 'canManageMembers' => false, 'canManageBranding' => false, 'canViewCustomers' => false])
 
+@php
+    $showGoogleCalendarConnectionButton = $canConnectGoogleCalendar && $googleCalendarConnection?->connected_at === null;
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -116,7 +120,16 @@
 
                 </nav>
 
-                <x-ui.surface as="div" class="mt-auto p-4">
+                @if ($showGoogleCalendarConnectionButton)
+                    <nav class="mt-auto mb-4" aria-label="Integraciones de barbería">
+                        <button type="button" x-on:click="$dispatch('open-modal', 'google-calendar-connection')" aria-haspopup="dialog" aria-controls="google-calendar-connection-dialog" class="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-[#111820] px-3 py-2 text-center text-xs font-semibold leading-4 text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" :class="sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''" title="Conectar Google Calendar">
+                            <img src="{{ asset('images/icons/google-calendar.png') }}" alt="" width="20" height="20" class="h-5 w-5 shrink-0" aria-hidden="true">
+                            <span :class="sidebarCollapsed ? 'lg:sr-only' : ''">Conectar Google<br>Calendar</span>
+                        </button>
+                    </nav>
+                @endif
+
+                <x-ui.surface as="div" class="{{ $showGoogleCalendarConnectionButton ? '' : 'mt-auto' }} p-4">
                     <p class="text-sm font-semibold text-white">{{ $barbershop->name }}</p>
                     <p class="mt-1 text-xs text-slate-400">{{ $barbershop->timezone }}</p>
                 </x-ui.surface>
@@ -159,6 +172,9 @@
                 <x-credits-footer />
             </div>
         </div>
+        @if ($canConnectGoogleCalendar)
+            @include('tenant.partials.google-calendar-modal')
+        @endif
         <x-form-feedback />
         <x-session-monitor />
     </body>

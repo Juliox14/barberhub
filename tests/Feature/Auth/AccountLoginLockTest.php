@@ -21,7 +21,7 @@ class AccountLoginLockTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const LOCK_NOTICE = 'El acceso está bloqueado temporalmente. Intentá más tarde o usá «¿Olvidaste tu contraseña?» para recuperar el acceso.';
+    private const LOCK_NOTICE = 'El acceso está bloqueado temporalmente. Intenta más tarde o usa «¿Olvidaste tu contraseña?» para recuperar el acceso.';
 
     public function test_threshold_and_subsequent_attempts_explain_temporary_block_without_extending_or_revealing_credentials(): void
     {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BarberGoogleCalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PlatformBarbershopController;
 use App\Http\Controllers\PlatformDashboardController;
@@ -35,6 +36,7 @@ Route::get('/barbershops/{barbershop:slug}/brand/{kind}', [TenantBrandingControl
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/google-calendar/callback', [BarberGoogleCalendarController::class, 'callback'])->name('tenant.google-calendar.callback');
 
     Route::middleware('platform.admin')->prefix('platform')->name('platform.')->group(function (): void {
         Route::get('/dashboard', PlatformDashboardController::class)->name('dashboard');
@@ -55,6 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/barbershops/select', TenantSelectorController::class)->name('tenant.selector');
     Route::middleware('tenant.member')->prefix('/barbershops/{barbershop:slug}')->group(function (): void {
         Route::get('/dashboard', TenantDashboardController::class)->name('tenant.dashboard');
+        Route::get('/google-calendar', [BarberGoogleCalendarController::class, 'show'])->name('tenant.google-calendar.show');
+        Route::post('/google-calendar/connect', [BarberGoogleCalendarController::class, 'connect'])->name('tenant.google-calendar.connect');
+        Route::delete('/google-calendar', [BarberGoogleCalendarController::class, 'disconnect'])->name('tenant.google-calendar.disconnect');
         Route::get('/branding', [TenantBrandingController::class, 'edit'])->name('tenant.branding.edit');
         Route::put('/branding', [TenantBrandingController::class, 'update'])->name('tenant.branding.update');
         Route::get('/customers', [TenantCustomerController::class, 'index'])->name('tenant.customers.index');
